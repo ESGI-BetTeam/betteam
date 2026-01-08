@@ -31,4 +31,4 @@ COPY --from=builder /app/apps/web/dist ./dist
 EXPOSE 3000
 
 # Start serve (serve listens on 0.0.0.0 by default)
-CMD ["sh", "-c", "serve dist -l ${PORT:-3000}"]
+CMD serve dist -p $PORT
