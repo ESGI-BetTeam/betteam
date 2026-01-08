@@ -16,13 +16,14 @@ console.log('Dist path:', distPath);
 console.log('Dist exists:', existsSync(distPath));
 console.log('Index.html exists:', existsSync(join(distPath, 'index.html')));
 
+// Health check endpoint (MUST be before static files)
+app.get('/health', (req, res) => {
+  console.log('Health check received');
+  res.status(200).json({ status: 'ok', port: PORT });
+});
+
 // Serve static files from dist directory
 app.use(express.static(distPath));
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
 
 // Handle client-side routing - return index.html for all routes
 app.get('*', (req, res, next) => {
