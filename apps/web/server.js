@@ -16,6 +16,12 @@ console.log('Dist path:', distPath);
 console.log('Dist exists:', existsSync(distPath));
 console.log('Index.html exists:', existsSync(join(distPath, 'index.html')));
 
+// Log ALL incoming requests (FIRST middleware)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Headers:`, JSON.stringify(req.headers));
+  next();
+});
+
 // Health check endpoint (MUST be before static files)
 app.get('/health', (req, res) => {
   console.log('Health check received');
