@@ -2,20 +2,30 @@
 node_modules/
 .pnp
 .pnp.js
+.yarn/
+.npm/
+package-lock.json.backup
 
 # Build outputs
 dist/
 build/
+out/
 *.local
+.next/
+.turbo/
+.vercel/
+.netlify/
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+combined.log
+error.log
 
 # Environment variables
 .env
@@ -24,24 +34,98 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 .env*.local
+!.env.example
+
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+*.js.map
+*.d.ts.map
 
 # IDEs and editors
 .idea/
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
 *.swp
 *.swo
+*.swn
 *~
-.DS_Store
+.project
+.classpath
+.settings/
+.factorypath
+*.sublime-workspace
+*.sublime-project
 
 # Testing
 coverage/
 .nyc_output/
+junit.xml
+test-results/
+playwright-report/
+.vitest/
 
-# Misc
-*.tsbuildinfo
+# Cache
 .cache/
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.next/cache/
+.turbo/
+
+# Temporary files
 temp/
 tmp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
 
-# OS
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+
+# React Native / Expo
+.expo/
+.expo-shared/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+ios/build/
+android/build/
+android/.gradle/
+android/app/build/
+android/app/release/
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Debug & profiling
+*.cpuprofile
+*.heapsnapshot
+.vscode/launch.json
+chrome-profiler-events*.json
+
+# Miscellaneous
+*.pid
+*.seed
+*.pid.lock
+.sass-cache/
+connect.lock
+typings/
+.npm
+.yarn-integrity
+.pnpm-debug.log

@@ -87,7 +87,12 @@ betteam/
 │   ├── mobile/             # Application mobile (React Native/Expo)
 │   │   └── package.json
 │   │
-│   └── api/                # Backend API (Node.js)
+│   └── api/                # Backend API (Node.js + Express)
+│       ├── src/
+│       │   ├── index.ts
+│       │   └── routes/
+│       ├── swagger.yaml    # Documentation OpenAPI
+│       ├── .env
 │       └── package.json
 │
 ├── packages/               # Packages partagés (à venir)
@@ -136,9 +141,12 @@ apps/web/src/components/
 - **Expo** (à venir)
 
 ### Backend
-- **Node.js** (à venir)
-- **Express/Fastify** (à venir)
-- **PostgreSQL/MongoDB** (à venir)
+- **Node.js 18+** - Runtime JavaScript
+- **Express 5** - Framework web
+- **TypeScript 5.9** - Typage statique
+- **Swagger UI** - Documentation API interactive
+- **PostgreSQL** (à venir)
+- **JWT** - Authentification (à venir)
 
 ### DevOps & Tools
 - **npm workspaces** - Gestion du monorepo
@@ -173,8 +181,18 @@ npm install
 npm run dev
 ```
 
-4. **Accéder à l'application**
-Ouvrez votre navigateur à l'adresse : [http://localhost:5173](http://localhost:5173)
+4. **Lancer l'API backend en développement**
+```bash
+# Depuis la racine du projet
+cd apps/api
+npm run dev
+```
+
+5. **Accéder aux applications**
+- **Application web** : [http://localhost:5173](http://localhost:5173)
+- **API Backend** : [http://localhost:3000](http://localhost:3000)
+- **Documentation API (Swagger UI)** : [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+- **Health Check** : [http://localhost:3000/api/health](http://localhost:3000/api/health)
 
 ---
 
@@ -188,6 +206,9 @@ npm run dev
 
 # Lancer uniquement l'application web
 npm run dev:web
+
+# Lancer uniquement l'API backend
+cd apps/api && npm run dev
 
 # Build de tous les workspaces
 npm run build
@@ -212,16 +233,35 @@ npm run build
 npm run preview
 ```
 
+### Commandes spécifiques à l'API backend
+
+```bash
+# Depuis apps/api/
+cd apps/api
+
+# Développement avec hot reload (nodemon)
+npm run dev
+
+# Build de production
+npm run build
+
+# Démarrer en production
+npm run start
+
+# Vérification des types TypeScript
+npm run type-check
+```
+
 ---
 
 ## ⚙️ Configuration
 
 ### Variables d'environnement
 
-Créez un fichier `.env.local` dans `apps/web/` :
+#### Application Web (`apps/web/.env.local`)
 
 ```env
-# API Configuration (à venir)
+# API Configuration
 VITE_API_URL=http://localhost:3000/api
 
 # Analytics (optionnel)
@@ -229,6 +269,26 @@ VITE_GA_TRACKING_ID=your-tracking-id
 
 # Feature flags
 VITE_ENABLE_SIGNUP=true
+```
+
+#### API Backend (`apps/api/.env`)
+
+Un fichier `.env.example` est fourni comme template. Copiez-le et configurez :
+
+```env
+# Server
+PORT=3000
+NODE_ENV=development
+
+# Database (à configurer)
+DATABASE_URL=postgresql://user:password@localhost:5432/betteam
+
+# JWT Authentication (à configurer)
+JWT_SECRET=your-secret-key-change-this-in-production
+JWT_EXPIRES_IN=7d
+
+# CORS
+CORS_ORIGIN=http://localhost:5173
 ```
 
 ### Configuration Tailwind
@@ -249,6 +309,53 @@ theme: {
 ---
 
 ## 💻 Développement
+
+### API Backend & Swagger UI
+
+L'API est documentée avec **OpenAPI 3.0** et accessible via **Swagger UI**.
+
+#### Accès à la documentation
+
+Une fois l'API lancée (`npm run dev` dans `apps/api/`), accédez à :
+- **Swagger UI** : [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+- Explorez tous les endpoints, schémas de données, et testez directement depuis l'interface
+
+#### Endpoints disponibles
+
+| Groupe | Endpoint | Méthode | Description |
+|--------|----------|---------|-------------|
+| Health | `/api/health` | GET | Vérifier l'état de l'API |
+| Auth | `/api/auth/register` | POST | Créer un compte |
+| Auth | `/api/auth/login` | POST | Se connecter |
+| Auth | `/api/auth/me` | GET | Profil utilisateur |
+| Leagues | `/api/leagues` | GET | Lister les ligues |
+| Leagues | `/api/leagues` | POST | Créer une ligue |
+| Leagues | `/api/leagues/:id` | GET | Détails d'une ligue |
+| Matches | `/api/matches` | GET | Lister les matchs |
+| Bets | `/api/bets` | GET | Lister mes paris |
+| Bets | `/api/bets` | POST | Placer un pari |
+
+#### Structure de l'API
+
+```
+apps/api/
+├── src/
+│   ├── index.ts              # Point d'entrée, config Express + Swagger
+│   ├── routes/
+│   │   ├── health.ts         # Health check endpoint
+│   │   ├── auth.ts           # Authentification
+│   │   ├── league.ts         # Gestion des ligues
+│   │   ├── matches.ts        # Gestion des matchs
+│   │   └── bets.ts           # Gestion des paris
+│   ├── middleware/           # (à venir) Auth, validation, etc.
+│   ├── models/               # (à venir) Modèles de données
+│   └── services/             # (à venir) Logique métier
+├── swagger.yaml              # Documentation OpenAPI complète
+├── .env                      # Variables d'environnement
+├── nodemon.json              # Config hot reload
+├── tsconfig.json             # Config TypeScript
+└── package.json
+```
 
 ### Structure des composants
 
@@ -361,9 +468,10 @@ Les contributions sont les bienvenues ! Voici comment contribuer :
 ## 🗺 Roadmap
 
 ### Q1 2026
-- [ ] Développement de l'API backend
-- [ ] Authentification et gestion utilisateurs
-- [ ] Base de données et modèles
+- [x] Setup de l'API backend avec Express et Swagger UI
+- [ ] Connexion base de données PostgreSQL
+- [ ] Authentification JWT et gestion utilisateurs
+- [ ] Implémentation des endpoints de ligues et paris
 
 ### Q2 2026
 - [ ] Application mobile iOS et Android

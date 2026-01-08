@@ -1,0 +1,640 @@
+openapi: 3.0.3
+info:
+  title: BetTeam API
+  description: |
+    API backend pour BetTeam - Plateforme de paris sportifs entre amis
+
+    ## Fonctionnalités principales
+    - Authentification et gestion des utilisateurs
+    - Création et gestion de ligues privées
+    - Paris sur des matchs sportifs
+    - Suivi des résultats et classements
+
+  version: 1.0.0
+  contact:
+    name: BetTeam Support
+    email: support@betteam.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Serveur de développement local
+  - url: https://api.betteam.com/api
+    description: Serveur de production
+
+tags:
+  - name: Health
+    description: Endpoints de santé et statut de l'API
+  - name: Auth
+    description: Authentification et gestion des utilisateurs
+  - name: Leagues
+    description: Gestion des ligues privées
+  - name: Matches
+    description: Gestion des matchs sportifs
+  - name: Bets
+    description: Gestion des paris
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Vérifier l'état de l'API
+      description: Endpoint pour vérifier que l'API fonctionne correctement
+      operationId: checkHealth
+      responses:
+        '200':
+          description: L'API fonctionne correctement
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: '2024-01-08T12:00:00Z'
+                  uptime:
+                    type: number
+                    description: Temps de fonctionnement en secondes
+                    example: 3600
+
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Créer un nouveau compte utilisateur
+      description: Inscription d'un nouvel utilisateur sur la plateforme
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - username
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 30
+                  example: johndoe
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SecurePass123!
+                firstName:
+                  type: string
+                  example: John
+                lastName:
+                  type: string
+                  example: Doe
+      responses:
+        '201':
+          description: Utilisateur créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email ou username déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Se connecter
+      description: Authentification d'un utilisateur existant
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePass123!
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT token pour l'authentification
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Obtenir le profil de l'utilisateur connecté
+      description: Récupère les informations de l'utilisateur actuellement authentifié
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leagues:
+    get:
+      tags:
+        - Leagues
+      summary: Lister toutes les ligues
+      description: Récupère la liste de toutes les ligues accessibles par l'utilisateur
+      operationId: getLeagues
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Numéro de page
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Nombre d'éléments par page
+      responses:
+        '200':
+          description: Liste des ligues
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/League'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Leagues
+      summary: Créer une nouvelle ligue
+      description: Crée une nouvelle ligue privée
+      operationId: createLeague
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  minLength: 3
+                  maxLength: 100
+                  example: Ligue des Champions Entre Potes
+                description:
+                  type: string
+                  maxLength: 500
+                  example: Notre ligue privée pour parier sur la Champions League
+                isPrivate:
+                  type: boolean
+                  default: true
+                  description: Ligue privée (sur invitation) ou publique
+      responses:
+        '201':
+          description: Ligue créée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/League'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leagues/{leagueId}:
+    get:
+      tags:
+        - Leagues
+      summary: Obtenir les détails d'une ligue
+      description: Récupère les informations détaillées d'une ligue spécifique
+      operationId: getLeagueById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Détails de la ligue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/League'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /matches:
+    get:
+      tags:
+        - Matches
+      summary: Lister les matchs
+      description: Récupère la liste des matchs disponibles pour parier
+      operationId: getMatches
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [upcoming, live, finished]
+          description: Filtrer par statut du match
+        - name: sport
+          in: query
+          schema:
+            type: string
+            enum: [football, basketball, tennis, rugby]
+          description: Filtrer par sport
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filtrer par date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: Liste des matchs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Match'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /bets:
+    post:
+      tags:
+        - Bets
+      summary: Placer un pari
+      description: Crée un nouveau pari sur un match
+      operationId: createBet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - matchId
+                - leagueId
+                - prediction
+                - amount
+              properties:
+                matchId:
+                  type: string
+                  format: uuid
+                  example: 123e4567-e89b-12d3-a456-426614174000
+                leagueId:
+                  type: string
+                  format: uuid
+                  example: 123e4567-e89b-12d3-a456-426614174001
+                prediction:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [winner, score, both_score]
+                      example: winner
+                    value:
+                      type: string
+                      example: home
+                amount:
+                  type: number
+                  minimum: 1
+                  example: 100
+                  description: Montant du pari en points
+      responses:
+        '201':
+          description: Pari créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bet'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags:
+        - Bets
+      summary: Lister mes paris
+      description: Récupère la liste des paris de l'utilisateur connecté
+      operationId: getMyBets
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: leagueId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filtrer par ligue
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, won, lost]
+          description: Filtrer par statut du pari
+      responses:
+        '200':
+          description: Liste des paris
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Bet'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtenu via /auth/login
+
+  parameters:
+    LeagueId:
+      name: leagueId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: ID unique de la ligue
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        username:
+          type: string
+          example: johndoe
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          example: https://api.betteam.com/avatars/user123.jpg
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-01-08T12:00:00Z'
+
+    League:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174001
+        name:
+          type: string
+          example: Ligue des Champions Entre Potes
+        description:
+          type: string
+          nullable: true
+          example: Notre ligue privée pour parier sur la Champions League
+        isPrivate:
+          type: boolean
+          example: true
+        ownerId:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
+        memberCount:
+          type: integer
+          example: 12
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-01-08T12:00:00Z'
+
+    Match:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174002
+        sport:
+          type: string
+          enum: [football, basketball, tennis, rugby]
+          example: football
+        homeTeam:
+          type: string
+          example: Paris Saint-Germain
+        awayTeam:
+          type: string
+          example: Olympique de Marseille
+        startTime:
+          type: string
+          format: date-time
+          example: '2024-01-15T20:00:00Z'
+        status:
+          type: string
+          enum: [upcoming, live, finished]
+          example: upcoming
+        score:
+          type: object
+          nullable: true
+          properties:
+            home:
+              type: integer
+              example: 2
+            away:
+              type: integer
+              example: 1
+
+    Bet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174003
+        userId:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
+        matchId:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174002
+        leagueId:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174001
+        prediction:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [winner, score, both_score]
+              example: winner
+            value:
+              type: string
+              example: home
+        amount:
+          type: number
+          example: 100
+        status:
+          type: string
+          enum: [pending, won, lost]
+          example: pending
+        potentialWin:
+          type: number
+          nullable: true
+          example: 150
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-01-08T12:00:00Z'
+
+    Pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 5
+        totalItems:
+          type: integer
+          example: 100
+        itemsPerPage:
+          type: integer
+          example: 20
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Une erreur est survenue
+        message:
+          type: string
+          example: Description détaillée de l'erreur
+        code:
+          type: string
+          example: VALIDATION_ERROR
+
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Bad Request
+            message: Les données fournies sont invalides
+            code: VALIDATION_ERROR
+
+    Unauthorized:
+      description: Non authentifié
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Unauthorized
+            message: Token d'authentification manquant ou invalide
+            code: UNAUTHORIZED
+
+    NotFound:
+      description: Ressource non trouvée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Not Found
+            message: La ressource demandée n'existe pas
+            code: NOT_FOUND
