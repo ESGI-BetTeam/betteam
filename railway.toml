@@ -1,0 +1,5 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "npx serve apps/web/dist -p $PORT --listen 0.0.0.0"
