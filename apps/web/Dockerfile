@@ -21,14 +21,15 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Install serve globally
-RUN npm install -g serve
+# Install express
+RUN npm install express
 
-# Copy built files from builder
+# Copy built files and server from builder
 COPY --from=builder /app/apps/web/dist ./dist
+COPY apps/web/server.js ./server.js
 
 # Expose port (Railway will set this via $PORT)
 EXPOSE 3000
 
-# Start serve (serve listens on 0.0.0.0 by default)
-CMD serve dist -p $PORT
+# Start Node.js server
+CMD ["node", "server.js"]
