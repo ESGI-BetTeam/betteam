@@ -1,49 +1,97 @@
-import { Check, Zap } from 'lucide-react'
+import { Check, X, Zap } from 'lucide-react'
 import Card from './Card'
 import Button from './Button'
 
-const plans = [
+interface Feature {
+  label: string
+  available: boolean
+}
+
+interface Plan {
+  name: string
+  price: string
+  period?: string
+  description: string
+  features: Feature[]
+  cta: string
+  highlighted: boolean
+}
+
+const plans: Plan[] = [
   {
-    name: 'Starter',
-    price: 'Gratuit',
-    description: 'Pour tester avec une petite équipe',
+    name: 'Free',
+    price: '0€',
+    description: 'Tester',
     features: [
-      '1 league privée',
-      'Jusqu\'à 20 utilisateurs',
-      'Toutes les compétitions',
-      'Classements temps réel',
-      'Support par email'
-    ],
-    cta: 'Commencer gratuitement',
-    highlighted: false
-  },
-  {
-    name: 'Team',
-    price: '49€',
-    period: '/mois',
-    description: 'Pour les équipes qui veulent aller plus loin',
-    features: [
-      'Leagues illimitées',
-      'Jusqu\'à 100 utilisateurs',
-      'Events personnalisés',
-      'Statistiques avancées',
-      'Support prioritaire',
-      'Intégrations Slack/Teams'
+      { label: '4 utilisateurs max', available: true },
+      { label: '1 league', available: true },
+      { label: 'Compétitions majeures uniquement', available: true },
+      { label: 'Events custom', available: false },
+      { label: 'Classement global', available: false },
+      { label: 'Historique 30 jours', available: true },
+      { label: 'Branding custom', available: false },
+      { label: 'SSO / SAML', available: false },
+      { label: 'Intégration Slack/Teams', available: false },
+      { label: 'Support FAQ', available: true }
     ],
     cta: 'Démarrer l\'essai gratuit',
     highlighted: true
   },
   {
+    name: 'Friends',
+    price: '5€',
+    period: '/mois',
+    description: 'Groupe d\'amis',
+    features: [
+      { label: '10 utilisateurs', available: true },
+      { label: '3 leagues', available: true },
+      { label: 'Toutes les compétitions', available: true },
+      { label: 'Events custom', available: false },
+      { label: 'Classement global', available: true },
+      { label: 'Historique 1 an', available: true },
+      { label: 'Branding custom', available: false },
+      { label: 'SSO / SAML', available: false },
+      { label: 'Intégration Slack/Teams', available: false },
+      { label: 'Support email', available: true }
+    ],
+    cta: 'Démarrer',
+    highlighted: false
+  },
+  {
+    name: 'Team',
+    price: '15€',
+    period: '/mois',
+    description: 'PME / Équipe',
+    features: [
+      { label: '50 utilisateurs', available: true },
+      { label: '10 leagues', available: true },
+      { label: 'Toutes les compétitions', available: true },
+      { label: 'Events custom', available: true },
+      { label: 'Classement global', available: true },
+      { label: 'Historique illimité', available: true },
+      { label: 'Branding custom', available: false },
+      { label: 'SSO / SAML', available: false },
+      { label: 'Intégration Slack/Teams', available: false },
+      { label: 'Support prioritaire', available: true }
+    ],
+    cta: 'Démarrer',
+    highlighted: false
+  },
+  {
     name: 'Enterprise',
     price: 'Sur devis',
-    description: 'Pour les grandes organisations',
+    description: 'Grande entreprise',
     features: [
-      'Utilisateurs illimités',
-      'SSO (Single Sign-On)',
-      'API dédiée',
-      'Support 24/7',
-      'Formation sur mesure',
-      'Account manager dédié'
+      { label: 'Utilisateurs illimités', available: true },
+      { label: 'Leagues illimitées', available: true },
+      { label: 'Toutes les compétitions + custom', available: true },
+      { label: 'Events custom', available: true },
+      { label: 'Classement global', available: true },
+      { label: 'Historique illimité', available: true },
+      { label: 'Branding custom', available: true },
+      { label: 'SSO / SAML', available: true },
+      { label: 'Intégration Slack/Teams', available: true },
+      { label: 'Account manager', available: true }
     ],
     cta: 'Nous contacter',
     highlighted: false
@@ -65,7 +113,7 @@ export default function Pricing() {
         </div>
 
         {/* Pricing Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans.map((plan, index) => (
             <div key={index} className="relative">
               {/* Highlighted Badge */}
@@ -93,14 +141,29 @@ export default function Pricing() {
                   </div>
 
                   {/* Features */}
-                  <ul className="space-y-3 mb-8 flex-grow">
-                    {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-3">
-                        <Check className="text-accent flex-shrink-0 mt-0.5" size={20} />
-                        <span className="text-white/80">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="mb-8 flex-grow">
+                    {/* Available Features */}
+                    <ul className="space-y-3 mb-4">
+                      {plan.features.filter(f => f.available).map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-3">
+                          <Check className="text-accent flex-shrink-0 mt-0.5" size={20} />
+                          <span className="text-white/80">{feature.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* Unavailable Features */}
+                    {plan.features.some(f => !f.available) && (
+                      <ul className="space-y-3">
+                        {plan.features.filter(f => !f.available).map((feature, idx) => (
+                          <li key={idx} className="flex items-start gap-3">
+                            <X className="text-white/20 flex-shrink-0 mt-0.5" size={20} />
+                            <span className="text-white/30 line-through">{feature.label}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
 
                   {/* CTA */}
                   <Button
