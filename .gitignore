@@ -58,6 +58,11 @@ tsconfig.tsbuildinfo
 *.sublime-workspace
 *.sublime-project
 
+# AI Tools
+.claude/
+.cursor/
+.continue/
+
 # Testing
 coverage/
 .nyc_output/

@@ -1,0 +1,203 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// SPORTS DATA MODELS (TheSportsDB sync)
+// ============================================
+
+model Competition {
+  id          String   @id @default(cuid())
+  externalId  String   @unique @map("external_id")
+  name        String
+  sport       String
+  country     String?
+  logoUrl     String?  @map("logo_url")
+  isActive    Boolean  @default(true) @map("is_active")
+  syncedAt    DateTime @default(now()) @map("synced_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  matches     Match[]
+  syncLogs    SyncLog[]
+
+  @@map("competitions")
+  @@index([externalId])
+  @@index([sport])
+  @@index([isActive])
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  externalId  String   @unique @map("external_id")
+  name        String
+  shortName   String?  @map("short_name")
+  logoUrl     String?  @map("logo_url")
+  country     String?
+  syncedAt    DateTime @default(now()) @map("synced_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  homeMatches Match[]  @relation("HomeTeam")
+  awayMatches Match[]  @relation("AwayTeam")
+
+  @@map("teams")
+  @@index([externalId])
+  @@index([name])
+}
+
+model Match {
+  id            String   @id @default(cuid())
+  externalId    String   @unique @map("external_id")
+  competitionId String   @map("competition_id")
+  homeTeamId    String   @map("home_team_id")
+  awayTeamId    String   @map("away_team_id")
+  startTime     DateTime @map("start_time")
+  status        String   @default("upcoming") // upcoming, live, finished, postponed, cancelled
+  homeScore     Int?     @map("home_score")
+  awayScore     Int?     @map("away_score")
+  venue         String?
+  round         String?
+  syncedAt      DateTime @default(now()) @map("synced_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  homeTeam      Team        @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam      Team        @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  bets          Bet[]
+
+  @@map("matches")
+  @@index([externalId])
+  @@index([competitionId])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([status])
+  @@index([startTime])
+}
+
+model SyncLog {
+  id            String   @id @default(cuid())
+  type          String   // "competitions", "teams", "matches"
+  competitionId String?  @map("competition_id")
+  status        String   // "success", "error", "partial"
+  itemsSynced   Int      @default(0) @map("items_synced")
+  durationMs    Int      @map("duration_ms")
+  error         String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  competition   Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+
+  @@map("sync_logs")
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// USER & AUTHENTICATION MODELS
+// ============================================
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String   @map("password_hash")
+  firstName     String?  @map("first_name")
+  lastName      String?  @map("last_name")
+  avatar        String?
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  ownedLeagues  League[]        @relation("LeagueOwner")
+  memberships   LeagueMember[]
+  bets          Bet[]
+
+  @@map("users")
+  @@index([email])
+  @@index([username])
+}
+
+// ============================================
+// LEAGUE & BETTING MODELS
+// ============================================
+
+model League {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  isPrivate   Boolean  @default(true) @map("is_private")
+  ownerId     String   @map("owner_id")
+  inviteCode  String   @unique @map("invite_code")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  owner       User           @relation("LeagueOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     LeagueMember[]
+  bets        Bet[]
+
+  @@map("leagues")
+  @@index([ownerId])
+  @@index([inviteCode])
+  @@index([isActive])
+}
+
+model LeagueMember {
+  id        String   @id @default(cuid())
+  leagueId  String   @map("league_id")
+  userId    String   @map("user_id")
+  role      String   @default("member") // owner, admin, member
+  points    Int      @default(1000) // Starting points
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  // Relations
+  league    League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([leagueId, userId])
+  @@map("league_members")
+  @@index([leagueId])
+  @@index([userId])
+}
+
+model Bet {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  matchId         String   @map("match_id")
+  leagueId        String   @map("league_id")
+  predictionType  String   @map("prediction_type") // winner, score, both_score, etc.
+  predictionValue String   @map("prediction_value") @db.Text // JSON string
+  amount          Int      // Points wagered
+  status          String   @default("pending") // pending, won, lost, void
+  potentialWin    Int?     @map("potential_win")
+  actualWin       Int?     @map("actual_win")
+  createdAt       DateTime @default(now()) @map("created_at")
+  settledAt       DateTime? @map("settled_at")
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match           Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  league          League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+
+  @@map("bets")
+  @@index([userId])
+  @@index([matchId])
+  @@index([leagueId])
+  @@index([status])
+  @@index([createdAt])
+}

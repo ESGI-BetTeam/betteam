@@ -252,6 +252,58 @@ npm run start
 npm run type-check
 ```
 
+### Commandes Base de Données (Prisma)
+
+```bash
+# Depuis apps/api/
+cd apps/api
+
+# Générer le client Prisma (après modification du schema)
+npm run db:generate
+
+# Créer une nouvelle migration (développement)
+npm run db:migrate
+# Exemple: npx prisma migrate dev --name add_new_table
+
+# Appliquer les migrations en production (Railway)
+npm run db:migrate:deploy
+
+# Pousser le schéma directement sans migration (prototypage rapide)
+npm run db:push
+
+# Ouvrir Prisma Studio (interface graphique pour la BDD)
+npm run db:studio
+
+# Seeder la base de données avec des données de test
+npm run db:seed
+```
+
+#### Workflow typique de migration
+
+**1. Modifier le schéma Prisma**
+```bash
+# Éditer apps/api/prisma/schema.prisma
+# Ajouter/modifier des models
+```
+
+**2. Créer et appliquer la migration**
+```bash
+cd apps/api
+npm run db:migrate
+# Entrer un nom descriptif: "add_user_avatar" par exemple
+```
+
+**3. Le client Prisma est automatiquement régénéré**
+```bash
+# Vous pouvez maintenant utiliser les nouveaux models dans votre code
+```
+
+**4. Commiter les fichiers de migration**
+```bash
+git add prisma/migrations/
+git commit -m "feat: add user avatar field"
+```
+
 ---
 
 ## ⚙️ Configuration
@@ -280,8 +332,9 @@ Un fichier `.env.example` est fourni comme template. Copiez-le et configurez :
 PORT=3000
 NODE_ENV=development
 
-# Database (à configurer)
-DATABASE_URL=postgresql://user:password@localhost:5432/betteam
+# Database (Railway PostgreSQL)
+# Obtenir depuis Railway Dashboard > PostgreSQL Service > Connect
+DATABASE_URL=postgresql://postgres:PASSWORD@xxx.proxy.rlwy.net:PORT/railway
 
 # JWT Authentication (à configurer)
 JWT_SECRET=your-secret-key-change-this-in-production
@@ -290,6 +343,14 @@ JWT_EXPIRES_IN=7d
 # CORS
 CORS_ORIGIN=http://localhost:5173
 ```
+
+**Configuration Railway PostgreSQL :**
+
+1. Créer un projet sur [railway.app](https://railway.app)
+2. Ajouter un service **PostgreSQL**
+3. Cliquer sur le service PostgreSQL > **Connect**
+4. Copier la **Public URL** (celle avec `.proxy.rlwy.net`)
+5. Coller dans `apps/api/.env` comme `DATABASE_URL`
 
 ### Configuration Tailwind
 
@@ -355,6 +416,47 @@ apps/api/
 ├── nodemon.json              # Config hot reload
 ├── tsconfig.json             # Config TypeScript
 └── package.json
+```
+
+### Base de Données (PostgreSQL + Prisma)
+
+L'application utilise **PostgreSQL** hébergé sur **Railway** avec **Prisma** comme ORM.
+
+#### Tables principales
+
+**Sports Data (sync TheSportsDB)**
+- `competitions` - Compétitions sportives (Ligue 1, Champions League, etc.)
+- `teams` - Équipes sportives avec logos et infos
+- `matches` - Matchs à venir, en cours, et terminés
+- `sync_logs` - Logs de synchronisation avec TheSportsDB
+
+**User & Auth**
+- `users` - Utilisateurs de l'application
+
+**Betting System**
+- `leagues` - Ligues privées d'entreprise
+- `league_members` - Membres des ligues avec leur solde de points
+- `bets` - Paris placés par les utilisateurs
+
+#### Schéma Prisma
+
+Le schéma complet est dans `apps/api/prisma/schema.prisma`. Pour visualiser la base de données :
+
+```bash
+cd apps/api
+npm run db:studio
+```
+
+Cela ouvre **Prisma Studio** sur [http://localhost:5555](http://localhost:5555) - une interface graphique pour explorer et éditer les données.
+
+#### Migrations
+
+Les migrations sont versionnées dans `apps/api/prisma/migrations/`. Chaque migration crée un fichier SQL qui décrit les changements du schéma.
+
+Pour créer une nouvelle migration après modification du schéma :
+```bash
+cd apps/api
+npm run db:migrate
 ```
 
 ### Structure des composants
