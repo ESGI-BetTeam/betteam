@@ -8,4 +8,4 @@ cmds = ["npm ci"]
 cmds = ["npm run build --workspace=@betteam/web"]
 
 [start]
-cmd = "npx serve apps/web/dist -l $PORT"
+cmd = "npx serve apps/web/dist -p $PORT --listen 0.0.0.0"
