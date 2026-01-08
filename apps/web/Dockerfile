@@ -30,5 +30,5 @@ COPY --from=builder /app/apps/web/dist ./dist
 # Expose port (Railway will set this via $PORT)
 EXPOSE 3000
 
-# Start serve
-CMD ["sh", "-c", "serve dist -p ${PORT:-3000} --listen 0.0.0.0"]
+# Start serve (serve listens on 0.0.0.0 by default)
+CMD ["sh", "-c", "serve dist -l ${PORT:-3000}"]
