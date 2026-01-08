@@ -31,8 +31,5 @@ RUN npm install --production
 COPY --from=builder /app/apps/web/dist ./dist
 COPY apps/web/server.js ./server.js
 
-# Expose port (Railway will set this via $PORT)
-EXPOSE 3000
-
 # Start Node.js server
 CMD ["node", "server.js"]
