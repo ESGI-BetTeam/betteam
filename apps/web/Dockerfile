@@ -21,8 +21,11 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Install express
-RUN npm install express
+# Copy package.json for dependencies and ESM support
+COPY apps/web/package.json ./
+
+# Install production dependencies only
+RUN npm install --production
 
 # Copy built files and server from builder
 COPY --from=builder /app/apps/web/dist ./dist

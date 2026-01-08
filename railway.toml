@@ -1,5 +1,6 @@
 [build]
-builder = "NIXPACKS"
+builder = "DOCKERFILE"
+dockerfilePath = "apps/web/Dockerfile"
 
 [deploy]
-startCommand = "npx serve apps/web/dist -p $PORT --listen 0.0.0.0"
+startCommand = "node server.js"
