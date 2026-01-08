@@ -20,7 +20,7 @@ async function main() {
   await prisma.match.deleteMany();
   await prisma.team.deleteMany();
   await prisma.competition.deleteMany();
-  await prisma.syncLog.deleteMany();
+  await prisma.syncLog.deleteMany(); 
   await prisma.user.deleteMany();
 
   // Create sample users
