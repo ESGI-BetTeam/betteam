@@ -3,6 +3,7 @@ import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import path from 'path';
+import fs from 'fs';
 
 // Import Prisma client (charge déjà dotenv si nécessaire)
 import { prisma } from './lib/prisma';
@@ -23,11 +24,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Load Swagger documentation
-// En développement: __dirname = /apps/api/src -> ../swagger.yaml
-// En production: __dirname = /app/dist/apps/api/src -> ../../../../swagger.yaml
-const swaggerPath = process.env.NODE_ENV === 'production'
-  ? path.join(__dirname, '../../../../swagger.yaml')
-  : path.join(__dirname, '../swagger.yaml');
+// Essayer plusieurs chemins possibles pour trouver swagger.yaml
+let swaggerPath = '';
+const possiblePaths = [
+  path.join(__dirname, '../swagger.yaml'),           // Développement
+  path.join(__dirname, '../../../../swagger.yaml'),  // Production (dist/apps/api/src -> racine)
+  path.join(__dirname, '../../../swagger.yaml'),     // Alternative
+  '/app/swagger.yaml',                               // Absolu Railway
+];
+
+for (const tryPath of possiblePaths) {
+  if (fs.existsSync(tryPath)) {
+    swaggerPath = tryPath;
+    break;
+  }
+}
+
+if (!swaggerPath) {
+  console.error('❌ swagger.yaml introuvable. Chemins testés:', possiblePaths);
+  throw new Error('swagger.yaml not found');
+}
+
+console.log('📄 Swagger loaded from:', swaggerPath);
 const swaggerDocument = YAML.load(swaggerPath);
 
 // Swagger UI
