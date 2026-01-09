@@ -14,8 +14,8 @@ RUN npm ci
 # Copier le package shared
 COPY packages/shared ./packages/shared/
 
-# Copier le code source de l'API
-COPY apps/api ./apps/api/
+# Copier le code source de l'API (avec slash pour copier le CONTENU)
+COPY apps/api/ ./apps/api/
 
 # Build l'API
 WORKDIR /monorepo/apps/api
