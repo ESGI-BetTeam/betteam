@@ -19,6 +19,11 @@ COPY apps/api ./apps/api/
 
 # Build l'API
 WORKDIR /monorepo/apps/api
+
+# Générer le client Prisma AVANT le build TypeScript
+RUN npx prisma generate
+
+# Compiler TypeScript
 RUN npm run build
 
 # Production stage
