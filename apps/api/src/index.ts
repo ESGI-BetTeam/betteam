@@ -1,11 +1,10 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import path from 'path';
 
-// Import Prisma client
+// Import Prisma client (charge déjà dotenv si nécessaire)
 import { prisma } from './lib/prisma';
 
 // Import routes
@@ -14,8 +13,6 @@ import authRouter from './routes/auth';
 import betsRouter from './routes/bets';
 import leagueRouter from './routes/league';
 import matchesRouter from './routes/matches';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,7 +23,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Load Swagger documentation
-const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
+// En développement: __dirname = /apps/api/src -> ../swagger.yaml
+// En production: __dirname = /app/dist/apps/api/src -> ../../../../swagger.yaml
+const swaggerPath = process.env.NODE_ENV === 'production'
+  ? path.join(__dirname, '../../../../swagger.yaml')
+  : path.join(__dirname, '../swagger.yaml');
+const swaggerDocument = YAML.load(swaggerPath);
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
