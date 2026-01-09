@@ -2,18 +2,38 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
+import { User, PrivateUser} from '@betteam/shared/interfaces/User';
+import { RegisterRequest } from '@betteam/shared/api/registerRequest';
+import { RegisterResponse } from '@betteam/shared/api/registerResponse';  
+import { LoginRequest } from '@betteam/shared/api/loginRequest';
+import { LoginResponse } from '@betteam/shared/api/loginResponse';
+import { AuthMeResponse } from '@betteam/shared/api/authmeResponse';
 
 const router = Router();
 
+const generateToken = (userId: string): string => {
+  return jwt.sign(
+    { userId: userId },
+    process.env.JWT_SECRET!,
+    { 
+      expiresIn:  '7d',
+    }
+  );
+};
+
+const transformPrivateUserToUser = (privateUser: PrivateUser): User => {
+  const { passwordHash, ...user } = privateUser;
+  return user;
+}
+
 // POST /api/auth/register
-router.post('/register', async (req: Request, res: Response): Promise<any> => {
+router.post('/register', async (req: Request<{}, {}, RegisterRequest.Body>, res: Response<RegisterResponse | { error: string }>)=> {
   try {
     const { email, username, password, firstName, lastName } = req.body;
 
     if (!email || !username || !password) {
       return res.status(400).json({
-        error: 'Missing Fields',
-        message: "Email, username and password are required.",
+        error: "Email, username and password are required.",
       });
     }
 
@@ -27,10 +47,9 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
     });
 
     if (existingUser) {
-      const field = existingUser.email === email ? 'Email' : "Nom d'utilisateur";
+      const field = existingUser.email === email ? 'Email' : "Username";
       return res.status(409).json({
-        error: 'Conflict',
-        message: `${field} is already used by another account.`,
+        error: `${field} is already used by another account.`,
       });
     }
 
@@ -47,45 +66,106 @@ router.post('/register', async (req: Request, res: Response): Promise<any> => {
       },
     });
 
-    const token = jwt.sign(
-      { userId: newUser.id, username: newUser.username, email: newUser.email },
-      process.env.JWT_SECRET!,
-      { expiresIn: '7d' } //replace by the env variable for availaibility datetime
-    );
+    const token = generateToken(newUser.id)
 
-    const { passwordHash: _, ...userWithoutPassword } = newUser;
+    const publicUser = transformPrivateUserToUser(newUser);
 
     return res.status(201).json({
-      message: 'Inscription successful',
-      user: userWithoutPassword,
+      user: publicUser,
       token,
     });
 
   } catch (error) {
     console.error('Erreur Register:', error);
     return res.status(500).json({
-      error: 'Internal Server Error',
-      message: "An error occurred during registration.",
+      error: 'Internal Server Error, an error occurred during registration.',
     });
   }
 });
 
 // POST /api/auth/login
-router.post('/login', (req: Request, res: Response) => {
-  // TODO: Implémenter la logique de connexion
-  res.status(501).json({
-    error: 'Not Implemented',
-    message: 'Endpoint de connexion à implémenter',
-  });
+router.post('/login', async (req: Request<{}, {}, LoginRequest.Body>, res: Response<LoginResponse | { error: string }>) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+
+    // On cherche l'utilisateur
+    const user = await prisma.user.findUnique({
+      where: { email: email },
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: "Invalid credentials." });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Invalid credentials." });
+    }
+
+    const token = generateToken(user.id);
+    const publicUser = transformPrivateUserToUser(user);
+
+    return res.status(200).json({
+      message: 'Login successful',
+      user: publicUser,
+      token,
+    });
+
+  } catch (error) {
+    console.error('Erreur Login:', error);
+    return res.status(500).json({ error: 'Internal Server Error during login.' });
+  }
 });
 
 // GET /api/auth/me
-router.get('/me', (req: Request, res: Response) => {
-  // TODO: Implémenter la récupération du profil utilisateur
-  res.status(501).json({
-    error: 'Not Implemented',
-    message: 'Endpoint de profil utilisateur à implémenter',
-  });
+router.get('/me', async (req: Request, res: Response<AuthMeResponse | { error: string }>) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No token provided.' });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'Malformed token.' });
+    }
+
+    let payload: jwt.JwtPayload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
+    } catch (err) {
+      return res.status(403).json({ error: 'Invalid or expired token.' });
+    }
+
+    if (!payload || typeof payload.userId !== 'string') {
+        return res.status(403).json({ error: 'Invalid token payload.' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const publicUser = transformPrivateUserToUser(user);
+    
+    return res.status(200).json({
+      user: publicUser,
+    });
+
+  } catch (error) {
+    console.error('Erreur Auth Me:', error);
+    return res.status(500).json({
+      error: 'Internal Server Error while fetching user profile.',
+    });
+  }
 });
 
 export default router;
