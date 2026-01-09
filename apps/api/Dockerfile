@@ -1,19 +1,20 @@
 # Build stage
 FROM node:24-alpine AS builder
 
-WORKDIR /app
+# Le contexte de build est la racine du monorepo
+WORKDIR /monorepo
 
-# Copier les fichiers de configuration
-COPY apps/api/package.json apps/api/package-lock.json* ./
+# Copier les fichiers de dépendances
+COPY package*.json ./
+COPY apps/api/package*.json ./apps/api/
+COPY packages/shared ./packages/shared/
 
-# Installer les dépendances
+# Installer toutes les dépendances
+WORKDIR /monorepo/apps/api
 RUN npm ci
 
-# Copier le package shared (nécessaire pour la compilation)
-COPY packages/shared ../packages/shared
-
 # Copier le code source de l'API
-COPY apps/api .
+COPY apps/api ./
 
 # Build l'API
 RUN npm run build
@@ -23,20 +24,18 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Copier package.json
-COPY apps/api/package.json ./
-
-# Installer uniquement les dépendances de production
+# Copier package.json et installer uniquement les dépendances de production
+COPY apps/api/package*.json ./
 RUN npm ci --omit=dev
 
-# Copier le package shared (nécessaire à l'exécution)
-COPY --from=builder /packages/shared ../packages/shared
+# Copier le package shared si nécessaire
+COPY packages/shared /packages/shared
 
-# Copier le code compilé et les fichiers nécessaires
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/swagger.yaml ./swagger.yaml
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+# Copier le code compilé et les fichiers nécessaires depuis le builder
+COPY --from=builder /monorepo/apps/api/dist ./dist
+COPY --from=builder /monorepo/apps/api/prisma ./prisma
+COPY --from=builder /monorepo/apps/api/swagger.yaml ./swagger.yaml
+COPY --from=builder /monorepo/apps/api/prisma.config.ts ./prisma.config.ts
 
 # Générer le client Prisma
 RUN npx prisma generate
