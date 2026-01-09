@@ -3,18 +3,19 @@ FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-# Copier les fichiers de configuration du monorepo
-COPY package.json package-lock.json ./
-COPY apps/api/package.json ./apps/api/
+# Copier les fichiers de configuration
+COPY apps/api/package.json apps/api/package-lock.json* ./
 
-# Installer toutes les dépendances (nécessaire pour les workspaces)
+# Installer les dépendances
 RUN npm ci
 
+# Copier le package shared (nécessaire pour la compilation)
+COPY packages/shared ../packages/shared
+
 # Copier le code source de l'API
-COPY apps/api ./apps/api
+COPY apps/api .
 
 # Build l'API
-WORKDIR /app/apps/api
 RUN npm run build
 
 # Production stage
@@ -22,21 +23,22 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Copier les fichiers de configuration
-COPY --from=builder /app/package.json /app/package-lock.json ./
-COPY --from=builder /app/apps/api/package.json ./apps/api/
+# Copier package.json
+COPY apps/api/package.json ./
 
 # Installer uniquement les dépendances de production
-RUN npm ci --workspace=@betteam/api --omit=dev
+RUN npm ci --omit=dev
+
+# Copier le package shared (nécessaire à l'exécution)
+COPY --from=builder /packages/shared ../packages/shared
 
 # Copier le code compilé et les fichiers nécessaires
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
-COPY --from=builder /app/apps/api/swagger.yaml ./apps/api/swagger.yaml
-COPY --from=builder /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/swagger.yaml ./swagger.yaml
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
 # Générer le client Prisma
-WORKDIR /app/apps/api
 RUN npx prisma generate
 
 EXPOSE 3000
