@@ -71,9 +71,9 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // Start server
-app.listen(PORT, async () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  console.log(`📚 API Documentation available at http://localhost:${PORT}/api-docs`);
+app.listen(PORT, '0.0.0.0', async () => {
+  console.log(`🚀 Server is running on http://0.0.0.0:${PORT}`);
+  console.log(`📚 API Documentation available at http://0.0.0.0:${PORT}/api-docs`);
 
   // Test database connection
   try {
