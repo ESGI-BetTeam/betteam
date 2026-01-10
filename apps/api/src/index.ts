@@ -16,7 +16,7 @@ import leagueRouter from './routes/league';
 import matchesRouter from './routes/matches';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 // Middlewares
 app.use(cors());
