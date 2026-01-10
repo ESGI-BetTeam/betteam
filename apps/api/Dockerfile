@@ -6,7 +6,13 @@ WORKDIR /monorepo
 
 # Copier les fichiers de dépendances du monorepo
 COPY package*.json ./
+
+# Copier TOUS les package.json des workspaces (requis pour npm ci en monorepo)
 COPY apps/api/package*.json ./apps/api/
+COPY apps/web/package*.json ./apps/web/
+COPY apps/mobile/package*.json ./apps/mobile/
+COPY apps/assets/package*.json ./apps/assets/
+COPY packages/shared/package*.json ./packages/shared/
 
 # Installer toutes les dépendances depuis la racine (pour le monorepo)
 RUN npm ci
