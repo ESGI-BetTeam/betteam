@@ -12,6 +12,13 @@
 
 ---
 
+## 📚 Documentation
+
+- 🚀 **[Guide de Démarrage Rapide](./QUICK_START.md)** - Pour commencer rapidement
+- 🔄 **[Workflow de Développement](./WORKFLOW.md)** - Guide complet du workflow git
+- 🛠️ **[Guide de Configuration](./SETUP.md)** - Mise en place des environnements dev/prod
+- 📋 **[Variables d'Environnement](./.env.example)** - Template des variables
+
 ## 📋 Table des matières
 
 - [À propos](#-à-propos)
@@ -491,21 +498,31 @@ export default function ExampleComponent({ title, onAction }: ExampleProps) {
 
 ### Git Workflow
 
-1. Créer une branche depuis `main` :
+Le projet utilise un workflow **Git Flow** avec deux branches principales :
+- `main` - Production (déploiement automatique)
+- `dev` - Développement/Staging (déploiement automatique dev)
+
+**Workflow complet** : Voir [WORKFLOW.md](./WORKFLOW.md)
+
+**Résumé rapide** :
+
+1. Créer une branche depuis `dev` :
 ```bash
-git checkout -b feat/nouvelle-fonctionnalite
+git checkout dev
+git pull origin dev
+git checkout -b feature/nouvelle-fonctionnalite
 ```
 
-2. Faire des commits atomiques :
+2. Développer et commiter :
 ```bash
 git add .
 git commit -m "feat: ajoute la fonctionnalité X"
+git push -u origin feature/nouvelle-fonctionnalite
 ```
 
-3. Pousser et créer une Pull Request :
-```bash
-git push origin feat/nouvelle-fonctionnalite
-```
+3. Créer une Pull Request vers `dev` sur GitHub
+
+4. Après tests sur dev, merger `dev` → `main` pour déployer en production
 
 ### Types de commits
 
@@ -516,6 +533,14 @@ git push origin feat/nouvelle-fonctionnalite
 - `refactor:` - Refactoring de code
 - `test:` - Ajout de tests
 - `chore:` - Tâches maintenance
+
+### Environnements
+
+| Env | Branche | Déploiement |
+|-----|---------|-------------|
+| **Production** | `main` | Automatique sur Railway |
+| **Dev** | `dev` | Automatique sur Railway |
+| **Local** | feature/* | `npm run dev` |
 
 ---
 
