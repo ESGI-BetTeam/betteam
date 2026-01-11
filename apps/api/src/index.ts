@@ -27,6 +27,20 @@ console.log(`🔧 [4/8] Express app created, PORT=${PORT}`);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`📥 [${timestamp}] ${req.method} ${req.path} - IP: ${req.ip}`);
+
+  // Log when response is sent
+  res.on('finish', () => {
+    console.log(`📤 [${timestamp}] ${req.method} ${req.path} - Status: ${res.statusCode}`);
+  });
+
+  next();
+});
+
 console.log('🔧 [5/8] Middlewares configured');
 
 // Load Swagger documentation
