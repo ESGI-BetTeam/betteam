@@ -5,8 +5,11 @@ import YAML from 'yamljs';
 import path from 'path';
 import fs from 'fs';
 
+console.log('🔧 [1/8] Starting BetTeam API...');
+
 // Import Prisma client (charge déjà dotenv si nécessaire)
 import { prisma } from './lib/prisma';
+console.log('🔧 [2/8] Prisma client imported');
 
 // Import routes
 import healthRouter from './routes/health';
@@ -14,14 +17,36 @@ import authRouter from './routes/auth';
 import betsRouter from './routes/bets';
 import leagueRouter from './routes/league';
 import matchesRouter from './routes/matches';
+<<<<<<< Updated upstream
+console.log('🔧 [3/8] Routes imported');
+=======
+import competitionsRouter from './routes/competitions';
+import syncRouter from './routes/sync';
+>>>>>>> Stashed changes
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
+console.log(`🔧 [4/8] Express app created, PORT=${PORT}`);
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`📥 [${timestamp}] ${req.method} ${req.path} - IP: ${req.ip}`);
+
+  // Log when response is sent
+  res.on('finish', () => {
+    console.log(`📤 [${timestamp}] ${req.method} ${req.path} - Status: ${res.statusCode}`);
+  });
+
+  next();
+});
+
+console.log('🔧 [5/8] Middlewares configured');
 
 // Load Swagger documentation
 // Essayer plusieurs chemins possibles pour trouver swagger.yaml
@@ -53,6 +78,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'BetTeam API Documentation',
 }));
+console.log('🔧 [6/8] Swagger UI configured');
 
 // Routes
 app.use('/api/health', healthRouter);
@@ -60,6 +86,12 @@ app.use('/api/auth', authRouter);
 app.use('/api/bets', betsRouter);
 app.use('/api/leagues', leagueRouter);
 app.use('/api/matches', matchesRouter);
+<<<<<<< Updated upstream
+console.log('🔧 [7/8] Routes registered');
+=======
+app.use('/api/competitions', competitionsRouter);
+app.use('/api/sync', syncRouter);
+>>>>>>> Stashed changes
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -71,9 +103,10 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // Start server
-app.listen(PORT, async () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  console.log(`📚 API Documentation available at http://localhost:${PORT}/api-docs`);
+console.log('🔧 [8/8] Starting server...');
+const server = app.listen(PORT, '0.0.0.0', async () => {
+  console.log(`🚀 Server is running on http://0.0.0.0:${PORT}`);
+  console.log(`📚 API Documentation available at http://0.0.0.0:${PORT}/api-docs`);
 
   // Test database connection
   try {
@@ -83,6 +116,28 @@ app.listen(PORT, async () => {
     console.error('❌ Database connection failed:', error);
     process.exit(1);
   }
+});
+
+// Handle server errors
+server.on('error', (error: any) => {
+  console.error('❌ Server error:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use`);
+  }
+  process.exit(1);
+});
+
+// Global error handlers
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise);
+  console.error('Reason:', reason);
+  process.exit(1);
 });
 
 // Graceful shutdown
