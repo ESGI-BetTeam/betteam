@@ -17,7 +17,12 @@ import authRouter from './routes/auth';
 import betsRouter from './routes/bets';
 import leagueRouter from './routes/league';
 import matchesRouter from './routes/matches';
+<<<<<<< Updated upstream
 console.log('🔧 [3/8] Routes imported');
+=======
+import competitionsRouter from './routes/competitions';
+import syncRouter from './routes/sync';
+>>>>>>> Stashed changes
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -81,7 +86,12 @@ app.use('/api/auth', authRouter);
 app.use('/api/bets', betsRouter);
 app.use('/api/leagues', leagueRouter);
 app.use('/api/matches', matchesRouter);
+<<<<<<< Updated upstream
 console.log('🔧 [7/8] Routes registered');
+=======
+app.use('/api/competitions', competitionsRouter);
+app.use('/api/sync', syncRouter);
+>>>>>>> Stashed changes
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
