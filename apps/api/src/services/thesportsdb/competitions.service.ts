@@ -10,31 +10,31 @@ import {
  */
 export const COMPETITION_IDS = {
   // Football (5 ligues)
-  LIGUE_1: '4334',
-  PREMIER_LEAGUE: '4328',
-  LA_LIGA: '4335',
-  BUNDESLIGA: '4331',
-  SERIE_A: '4332',
+  LIGUE_1: '7335',
+  PREMIER_LEAGUE: '7293',
+  LA_LIGA: '7351',
+  BUNDESLIGA: '7338',
+  SERIE_A: '7286',
 
   // Rugby (2 compétitions)
-  TOP_14: '4430',
-  UNITED_RUGBY_CHAMPIONSHIP: '4446',
+  TOP_14: '16',
+  UNITED_RUGBY_CHAMPIONSHIP: '76',
 
   // Tennis (2 circuits)
   ATP_WORLD_TOUR: '4464',
-  WTA_TOUR: '4517',
+  WTA_TOUR: '',
 
   // Basketball
-  NBA: '4387',
+  NBA: '12',
 
   // Cyclisme
-  UCI_WORLD_TOUR: '4465',
+  UCI_WORLD_TOUR: '',
 
   // Hockey sur glace
-  NHL: '4380',
+  NHL: '57',
 
   // Formule 1
-  FORMULA_1: '4370',
+  FORMULA_1: '',
 } as const;
 
 /**
