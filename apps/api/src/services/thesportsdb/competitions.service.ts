@@ -58,11 +58,11 @@ class CompetitionsService {
         cacheTTL
       );
 
-      if (!response.leagues || response.leagues.length === 0) {
+      if (!response.lookup || response.lookup.length === 0) {
         throw new Error(`Competition ${leagueId} not found`);
       }
 
-      const league = response.leagues[0];
+      const league = response.lookup[0];
       await this.upsertCompetition(league);
 
       const duration = Date.now() - startTime;
