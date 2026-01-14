@@ -35,13 +35,13 @@ class TeamsService {
         cacheTTL
       );
 
-      if (!response.teams || response.teams.length === 0) {
+      if (!response.list || response.list.length === 0) {
         console.warn(`⚠️ No teams found for league ${leagueId}`);
         return;
       }
 
       let syncCount = 0;
-      for (const team of response.teams) {
+      for (const team of response.list) {
         await this.upsertTeam(team);
         syncCount++;
       }
@@ -123,12 +123,12 @@ class TeamsService {
         cacheTTL
       );
 
-      if (!response.teams || response.teams.length === 0) {
+      if (!response.list || response.list.length === 0) {
         throw new Error(`Team ${teamId} not found`);
       }
 
-      await this.upsertTeam(response.teams[0]);
-      console.log(`✅ Team ${response.teams[0].strTeam} synced`);
+      await this.upsertTeam(response.list[0]);
+      console.log(`✅ Team ${response.list[0].strTeam} synced`);
     } catch (error) {
       console.error(`❌ Failed to sync team ${teamId}:`, error);
       throw error;

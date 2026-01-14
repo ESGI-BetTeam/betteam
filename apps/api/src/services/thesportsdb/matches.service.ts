@@ -34,13 +34,13 @@ class MatchesService {
         cacheTTL
       );
 
-      if (!response.events || response.events.length === 0) {
+      if (!response.schedule || response.schedule.length === 0) {
         console.warn(`⚠️ No upcoming matches for league ${leagueId}`);
         return;
       }
 
       let syncCount = 0;
-      for (const event of response.events) {
+      for (const event of response.schedule) {
         await this.upsertMatch(event, competition.id, 'upcoming');
         syncCount++;
       }
@@ -100,13 +100,13 @@ class MatchesService {
         cacheTTL
       );
 
-      if (!response.events || response.events.length === 0) {
+      if (!response.schedule || response.schedule.length === 0) {
         console.warn(`⚠️ No past matches for league ${leagueId}`);
         return;
       }
 
       let syncCount = 0;
-      for (const event of response.events) {
+      for (const event of response.schedule) {
         await this.upsertMatch(event, competition.id, 'finished');
         syncCount++;
       }
