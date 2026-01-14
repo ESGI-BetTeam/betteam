@@ -23,7 +23,7 @@ class TheSportsDBClient {
 
     // IMPORTANT: Les endpoints standards (lookupleague, lookup_all_teams, etc.) utilisent toujours V1
     // Seuls les livescores utilisent V2 avec une clé premium
-    this.baseURL = 'https://www.thesportsdb.com/api/v1/json';
+    this.baseURL = 'https://www.thesportsdb.com/api/v2/json';
     const isPremium = this.apiKey !== '3' && this.apiKey.length > 5;
 
     this.axiosInstance = axios.create({

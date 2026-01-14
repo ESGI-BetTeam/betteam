@@ -30,7 +30,7 @@ class TeamsService {
       const cacheTTL = 24 * 60 * 60; // 24 heures
 
       const response = await theSportsDBClient.get<TheSportsDBTeamsResponse>(
-        `/lookup_all_teams.php?id=${leagueId}`,
+        `/list/teams/${leagueId}`,
         cacheKey,
         cacheTTL
       );
