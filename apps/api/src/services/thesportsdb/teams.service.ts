@@ -114,11 +114,11 @@ class TeamsService {
     console.log(`🔄 Syncing team ${teamId}...`);
 
     try {
-      const cacheKey = `team:${teamId}`;
+      const cacheKey = `team:v2:${teamId}`;
       const cacheTTL = 24 * 60 * 60; // 24 heures
 
       const response = await theSportsDBClient.get<TheSportsDBTeamsResponse>(
-        `/lookupteam.php?id=${teamId}`,
+        `/lookup/team/${teamId}`,
         cacheKey,
         cacheTTL
       );

@@ -25,11 +25,11 @@ class MatchesService {
         throw new Error(`Competition ${leagueId} not found. Sync competition first.`);
       }
 
-      const cacheKey = `matches:upcoming:${leagueId}`;
+      const cacheKey = `matches:upcoming:v2:${leagueId}`;
       const cacheTTL = 60 * 60; // 1 heure
 
       const response = await theSportsDBClient.get<TheSportsDBEventsResponse>(
-        `/eventsnextleague.php?id=${leagueId}`,
+        `/schedule/next/league/${leagueId}`,
         cacheKey,
         cacheTTL
       );
@@ -91,11 +91,11 @@ class MatchesService {
         throw new Error(`Competition ${leagueId} not found. Sync competition first.`);
       }
 
-      const cacheKey = `matches:past:${leagueId}`;
+      const cacheKey = `matches:past:v2:${leagueId}`;
       const cacheTTL = 15 * 60; // 15 minutes
 
       const response = await theSportsDBClient.get<TheSportsDBEventsResponse>(
-        `/eventspastleague.php?id=${leagueId}`,
+        `/schedule/previous/league/${leagueId}`,
         cacheKey,
         cacheTTL
       );

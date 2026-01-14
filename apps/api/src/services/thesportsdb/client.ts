@@ -21,8 +21,7 @@ class TheSportsDBClient {
   constructor() {
     this.apiKey = process.env.THESPORTSDB_API_KEY || '3';
 
-    // IMPORTANT: Les endpoints standards (lookupleague, lookup_all_teams, etc.) utilisent toujours V1
-    // Seuls les livescores utilisent V2 avec une clé premium
+    // API V2 avec clé premium dans le header X-API-Key
     this.baseURL = 'https://www.thesportsdb.com/api/v2/json';
     const isPremium = this.apiKey !== '3' && this.apiKey.length > 5;
 
@@ -31,6 +30,7 @@ class TheSportsDBClient {
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
+        'X-API-Key': this.apiKey,
       },
     });
 
@@ -58,7 +58,7 @@ class TheSportsDBClient {
       }
     );
 
-    console.log(`✅ TheSportsDB Client initialized (${isPremium ? 'Premium Key' : 'Free Key'} - V1 API)`);
+    console.log(`✅ TheSportsDB Client initialized (${isPremium ? 'Premium Key' : 'Free Key'} - V2 API)`);
   }
 
   /**
@@ -72,8 +72,9 @@ class TheSportsDBClient {
     }
 
     // Ajouter à la queue et attendre l'exécution
+    // Note: La clé API est passée dans le header X-API-Key, pas dans l'URL
     const result = await this.addToQueue<T>(() =>
-      this.axiosInstance.get<T>(`/${this.apiKey}${endpoint}`)
+      this.axiosInstance.get<T>(endpoint)
     );
 
     // Mettre en cache si une clé est fournie
