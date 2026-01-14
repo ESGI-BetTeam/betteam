@@ -49,11 +49,11 @@ class CompetitionsService {
     console.log(`🔄 Syncing competition ${leagueId}...`);
 
     try {
-      const cacheKey = `league:${leagueId}`;
+      const cacheKey = `league:v2:${leagueId}`; // v2 pour forcer refresh du cache
       const cacheTTL = 24 * 60 * 60; // 24 heures
 
       const response = await theSportsDBClient.get<TheSportsDBLeagueResponse>(
-        `/lookupleague.php?id=${leagueId}`,
+        `/lookup/league/${leagueId}`,
         cacheKey,
         cacheTTL
       );
