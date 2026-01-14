@@ -22,19 +22,19 @@ export const COMPETITION_IDS = {
 
   // Tennis (2 circuits)
   ATP_WORLD_TOUR: '4464',
-  WTA_TOUR: '',
+  WTA_TOUR: '3',
 
   // Basketball
   NBA: '12',
 
   // Cyclisme
-  UCI_WORLD_TOUR: '',
+  UCI_WORLD_TOUR: '2',
 
   // Hockey sur glace
   NHL: '57',
 
   // Formule 1
-  FORMULA_1: '',
+  FORMULA_1: '1',
 } as const;
 
 /**
