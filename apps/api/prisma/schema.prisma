@@ -122,13 +122,49 @@ model User {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  ownedLeagues  League[]        @relation("LeagueOwner")
-  memberships   LeagueMember[]
-  bets          Bet[]
+  ownedLeagues       League[]             @relation("LeagueOwner")
+  memberships        LeagueMember[]
+  bets               Bet[]
+  refreshTokens      RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
   @@index([email])
   @@index([username])
+}
+
+model RefreshToken {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  tokenHash   String   @unique @map("token_hash")
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  revokedAt   DateTime? @map("revoked_at")
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  tokenHash   String   @unique @map("token_hash")
+  expiresAt   DateTime @map("expires_at")
+  usedAt      DateTime? @map("used_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
 }
 
 // ============================================
