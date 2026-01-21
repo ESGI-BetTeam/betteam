@@ -120,3 +120,112 @@ export interface UpdateMemberRoleResponse {
 export interface KickMemberResponse {
   message: string;
 }
+
+// ============================================
+// LEAGUE LEADERBOARD & STATS ENDPOINTS
+// ============================================
+
+// Leaderboard entry with user stats
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  avatar: string | null;
+  points: number;
+  totalBets: number;
+  wonBets: number;
+  lostBets: number;
+  winRate: number;
+  joinedAt: Date;
+}
+
+// GET /api/leagues/:id/leaderboard - Get league leaderboard
+export namespace GetLeaderboardRequest {
+  export interface Query {
+    limit?: number;
+  }
+}
+
+export interface GetLeaderboardResponse {
+  leaderboard: LeaderboardEntry[];
+  totalMembers: number;
+}
+
+// League statistics
+export interface LeagueStats {
+  totalMembers: number;
+  totalBets: number;
+  totalBetsWon: number;
+  totalBetsLost: number;
+  totalBetsPending: number;
+  averageWinRate: number;
+  totalPointsWagered: number;
+  totalPointsWon: number;
+  mostActiveUser: {
+    userId: string;
+    username: string;
+    avatar: string | null;
+    totalBets: number;
+  } | null;
+  bestPerformer: {
+    userId: string;
+    username: string;
+    avatar: string | null;
+    winRate: number;
+    wonBets: number;
+  } | null;
+  createdAt: Date;
+  lastActivityAt: Date | null;
+}
+
+// GET /api/leagues/:id/stats - Get league statistics
+export interface GetLeagueStatsResponse {
+  stats: LeagueStats;
+}
+
+// Bet history entry
+export interface BetHistoryEntry {
+  id: string;
+  oddsUser: {
+    oddsUserId: string;
+    username: string;
+    avatar: string | null;
+  };
+  match: {
+    id: string;
+    homeTeam: string;
+    awayTeam: string;
+    homeScore: number | null;
+    awayScore: number | null;
+    startTime: Date;
+    status: string;
+  };
+  predictionType: string;
+  predictionValue: string;
+  amount: number;
+  status: string;
+  potentialWin: number | null;
+  actualWin: number | null;
+  createdAt: Date;
+  settledAt: Date | null;
+}
+
+// GET /api/leagues/:id/history - Get league bet history
+export namespace GetLeagueHistoryRequest {
+  export interface Query {
+    page?: number;
+    limit?: number;
+    status?: 'pending' | 'won' | 'lost' | 'void';
+    userId?: string;
+  }
+}
+
+export interface GetLeagueHistoryResponse {
+  bets: BetHistoryEntry[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
