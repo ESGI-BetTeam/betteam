@@ -19,6 +19,7 @@ import leagueRouter from './routes/league';
 import matchesRouter from './routes/matches';
 import competitionsRouter from './routes/competitions';
 import syncRouter from './routes/sync';
+import usersRouter from './routes/users';
 console.log('🔧 [3/8] Routes imported');
 
 const app = express();
@@ -85,6 +86,7 @@ app.use('/api/leagues', leagueRouter);
 app.use('/api/matches', matchesRouter);
 app.use('/api/competitions', competitionsRouter);
 app.use('/api/sync', syncRouter);
+app.use('/api/users', usersRouter);
 console.log('🔧 [7/8] Routes registered');
 
 // Root endpoint
