@@ -1,7 +1,7 @@
 # Checklist API BetTeam
 
-> **Dernière mise à jour:** 2026-01-20
-> **Version:** 1.1.0
+> **Dernière mise à jour:** 2026-01-21
+> **Version:** 1.3.0
 
 Cette checklist permet de suivre l'avancement du développement de l'API BetTeam.
 
@@ -171,33 +171,35 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 
 ---
 
-## 8. Ligues (`/api/leagues`) ❌ À IMPLÉMENTER
+## 8. Ligues (`/api/leagues`) ✅ IMPLÉMENTÉ
 
 ### Endpoints
-- [ ] `POST /api/leagues` - Créer une ligue
-- [ ] `GET /api/leagues` - Lister ses ligues
-- [ ] `GET /api/leagues/:id` - Détails d'une ligue
-- [ ] `PATCH /api/leagues/:id` - Modifier une ligue
-- [ ] `DELETE /api/leagues/:id` - Supprimer une ligue
+- [x] `POST /api/leagues` - Créer une ligue
+- [x] `GET /api/leagues` - Lister ses ligues
+- [x] `GET /api/leagues/:id` - Détails d'une ligue
+- [x] `PATCH /api/leagues/:id` - Modifier une ligue
+- [x] `DELETE /api/leagues/:id` - Supprimer une ligue (soft delete)
+- [x] `POST /api/leagues/:id/regenerate-code` - Régénérer le code d'invitation
 
 ### Membres
-- [ ] `POST /api/leagues/:id/join` - Rejoindre via code d'invitation
-- [ ] `POST /api/leagues/:id/leave` - Quitter une ligue
-- [ ] `GET /api/leagues/:id/members` - Liste des membres
-- [ ] `PATCH /api/leagues/:id/members/:userId` - Modifier rôle d'un membre
-- [ ] `DELETE /api/leagues/:id/members/:userId` - Exclure un membre
+- [x] `POST /api/leagues/:id/join` - Rejoindre via code d'invitation
+- [x] `POST /api/leagues/:id/leave` - Quitter une ligue
+- [x] `GET /api/leagues/:id/members` - Liste des membres (pagination, tri)
+- [x] `PATCH /api/leagues/:id/members/:userId` - Modifier rôle d'un membre
+- [x] `DELETE /api/leagues/:id/members/:userId` - Exclure un membre
 
 ### Classement & Stats
-- [ ] `GET /api/leagues/:id/leaderboard` - Classement de la ligue
-- [ ] `GET /api/leagues/:id/stats` - Statistiques de la ligue
-- [ ] `GET /api/leagues/:id/history` - Historique des paris de la ligue
+- [x] `GET /api/leagues/:id/leaderboard` - Classement de la ligue
+- [x] `GET /api/leagues/:id/stats` - Statistiques de la ligue
+- [x] `GET /api/leagues/:id/history` - Historique des paris de la ligue
 
 ### Fonctionnalités
-- [ ] Génération code d'invitation unique
-- [ ] Rôles: owner, admin, member
-- [ ] Ligues privées/publiques
-- [ ] Limite de membres par ligue
+- [x] Génération code d'invitation unique (8 caractères)
+- [x] Rôles: owner, admin, member
+- [x] Ligues privées/publiques
+- [x] Limite de membres par ligue (50 max)
 - [ ] Notifications d'invitation
+- [ ] Transfert de propriété
 
 **Modèle Prisma:** ✅ Existe (`League`, `LeagueMember`)
 
@@ -287,6 +289,104 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 
 ---
 
+## 13. Abonnements & Cagnotte (`/api/plans`, `/api/leagues/:id/wallet`) ❌ À IMPLÉMENTER
+
+> Système d'abonnement par ligue avec cagnotte partagée (modèle Famileo)
+
+### Plans (`/api/plans`)
+- [ ] `GET /api/plans` - Liste des plans disponibles (Free, Premium, Premium+)
+
+### Cagnotte Ligue (`/api/leagues/:id/wallet`)
+- [ ] `GET /api/leagues/:id/wallet` - Détails de la cagnotte (solde, mois couverts, historique)
+- [ ] `POST /api/leagues/:id/wallet/contribute` - Contribuer à la cagnotte
+- [ ] `GET /api/leagues/:id/wallet/history` - Historique complet des contributions
+
+### Gestion abonnement ligue
+- [ ] `POST /api/leagues/:id/upgrade` - Passer à un plan supérieur
+- [ ] `POST /api/leagues/:id/downgrade` - Revenir à un plan inférieur
+
+### Fonctionnalités
+- [ ] Plans: Free (gratuit), Premium, Premium+ avec limites différentes
+- [ ] Limites par plan: maxMembers, maxSports, features
+- [ ] Cagnotte partagée par ligue (LeagueWallet)
+- [ ] Contributions des membres (Contribution)
+- [ ] Calcul automatique des mois couverts (solde / prix mensuel)
+- [ ] Date de prochain prélèvement (nextPaymentDate)
+- [ ] Historique des contributions avec user, montant, date
+- [ ] Intégration Stripe pour paiements
+- [ ] CRON: prélèvement mensuel automatique sur la cagnotte
+- [ ] CRON: notification si solde insuffisant
+- [ ] CRON: downgrade automatique vers Free après X jours sans solde
+- [ ] Webhooks Stripe pour confirmation de paiement
+
+### Modèles Prisma à créer
+```prisma
+model Plan {
+  id              String   @id @default("free")
+  name            String   // "Free", "Premium", "Premium+"
+  maxMembers      Int      // 10, 50, 200
+  maxSports       Int      // 1, 5, -1 (illimité)
+  monthlyPrice    Float    // 0, 5.99, 9.99
+  yearlyPrice     Float?   // Option annuelle
+  features        Json     // { "liveScores": true, ... }
+  leagues         League[]
+}
+
+model LeagueWallet {
+  id                String         @id @default(uuid())
+  leagueId          String         @unique
+  league            League         @relation(...)
+  balance           Float          @default(0)
+  nextPaymentDate   DateTime?
+  contributions     Contribution[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model Contribution {
+  id              String       @id @default(uuid())
+  walletId        String
+  wallet          LeagueWallet @relation(...)
+  userId          String
+  user            User         @relation(...)
+  amount          Float
+  paymentId       String?      // ID Stripe
+  status          String       @default("completed")
+  createdAt       DateTime     @default(now())
+}
+```
+
+### Réponse API Wallet (exemple)
+```json
+{
+  "wallet": {
+    "balance": 17.97,
+    "monthsCovered": 3,
+    "plan": {
+      "name": "Premium",
+      "monthlyPrice": 5.99
+    },
+    "nextPaymentDate": "2026-02-16",
+    "manager": {
+      "id": "uuid",
+      "username": "JohnDoe",
+      "avatar": "url"
+    },
+    "history": [
+      {
+        "user": { "id": "uuid", "username": "Alice", "avatar": "url" },
+        "amount": 5.99,
+        "createdAt": "2025-11-16"
+      }
+    ]
+  }
+}
+```
+
+**Modèle Prisma:** ❌ À créer (`Plan`, `LeagueWallet`, `Contribution`)
+
+---
+
 ## Résumé de progression
 
 | Module | Progression | Priorité |
@@ -298,8 +398,9 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 | Équipes | 30% | Basse |
 | Matchs | 80% | - |
 | Synchronisation | 70% | Moyenne |
-| **Ligues** | **0%** | **HAUTE** |
+| **Ligues** | **95%** | ✅ Terminé |
 | **Paris** | **0%** | **HAUTE** |
+| **Abonnements & Cagnotte** | **0%** | **HAUTE** |
 | Notifications | 0% | Moyenne |
 | Statistiques | 0% | Basse |
 | Administration | 0% | Basse |
@@ -308,11 +409,12 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 
 ## Prochaines étapes recommandées
 
-1. **Implémenter les Ligues** - Core feature pour l'aspect social
+1. ~~**Implémenter les Ligues** - Core feature pour l'aspect social~~ ✅
 2. **Implémenter les Paris** - Fonctionnalité principale de l'app
-3. **Ajouter les CRON Jobs** - Automatisation de la sync
-4. **WebSocket pour live scores** - Expérience temps réel
-5. **Notifications** - Engagement utilisateur
+3. **Implémenter Abonnements & Cagnotte** - Monétisation (modèle Famileo)
+4. **Ajouter les CRON Jobs** - Automatisation de la sync + prélèvements
+5. **WebSocket pour live scores** - Expérience temps réel
+6. **Notifications** - Engagement utilisateur
 
 ---
 
