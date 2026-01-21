@@ -10,7 +10,7 @@ info:
     - Paris sur des matchs sportifs
     - Suivi des résultats et classements
 
-  version: 1.0.0
+  version: 1.2.0
   contact:
     name: BetTeam Support
     email: support@betteam.com
@@ -33,6 +33,10 @@ tags:
     description: Gestion des utilisateurs (CRUD)
   - name: Leagues
     description: Gestion des ligues privées
+  - name: League Members
+    description: Gestion des membres d'une ligue
+  - name: League Stats
+    description: Classement et statistiques des ligues
   - name: Matches
     description: Gestion des matchs sportifs
   - name: Bets
@@ -66,6 +70,9 @@ paths:
                     description: Temps de fonctionnement en secondes
                     example: 3600
 
+  # ============================================
+  # AUTH ENDPOINTS
+  # ============================================
   /auth/register:
     post:
       tags:
@@ -110,7 +117,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  token:
+                    type: string
+                    description: Access token JWT
+                  refreshToken:
+                    type: string
+                    description: Refresh token
         '400':
           $ref: '#/components/responses/BadRequest'
         '409':
@@ -153,10 +169,15 @@ paths:
               schema:
                 type: object
                 properties:
+                  message:
+                    type: string
+                    example: Login successful
                   token:
                     type: string
                     description: JWT token pour l'authentification
-                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  refreshToken:
+                    type: string
+                    description: Refresh token
                   user:
                     $ref: '#/components/schemas/User'
         '401':
@@ -179,10 +200,153 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Se déconnecter
+      description: Révoque les refresh tokens de l'utilisateur
+      operationId: logout
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+                  description: Refresh token à révoquer (optionnel, révoque tous si non fourni)
+      responses:
+        '200':
+          description: Déconnexion réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Rafraîchir le token
+      description: Obtient un nouveau access token avec le refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Tokens rafraîchis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  expiresIn:
+                    type: integer
+                    description: Durée de validité en secondes
+                    example: 900
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: Mot de passe oublié
+      description: Envoie un email de réinitialisation de mot de passe
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Email envoyé (toujours succès pour éviter l'énumération)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: If an account with that email exists, a password reset link has been sent.
+
+  /auth/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: Réinitialiser le mot de passe
+      description: Réinitialise le mot de passe avec le token reçu par email
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - newPassword
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 6
+      responses:
+        '200':
+          description: Mot de passe réinitialisé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password has been reset successfully.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ============================================
+  # USERS ENDPOINTS
+  # ============================================
   /users:
     get:
       tags:
@@ -226,20 +390,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/User'
                   pagination:
-                    type: object
-                    properties:
-                      page:
-                        type: integer
-                        example: 1
-                      limit:
-                        type: integer
-                        example: 20
-                      total:
-                        type: integer
-                        example: 100
-                      totalPages:
-                        type: integer
-                        example: 5
+                    $ref: '#/components/schemas/Pagination'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -289,22 +440,17 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: newemail@example.com
                 username:
                   type: string
                   minLength: 3
                   maxLength: 30
-                  example: newusername
                 firstName:
                   type: string
-                  example: John
                 lastName:
                   type: string
-                  example: Doe
                 avatar:
                   type: string
                   format: uri
-                  example: https://example.com/avatar.jpg
       responses:
         '200':
           description: Profil mis à jour
@@ -320,11 +466,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Accès interdit (modification d'un autre compte)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          $ref: '#/components/responses/Forbidden'
         '409':
           description: Email ou username déjà utilisé
           content:
@@ -336,7 +478,7 @@ paths:
       tags:
         - Users
       summary: Désactiver son compte
-      description: Soft delete - désactive le compte de l'utilisateur (seulement son propre compte)
+      description: Soft delete - désactive le compte de l'utilisateur
       operationId: deleteUser
       security:
         - bearerAuth: []
@@ -353,20 +495,10 @@ paths:
                   message:
                     type: string
                     example: Account deactivated successfully.
-        '400':
-          description: Compte déjà désactivé
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Accès interdit (suppression d'un autre compte)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -375,7 +507,7 @@ paths:
       tags:
         - Users
       summary: Changer son mot de passe
-      description: Permet à l'utilisateur de changer son mot de passe (seulement son propre compte)
+      description: Permet à l'utilisateur de changer son mot de passe
       operationId: updatePassword
       security:
         - bearerAuth: []
@@ -394,12 +526,10 @@ paths:
                 currentPassword:
                   type: string
                   format: password
-                  example: OldPassword123!
                 newPassword:
                   type: string
                   format: password
                   minLength: 6
-                  example: NewSecurePass456!
       responses:
         '200':
           description: Mot de passe mis à jour
@@ -420,18 +550,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: Accès interdit (modification d'un autre compte)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          $ref: '#/components/responses/Forbidden'
 
+  # ============================================
+  # LEAGUES ENDPOINTS
+  # ============================================
   /leagues:
     get:
       tags:
         - Leagues
-      summary: Lister toutes les ligues
-      description: Récupère la liste de toutes les ligues accessibles par l'utilisateur
+      summary: Lister ses ligues
+      description: Récupère la liste des ligues dont l'utilisateur est membre
       operationId: getLeagues
       security:
         - bearerAuth: []
@@ -449,8 +578,13 @@ paths:
             type: integer
             default: 20
             minimum: 1
-            maximum: 100
+            maximum: 50
           description: Nombre d'éléments par page
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Recherche par nom ou description
       responses:
         '200':
           description: Liste des ligues
@@ -459,7 +593,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  data:
+                  leagues:
                     type: array
                     items:
                       $ref: '#/components/schemas/League'
@@ -472,7 +606,7 @@ paths:
       tags:
         - Leagues
       summary: Créer une nouvelle ligue
-      description: Crée une nouvelle ligue privée
+      description: Crée une nouvelle ligue. L'utilisateur devient automatiquement owner et premier membre.
       operationId: createLeague
       security:
         - bearerAuth: []
@@ -487,7 +621,7 @@ paths:
               properties:
                 name:
                   type: string
-                  minLength: 3
+                  minLength: 1
                   maxLength: 100
                   example: Ligue des Champions Entre Potes
                 description:
@@ -504,18 +638,24 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/League'
+                type: object
+                properties:
+                  league:
+                    $ref: '#/components/schemas/League'
+                  message:
+                    type: string
+                    example: League created successfully.
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /leagues/{leagueId}:
+  /leagues/{id}:
     get:
       tags:
         - Leagues
       summary: Obtenir les détails d'une ligue
-      description: Récupère les informations détaillées d'une ligue spécifique
+      description: Récupère les informations détaillées d'une ligue avec ses membres
       operationId: getLeagueById
       security:
         - bearerAuth: []
@@ -527,12 +667,495 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/League'
+                type: object
+                properties:
+                  league:
+                    $ref: '#/components/schemas/LeagueWithMembers'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Leagues
+      summary: Modifier une ligue
+      description: Met à jour les informations d'une ligue (owner ou admin uniquement)
+      operationId: updateLeague
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 500
+                isPrivate:
+                  type: boolean
+      responses:
+        '200':
+          description: Ligue mise à jour
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  league:
+                    $ref: '#/components/schemas/League'
+                  message:
+                    type: string
+                    example: League updated successfully.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Leagues
+      summary: Supprimer une ligue
+      description: Soft delete d'une ligue (owner uniquement)
+      operationId: deleteLeague
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Ligue supprimée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: League deleted successfully.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /leagues/{id}/regenerate-code:
+    post:
+      tags:
+        - Leagues
+      summary: Régénérer le code d'invitation
+      description: Génère un nouveau code d'invitation pour la ligue (owner ou admin)
+      operationId: regenerateInviteCode
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Code régénéré
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inviteCode:
+                    type: string
+                    example: A1B2C3D4
+                  message:
+                    type: string
+                    example: Invite code regenerated successfully.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================
+  # LEAGUE MEMBERS ENDPOINTS
+  # ============================================
+  /leagues/{id}/join:
+    post:
+      tags:
+        - League Members
+      summary: Rejoindre une ligue
+      description: Rejoindre une ligue via son code d'invitation
+      operationId: joinLeague
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - inviteCode
+              properties:
+                inviteCode:
+                  type: string
+                  example: A1B2C3D4
+                  description: Code d'invitation de la ligue (8 caractères)
+      responses:
+        '201':
+          description: Membre ajouté avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  member:
+                    $ref: '#/components/schemas/LeagueMember'
+                  message:
+                    type: string
+                    example: Successfully joined the league.
+        '400':
+          description: Code invalide ou limite de membres atteinte
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Déjà membre de cette ligue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /leagues/{id}/leave:
+    post:
+      tags:
+        - League Members
+      summary: Quitter une ligue
+      description: Quitter une ligue (le owner ne peut pas quitter)
+      operationId: leaveLeague
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Ligue quittée avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Successfully left the league.
+        '400':
+          description: Le owner ne peut pas quitter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /leagues/{id}/members:
+    get:
+      tags:
+        - League Members
+      summary: Lister les membres d'une ligue
+      description: Récupère la liste des membres avec pagination et tri
+      operationId: getLeagueMembers
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [points, joinedAt, username]
+            default: points
+          description: Champ de tri
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Ordre de tri
+      responses:
+        '200':
+          description: Liste des membres
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeagueMember'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /leagues/{id}/members/{userId}:
+    patch:
+      tags:
+        - League Members
+      summary: Modifier le rôle d'un membre
+      description: Change le rôle d'un membre (owner uniquement)
+      operationId: updateMemberRole
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+        - $ref: '#/components/parameters/MemberUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum: [admin, member]
+                  description: Nouveau rôle du membre
+      responses:
+        '200':
+          description: Rôle mis à jour
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  member:
+                    $ref: '#/components/schemas/LeagueMember'
+                  message:
+                    type: string
+                    example: Member role updated to admin.
+        '400':
+          description: Impossible de modifier le rôle du owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - League Members
+      summary: Exclure un membre
+      description: Exclure un membre de la ligue (owner ou admin)
+      operationId: kickMember
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+        - $ref: '#/components/parameters/MemberUserId'
+      responses:
+        '200':
+          description: Membre exclu
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Member removed from the league.
+        '400':
+          description: Impossible d'exclure le owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Admins ne peuvent pas exclure d'autres admins
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================
+  # LEAGUE STATS ENDPOINTS
+  # ============================================
+  /leagues/{id}/leaderboard:
+    get:
+      tags:
+        - League Stats
+      summary: Classement de la ligue
+      description: Récupère le classement des membres par points avec leurs statistiques de paris
+      operationId: getLeagueLeaderboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Nombre de membres à afficher
+      responses:
+        '200':
+          description: Classement de la ligue
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leaderboard:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeaderboardEntry'
+                  totalMembers:
+                    type: integer
+                    example: 25
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /leagues/{id}/stats:
+    get:
+      tags:
+        - League Stats
+      summary: Statistiques de la ligue
+      description: Récupère les statistiques globales de la ligue
+      operationId: getLeagueStats
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Statistiques de la ligue
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stats:
+                    $ref: '#/components/schemas/LeagueStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /leagues/{id}/history:
+    get:
+      tags:
+        - League Stats
+      summary: Historique des paris de la ligue
+      description: Récupère l'historique des paris de tous les membres de la ligue
+      operationId: getLeagueHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, won, lost, void]
+          description: Filtrer par statut du pari
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Filtrer par utilisateur
+      responses:
+        '200':
+          description: Historique des paris
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BetHistoryEntry'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================
+  # MATCHES ENDPOINTS
+  # ============================================
   /matches:
     get:
       tags:
@@ -547,20 +1170,40 @@ paths:
           in: query
           schema:
             type: string
-            enum: [upcoming, live, finished]
+            enum: [upcoming, live, finished, postponed, cancelled]
           description: Filtrer par statut du match
         - name: sport
           in: query
           schema:
             type: string
-            enum: [football, basketball, tennis, rugby]
           description: Filtrer par sport
-        - name: date
+        - name: competitionId
+          in: query
+          schema:
+            type: string
+          description: Filtrer par compétition
+        - name: startDate
           in: query
           schema:
             type: string
             format: date
-          description: Filtrer par date (YYYY-MM-DD)
+          description: Date de début (YYYY-MM-DD)
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Date de fin (YYYY-MM-DD)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
       responses:
         '200':
           description: Liste des matchs
@@ -573,6 +1216,9 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  # ============================================
+  # BETS ENDPOINTS
+  # ============================================
   /bets:
     post:
       tags:
@@ -591,31 +1237,23 @@ paths:
               required:
                 - matchId
                 - leagueId
-                - prediction
+                - predictionType
+                - predictionValue
                 - amount
               properties:
                 matchId:
                   type: string
-                  format: uuid
-                  example: 123e4567-e89b-12d3-a456-426614174000
                 leagueId:
                   type: string
-                  format: uuid
-                  example: 123e4567-e89b-12d3-a456-426614174001
-                prediction:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                      enum: [winner, score, both_score]
-                      example: winner
-                    value:
-                      type: string
-                      example: home
+                predictionType:
+                  type: string
+                  enum: [winner, score, both_score]
+                predictionValue:
+                  type: string
+                  description: Valeur de la prédiction (JSON)
                 amount:
-                  type: number
+                  type: integer
                   minimum: 1
-                  example: 100
                   description: Montant du pari en points
       responses:
         '201':
@@ -642,13 +1280,12 @@ paths:
           in: query
           schema:
             type: string
-            format: uuid
           description: Filtrer par ligue
         - name: status
           in: query
           schema:
             type: string
-            enum: [pending, won, lost]
+            enum: [pending, won, lost, void]
           description: Filtrer par statut du pari
       responses:
         '200':
@@ -677,17 +1314,23 @@ components:
       required: true
       schema:
         type: string
-        format: uuid
       description: ID unique de l'utilisateur
 
     LeagueId:
-      name: leagueId
+      name: id
       in: path
       required: true
       schema:
         type: string
-        format: uuid
       description: ID unique de la ligue
+
+    MemberUserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: ID de l'utilisateur membre
 
   schemas:
     User:
@@ -695,8 +1338,7 @@ components:
       properties:
         id:
           type: string
-          format: uuid
-          example: 123e4567-e89b-12d3-a456-426614174000
+          example: clx1234567890
         email:
           type: string
           format: email
@@ -720,23 +1362,19 @@ components:
         isActive:
           type: boolean
           example: true
-          description: Indique si le compte est actif
         createdAt:
           type: string
           format: date-time
-          example: '2024-01-08T12:00:00Z'
         updatedAt:
           type: string
           format: date-time
-          example: '2024-01-08T12:00:00Z'
 
     League:
       type: object
       properties:
         id:
           type: string
-          format: uuid
-          example: 123e4567-e89b-12d3-a456-426614174001
+          example: clx1234567890
         name:
           type: string
           example: Ligue des Champions Entre Potes
@@ -749,112 +1387,333 @@ components:
           example: true
         ownerId:
           type: string
-          format: uuid
-          example: 123e4567-e89b-12d3-a456-426614174000
-        memberCount:
-          type: integer
-          example: 12
+          example: clx1234567890
+        inviteCode:
+          type: string
+          example: A1B2C3D4
+          description: Code d'invitation (masqué pour les membres non-admin)
+        isActive:
+          type: boolean
+          example: true
         createdAt:
           type: string
           format: date-time
-          example: '2024-01-08T12:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+        owner:
+          $ref: '#/components/schemas/User'
+        _count:
+          type: object
+          properties:
+            members:
+              type: integer
+              example: 12
+
+    LeagueWithMembers:
+      allOf:
+        - $ref: '#/components/schemas/League'
+        - type: object
+          properties:
+            members:
+              type: array
+              items:
+                $ref: '#/components/schemas/LeagueMember'
+
+    LeagueMember:
+      type: object
+      properties:
+        id:
+          type: string
+          example: clx1234567890
+        leagueId:
+          type: string
+          example: clx1234567890
+        userId:
+          type: string
+          example: clx1234567890
+        role:
+          type: string
+          enum: [owner, admin, member]
+          example: member
+        points:
+          type: integer
+          example: 1250
+          description: Points actuels du membre dans la ligue
+        joinedAt:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+          example: 1
+        userId:
+          type: string
+          example: clx1234567890
+        username:
+          type: string
+          example: johndoe
+        avatar:
+          type: string
+          nullable: true
+        points:
+          type: integer
+          example: 1500
+        totalBets:
+          type: integer
+          example: 25
+        wonBets:
+          type: integer
+          example: 15
+        lostBets:
+          type: integer
+          example: 8
+        winRate:
+          type: integer
+          example: 60
+          description: Taux de réussite en pourcentage
+        joinedAt:
+          type: string
+          format: date-time
+
+    LeagueStats:
+      type: object
+      properties:
+        totalMembers:
+          type: integer
+          example: 25
+        totalBets:
+          type: integer
+          example: 150
+        totalBetsWon:
+          type: integer
+          example: 75
+        totalBetsLost:
+          type: integer
+          example: 60
+        totalBetsPending:
+          type: integer
+          example: 15
+        averageWinRate:
+          type: integer
+          example: 55
+          description: Taux de réussite moyen en pourcentage
+        totalPointsWagered:
+          type: integer
+          example: 15000
+        totalPointsWon:
+          type: integer
+          example: 8500
+        mostActiveUser:
+          type: object
+          nullable: true
+          properties:
+            userId:
+              type: string
+            username:
+              type: string
+            avatar:
+              type: string
+              nullable: true
+            totalBets:
+              type: integer
+        bestPerformer:
+          type: object
+          nullable: true
+          properties:
+            userId:
+              type: string
+            username:
+              type: string
+            avatar:
+              type: string
+              nullable: true
+            winRate:
+              type: integer
+            wonBets:
+              type: integer
+        createdAt:
+          type: string
+          format: date-time
+        lastActivityAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    BetHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        oddsUser:
+          type: object
+          properties:
+            oddsUserId:
+              type: string
+            username:
+              type: string
+            avatar:
+              type: string
+              nullable: true
+        match:
+          type: object
+          properties:
+            id:
+              type: string
+            homeTeam:
+              type: string
+            awayTeam:
+              type: string
+            homeScore:
+              type: integer
+              nullable: true
+            awayScore:
+              type: integer
+              nullable: true
+            startTime:
+              type: string
+              format: date-time
+            status:
+              type: string
+        predictionType:
+          type: string
+        predictionValue:
+          type: string
+        amount:
+          type: integer
+        status:
+          type: string
+          enum: [pending, won, lost, void]
+        potentialWin:
+          type: integer
+          nullable: true
+        actualWin:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        settledAt:
+          type: string
+          format: date-time
+          nullable: true
 
     Match:
       type: object
       properties:
         id:
           type: string
-          format: uuid
-          example: 123e4567-e89b-12d3-a456-426614174002
-        sport:
+        externalId:
           type: string
-          enum: [football, basketball, tennis, rugby]
-          example: football
-        homeTeam:
+        competitionId:
           type: string
-          example: Paris Saint-Germain
-        awayTeam:
+        homeTeamId:
           type: string
-          example: Olympique de Marseille
+        awayTeamId:
+          type: string
         startTime:
           type: string
           format: date-time
-          example: '2024-01-15T20:00:00Z'
         status:
           type: string
-          enum: [upcoming, live, finished]
-          example: upcoming
-        score:
-          type: object
+          enum: [upcoming, live, finished, postponed, cancelled]
+        homeScore:
+          type: integer
           nullable: true
+        awayScore:
+          type: integer
+          nullable: true
+        venue:
+          type: string
+          nullable: true
+        round:
+          type: string
+          nullable: true
+        homeTeam:
+          type: object
           properties:
-            home:
-              type: integer
-              example: 2
-            away:
-              type: integer
-              example: 1
+            id:
+              type: string
+            name:
+              type: string
+            logoUrl:
+              type: string
+              nullable: true
+        awayTeam:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            logoUrl:
+              type: string
+              nullable: true
+        competition:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            sport:
+              type: string
 
     Bet:
       type: object
       properties:
         id:
           type: string
-          format: uuid
-          example: 123e4567-e89b-12d3-a456-426614174003
         userId:
           type: string
-          format: uuid
-          example: 123e4567-e89b-12d3-a456-426614174000
         matchId:
           type: string
-          format: uuid
-          example: 123e4567-e89b-12d3-a456-426614174002
         leagueId:
           type: string
-          format: uuid
-          example: 123e4567-e89b-12d3-a456-426614174001
-        prediction:
-          type: object
-          properties:
-            type:
-              type: string
-              enum: [winner, score, both_score]
-              example: winner
-            value:
-              type: string
-              example: home
+        predictionType:
+          type: string
+          enum: [winner, score, both_score]
+        predictionValue:
+          type: string
         amount:
-          type: number
-          example: 100
+          type: integer
         status:
           type: string
-          enum: [pending, won, lost]
-          example: pending
+          enum: [pending, won, lost, void]
         potentialWin:
-          type: number
+          type: integer
           nullable: true
-          example: 150
+        actualWin:
+          type: integer
+          nullable: true
         createdAt:
           type: string
           format: date-time
-          example: '2024-01-08T12:00:00Z'
+        settledAt:
+          type: string
+          format: date-time
+          nullable: true
 
     Pagination:
       type: object
       properties:
-        currentPage:
+        page:
           type: integer
           example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
         totalPages:
           type: integer
           example: 5
-        totalItems:
-          type: integer
-          example: 100
-        itemsPerPage:
-          type: integer
-          example: 20
 
     Error:
       type: object
@@ -862,12 +1721,6 @@ components:
         error:
           type: string
           example: Une erreur est survenue
-        message:
-          type: string
-          example: Description détaillée de l'erreur
-        code:
-          type: string
-          example: VALIDATION_ERROR
 
   responses:
     BadRequest:
@@ -877,9 +1730,7 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
           example:
-            error: Bad Request
-            message: Les données fournies sont invalides
-            code: VALIDATION_ERROR
+            error: Les données fournies sont invalides
 
     Unauthorized:
       description: Non authentifié
@@ -888,9 +1739,16 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
           example:
-            error: Unauthorized
-            message: Token d'authentification manquant ou invalide
-            code: UNAUTHORIZED
+            error: Token d'authentification manquant ou invalide
+
+    Forbidden:
+      description: Accès interdit
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: You do not have permission to perform this action.
 
     NotFound:
       description: Ressource non trouvée
@@ -899,6 +1757,4 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
           example:
-            error: Not Found
-            message: La ressource demandée n'existe pas
-            code: NOT_FOUND
+            error: La ressource demandée n'existe pas
