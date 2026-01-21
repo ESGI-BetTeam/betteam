@@ -13,8 +13,16 @@ import {
   UpdateLeagueResponse,
   DeleteLeagueResponse,
   RegenerateInviteCodeResponse,
+  JoinLeagueRequest,
+  JoinLeagueResponse,
+  LeaveLeagueResponse,
+  GetLeagueMembersRequest,
+  GetLeagueMembersResponse,
+  UpdateMemberRoleRequest,
+  UpdateMemberRoleResponse,
+  KickMemberResponse,
 } from '@betteam/shared/api/leagues';
-import { League } from '@betteam/shared/interfaces/League';
+import { League, LeagueMember } from '@betteam/shared/interfaces/League';
 
 const router = Router();
 
@@ -524,6 +532,420 @@ router.post(
       });
     } catch (error) {
       console.error('Regenerate invite code error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// ============================================
+// LEAGUE MEMBERS ENDPOINTS
+// ============================================
+
+/**
+ * Transform Prisma member to API response format
+ */
+const transformMember = (member: any): LeagueMember => {
+  const { user, ...rest } = member;
+  return {
+    ...rest,
+    user: user
+      ? {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          avatar: user.avatar,
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        }
+      : undefined,
+  };
+};
+
+// POST /api/leagues/:id/join - Join a league via invite code
+router.post(
+  '/:id/join',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & { body: JoinLeagueRequest.Body },
+    res: Response<JoinLeagueResponse | { error: string }>
+  ) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+      const { inviteCode } = req.body;
+
+      if (!inviteCode) {
+        return res.status(400).json({ error: 'Invite code is required.' });
+      }
+
+      const league = await prisma.league.findUnique({
+        where: { id },
+        include: {
+          members: {
+            where: { userId },
+          },
+          _count: {
+            select: { members: true },
+          },
+        },
+      });
+
+      if (!league) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      if (!league.isActive) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      // Check invite code
+      if (league.inviteCode !== inviteCode.toUpperCase()) {
+        return res.status(400).json({ error: 'Invalid invite code.' });
+      }
+
+      // Check if already a member
+      if (league.members.length > 0) {
+        return res.status(409).json({ error: 'You are already a member of this league.' });
+      }
+
+      // Optional: Check max members limit (e.g., 50 members per league)
+      const MAX_MEMBERS = 50;
+      if (league._count.members >= MAX_MEMBERS) {
+        return res.status(400).json({ error: 'This league has reached its maximum member limit.' });
+      }
+
+      // Add user as member
+      const member = await prisma.leagueMember.create({
+        data: {
+          leagueId: id,
+          userId,
+          role: 'member',
+          points: 1000, // Starting points
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              isActive: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+        },
+      });
+
+      return res.status(201).json({
+        member: transformMember(member),
+        message: 'Successfully joined the league.',
+      });
+    } catch (error) {
+      console.error('Join league error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// POST /api/leagues/:id/leave - Leave a league
+router.post(
+  '/:id/leave',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response<LeaveLeagueResponse | { error: string }>) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+
+      const league = await prisma.league.findUnique({
+        where: { id },
+        include: {
+          members: {
+            where: { userId },
+          },
+        },
+      });
+
+      if (!league) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      if (!league.isActive) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      const membership = league.members[0];
+      if (!membership) {
+        return res.status(400).json({ error: 'You are not a member of this league.' });
+      }
+
+      // Owner cannot leave, they must delete the league or transfer ownership
+      if (membership.role === 'owner') {
+        return res.status(400).json({
+          error: 'As the owner, you cannot leave the league. Transfer ownership or delete the league instead.',
+        });
+      }
+
+      await prisma.leagueMember.delete({
+        where: { id: membership.id },
+      });
+
+      return res.status(200).json({
+        message: 'Successfully left the league.',
+      });
+    } catch (error) {
+      console.error('Leave league error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// GET /api/leagues/:id/members - List league members
+router.get(
+  '/:id/members',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & { query: GetLeagueMembersRequest.Query },
+    res: Response<GetLeagueMembersResponse | { error: string }>
+  ) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+      const page = Math.max(1, parseInt(req.query.page as unknown as string) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as unknown as string) || 20));
+      const sortBy = (req.query.sortBy as string) || 'points';
+      const sortOrder = (req.query.sortOrder as string) || 'desc';
+      const skip = (page - 1) * limit;
+
+      const league = await prisma.league.findUnique({
+        where: { id },
+        include: {
+          members: {
+            where: { userId },
+          },
+        },
+      });
+
+      if (!league) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      if (!league.isActive) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      // Check if user is a member (for private leagues)
+      const isMember = league.members.length > 0;
+      if (league.isPrivate && !isMember) {
+        return res.status(403).json({ error: 'You do not have access to this league.' });
+      }
+
+      // Build orderBy clause
+      let orderBy: any = {};
+      if (sortBy === 'points') {
+        orderBy = { points: sortOrder };
+      } else if (sortBy === 'joinedAt') {
+        orderBy = { joinedAt: sortOrder };
+      } else if (sortBy === 'username') {
+        orderBy = { user: { username: sortOrder } };
+      } else {
+        orderBy = { points: 'desc' };
+      }
+
+      const [members, total] = await Promise.all([
+        prisma.leagueMember.findMany({
+          where: { leagueId: id },
+          skip,
+          take: limit,
+          orderBy,
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                username: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+                isActive: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
+          },
+        }),
+        prisma.leagueMember.count({ where: { leagueId: id } }),
+      ]);
+
+      const totalPages = Math.ceil(total / limit);
+
+      return res.status(200).json({
+        members: members.map(transformMember),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+        },
+      });
+    } catch (error) {
+      console.error('List league members error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// PATCH /api/leagues/:id/members/:userId - Update member role
+router.patch(
+  '/:id/members/:userId',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & { body: UpdateMemberRoleRequest.Body },
+    res: Response<UpdateMemberRoleResponse | { error: string }>
+  ) => {
+    try {
+      const { id, userId: targetUserId } = req.params;
+      const currentUserId = req.userId!;
+      const { role } = req.body;
+
+      if (!role || !['admin', 'member'].includes(role)) {
+        return res.status(400).json({ error: 'Valid role (admin or member) is required.' });
+      }
+
+      const league = await prisma.league.findUnique({
+        where: { id },
+        include: {
+          members: true,
+        },
+      });
+
+      if (!league) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      if (!league.isActive) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      // Find current user's membership
+      const currentUserMembership = league.members.find((m) => m.userId === currentUserId);
+      if (!currentUserMembership) {
+        return res.status(403).json({ error: 'You are not a member of this league.' });
+      }
+
+      // Only owner can change roles
+      if (currentUserMembership.role !== 'owner') {
+        return res.status(403).json({ error: 'Only the league owner can change member roles.' });
+      }
+
+      // Find target user's membership
+      const targetMembership = league.members.find((m) => m.userId === targetUserId);
+      if (!targetMembership) {
+        return res.status(404).json({ error: 'Member not found in this league.' });
+      }
+
+      // Cannot change owner's role
+      if (targetMembership.role === 'owner') {
+        return res.status(400).json({ error: 'Cannot change the owner\'s role.' });
+      }
+
+      // Update the role
+      const updatedMember = await prisma.leagueMember.update({
+        where: { id: targetMembership.id },
+        data: { role },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              isActive: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+        },
+      });
+
+      return res.status(200).json({
+        member: transformMember(updatedMember),
+        message: `Member role updated to ${role}.`,
+      });
+    } catch (error) {
+      console.error('Update member role error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// DELETE /api/leagues/:id/members/:userId - Kick member from league
+router.delete(
+  '/:id/members/:userId',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response<KickMemberResponse | { error: string }>) => {
+    try {
+      const { id, userId: targetUserId } = req.params;
+      const currentUserId = req.userId!;
+
+      const league = await prisma.league.findUnique({
+        where: { id },
+        include: {
+          members: true,
+        },
+      });
+
+      if (!league) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      if (!league.isActive) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      // Find current user's membership
+      const currentUserMembership = league.members.find((m) => m.userId === currentUserId);
+      if (!currentUserMembership) {
+        return res.status(403).json({ error: 'You are not a member of this league.' });
+      }
+
+      // Only owner and admins can kick members
+      if (!['owner', 'admin'].includes(currentUserMembership.role)) {
+        return res.status(403).json({ error: 'Only league owners and admins can remove members.' });
+      }
+
+      // Find target user's membership
+      const targetMembership = league.members.find((m) => m.userId === targetUserId);
+      if (!targetMembership) {
+        return res.status(404).json({ error: 'Member not found in this league.' });
+      }
+
+      // Cannot kick the owner
+      if (targetMembership.role === 'owner') {
+        return res.status(400).json({ error: 'Cannot remove the league owner.' });
+      }
+
+      // Admins cannot kick other admins
+      if (currentUserMembership.role === 'admin' && targetMembership.role === 'admin') {
+        return res.status(403).json({ error: 'Admins cannot remove other admins.' });
+      }
+
+      await prisma.leagueMember.delete({
+        where: { id: targetMembership.id },
+      });
+
+      return res.status(200).json({
+        message: 'Member removed from the league.',
+      });
+    } catch (error) {
+      console.error('Kick member error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
   }
