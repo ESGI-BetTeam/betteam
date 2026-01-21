@@ -117,17 +117,30 @@ export interface TheSportsDBStanding {
   intPoints: string;
 }
 
-// Responses enveloppées
-export interface TheSportsDBLeagueResponse {
+// Responses enveloppées V1 (legacy)
+export interface TheSportsDBLeagueResponseV1 {
   leagues: TheSportsDBLeague[] | null;
 }
 
-export interface TheSportsDBTeamsResponse {
+export interface TheSportsDBTeamsResponseV1 {
   teams: TheSportsDBTeam[] | null;
 }
 
-export interface TheSportsDBEventsResponse {
+export interface TheSportsDBEventsResponseV1 {
   events: TheSportsDBEvent[] | null;
+}
+
+// Responses enveloppées V2 (current)
+export interface TheSportsDBLeagueResponse {
+  lookup: TheSportsDBLeague[] | null;
+}
+
+export interface TheSportsDBTeamsResponse {
+  list: TheSportsDBTeam[] | null;
+}
+
+export interface TheSportsDBEventsResponse {
+  schedule: TheSportsDBEvent[] | null;
 }
 
 export interface TheSportsDBEventResponse {

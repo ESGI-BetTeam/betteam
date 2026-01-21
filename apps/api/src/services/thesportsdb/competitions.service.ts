@@ -49,20 +49,20 @@ class CompetitionsService {
     console.log(`🔄 Syncing competition ${leagueId}...`);
 
     try {
-      const cacheKey = `league:${leagueId}`;
+      const cacheKey = `league:v2:${leagueId}`; // v2 pour forcer refresh du cache
       const cacheTTL = 24 * 60 * 60; // 24 heures
 
       const response = await theSportsDBClient.get<TheSportsDBLeagueResponse>(
-        `/lookupleague.php?id=${leagueId}`,
+        `/lookup/league/${leagueId}`,
         cacheKey,
         cacheTTL
       );
 
-      if (!response.leagues || response.leagues.length === 0) {
+      if (!response.lookup || response.lookup.length === 0) {
         throw new Error(`Competition ${leagueId} not found`);
       }
 
-      const league = response.leagues[0];
+      const league = response.lookup[0];
       await this.upsertCompetition(league);
 
       const duration = Date.now() - startTime;

@@ -57,5 +57,5 @@ RUN npx prisma generate
 
 EXPOSE 3000
 
-# Démarrer l'application directement avec Node (sans npm pour éviter les problèmes de workspaces)
-CMD ["node", "dist/apps/api/src/index.js"]
+# Exécuter les migrations et démarrer l'application
+CMD sh -c "npx prisma migrate deploy && node dist/apps/api/src/index.js"

@@ -25,22 +25,22 @@ class MatchesService {
         throw new Error(`Competition ${leagueId} not found. Sync competition first.`);
       }
 
-      const cacheKey = `matches:upcoming:${leagueId}`;
+      const cacheKey = `matches:upcoming:v2:${leagueId}`;
       const cacheTTL = 60 * 60; // 1 heure
 
       const response = await theSportsDBClient.get<TheSportsDBEventsResponse>(
-        `/eventsnextleague.php?id=${leagueId}`,
+        `/schedule/next/league/${leagueId}`,
         cacheKey,
         cacheTTL
       );
 
-      if (!response.events || response.events.length === 0) {
+      if (!response.schedule || response.schedule.length === 0) {
         console.warn(`⚠️ No upcoming matches for league ${leagueId}`);
         return;
       }
 
       let syncCount = 0;
-      for (const event of response.events) {
+      for (const event of response.schedule) {
         await this.upsertMatch(event, competition.id, 'upcoming');
         syncCount++;
       }
@@ -91,22 +91,22 @@ class MatchesService {
         throw new Error(`Competition ${leagueId} not found. Sync competition first.`);
       }
 
-      const cacheKey = `matches:past:${leagueId}`;
+      const cacheKey = `matches:past:v2:${leagueId}`;
       const cacheTTL = 15 * 60; // 15 minutes
 
       const response = await theSportsDBClient.get<TheSportsDBEventsResponse>(
-        `/eventspastleague.php?id=${leagueId}`,
+        `/schedule/previous/league/${leagueId}`,
         cacheKey,
         cacheTTL
       );
 
-      if (!response.events || response.events.length === 0) {
+      if (!response.schedule || response.schedule.length === 0) {
         console.warn(`⚠️ No past matches for league ${leagueId}`);
         return;
       }
 
       let syncCount = 0;
-      for (const event of response.events) {
+      for (const event of response.schedule) {
         await this.upsertMatch(event, competition.id, 'finished');
         syncCount++;
       }
