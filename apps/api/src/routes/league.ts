@@ -21,6 +21,13 @@ import {
   UpdateMemberRoleRequest,
   UpdateMemberRoleResponse,
   KickMemberResponse,
+  GetLeaderboardRequest,
+  GetLeaderboardResponse,
+  LeaderboardEntry,
+  GetLeagueStatsResponse,
+  GetLeagueHistoryRequest,
+  GetLeagueHistoryResponse,
+  BetHistoryEntry,
 } from '@betteam/shared/api/leagues';
 import { League, LeagueMember } from '@betteam/shared/interfaces/League';
 
@@ -946,6 +953,371 @@ router.delete(
       });
     } catch (error) {
       console.error('Kick member error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// ============================================
+// LEAGUE LEADERBOARD & STATS ENDPOINTS
+// ============================================
+
+// GET /api/leagues/:id/leaderboard - Get league leaderboard
+router.get(
+  '/:id/leaderboard',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & { query: GetLeaderboardRequest.Query },
+    res: Response<GetLeaderboardResponse | { error: string }>
+  ) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as unknown as string) || 50));
+
+      const league = await prisma.league.findUnique({
+        where: { id },
+        include: {
+          members: {
+            where: { userId },
+          },
+        },
+      });
+
+      if (!league) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      if (!league.isActive) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      // Check access for private leagues
+      const isMember = league.members.length > 0;
+      if (league.isPrivate && !isMember) {
+        return res.status(403).json({ error: 'You do not have access to this league.' });
+      }
+
+      // Get all members with their bet statistics
+      const members = await prisma.leagueMember.findMany({
+        where: { leagueId: id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              avatar: true,
+            },
+          },
+        },
+        orderBy: { points: 'desc' },
+        take: limit,
+      });
+
+      // Get bet stats for each member
+      const leaderboard: LeaderboardEntry[] = await Promise.all(
+        members.map(async (member, index) => {
+          const betStats = await prisma.bet.groupBy({
+            by: ['status'],
+            where: {
+              userId: member.userId,
+              leagueId: id,
+            },
+            _count: true,
+          });
+
+          const totalBets = betStats.reduce((acc, stat) => acc + stat._count, 0);
+          const wonBets = betStats.find((s) => s.status === 'won')?._count || 0;
+          const lostBets = betStats.find((s) => s.status === 'lost')?._count || 0;
+          const winRate = totalBets > 0 ? Math.round((wonBets / totalBets) * 100) : 0;
+
+          return {
+            rank: index + 1,
+            userId: member.userId,
+            username: member.user.username,
+            avatar: member.user.avatar,
+            points: member.points,
+            totalBets,
+            wonBets,
+            lostBets,
+            winRate,
+            joinedAt: member.joinedAt,
+          };
+        })
+      );
+
+      const totalMembers = await prisma.leagueMember.count({ where: { leagueId: id } });
+
+      return res.status(200).json({
+        leaderboard,
+        totalMembers,
+      });
+    } catch (error) {
+      console.error('Get leaderboard error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// GET /api/leagues/:id/stats - Get league statistics
+router.get(
+  '/:id/stats',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response<GetLeagueStatsResponse | { error: string }>) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+
+      const league = await prisma.league.findUnique({
+        where: { id },
+        include: {
+          members: {
+            where: { userId },
+          },
+        },
+      });
+
+      if (!league) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      if (!league.isActive) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      // Check access for private leagues
+      const isMember = league.members.length > 0;
+      if (league.isPrivate && !isMember) {
+        return res.status(403).json({ error: 'You do not have access to this league.' });
+      }
+
+      // Get total members
+      const totalMembers = await prisma.leagueMember.count({ where: { leagueId: id } });
+
+      // Get bet statistics
+      const betStats = await prisma.bet.groupBy({
+        by: ['status'],
+        where: { leagueId: id },
+        _count: true,
+        _sum: { amount: true, actualWin: true },
+      });
+
+      const totalBets = betStats.reduce((acc, stat) => acc + stat._count, 0);
+      const totalBetsWon = betStats.find((s) => s.status === 'won')?._count || 0;
+      const totalBetsLost = betStats.find((s) => s.status === 'lost')?._count || 0;
+      const totalBetsPending = betStats.find((s) => s.status === 'pending')?._count || 0;
+
+      const totalPointsWagered = betStats.reduce((acc, stat) => acc + (stat._sum.amount || 0), 0);
+      const totalPointsWon = betStats
+        .filter((s) => s.status === 'won')
+        .reduce((acc, stat) => acc + (stat._sum.actualWin || 0), 0);
+
+      const averageWinRate = totalBets > 0 ? Math.round((totalBetsWon / totalBets) * 100) : 0;
+
+      // Get most active user
+      const mostActiveBets = await prisma.bet.groupBy({
+        by: ['userId'],
+        where: { leagueId: id },
+        _count: true,
+        orderBy: { _count: { userId: 'desc' } },
+        take: 1,
+      });
+
+      let mostActiveUser = null;
+      if (mostActiveBets.length > 0) {
+        const user = await prisma.user.findUnique({
+          where: { id: mostActiveBets[0].userId },
+          select: { id: true, username: true, avatar: true },
+        });
+        if (user) {
+          mostActiveUser = {
+            userId: user.id,
+            username: user.username,
+            avatar: user.avatar,
+            totalBets: mostActiveBets[0]._count,
+          };
+        }
+      }
+
+      // Get best performer (highest win rate with minimum 5 bets)
+      const userBetStats = await prisma.bet.groupBy({
+        by: ['userId'],
+        where: { leagueId: id },
+        _count: true,
+      });
+
+      let bestPerformer = null;
+      let bestWinRate = 0;
+
+      for (const userStat of userBetStats) {
+        if (userStat._count >= 5) {
+          const wonCount = await prisma.bet.count({
+            where: { leagueId: id, userId: userStat.userId, status: 'won' },
+          });
+          const winRate = (wonCount / userStat._count) * 100;
+
+          if (winRate > bestWinRate) {
+            bestWinRate = winRate;
+            const user = await prisma.user.findUnique({
+              where: { id: userStat.userId },
+              select: { id: true, username: true, avatar: true },
+            });
+            if (user) {
+              bestPerformer = {
+                userId: user.id,
+                username: user.username,
+                avatar: user.avatar,
+                winRate: Math.round(winRate),
+                wonBets: wonCount,
+              };
+            }
+          }
+        }
+      }
+
+      // Get last activity
+      const lastBet = await prisma.bet.findFirst({
+        where: { leagueId: id },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      });
+
+      return res.status(200).json({
+        stats: {
+          totalMembers,
+          totalBets,
+          totalBetsWon,
+          totalBetsLost,
+          totalBetsPending,
+          averageWinRate,
+          totalPointsWagered,
+          totalPointsWon,
+          mostActiveUser,
+          bestPerformer,
+          createdAt: league.createdAt,
+          lastActivityAt: lastBet?.createdAt || null,
+        },
+      });
+    } catch (error) {
+      console.error('Get league stats error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// GET /api/leagues/:id/history - Get league bet history
+router.get(
+  '/:id/history',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & { query: GetLeagueHistoryRequest.Query },
+    res: Response<GetLeagueHistoryResponse | { error: string }>
+  ) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+      const page = Math.max(1, parseInt(req.query.page as unknown as string) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as unknown as string) || 20));
+      const status = req.query.status as string | undefined;
+      const filterUserId = req.query.userId as string | undefined;
+      const skip = (page - 1) * limit;
+
+      const league = await prisma.league.findUnique({
+        where: { id },
+        include: {
+          members: {
+            where: { userId },
+          },
+        },
+      });
+
+      if (!league) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      if (!league.isActive) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      // Check access for private leagues
+      const isMember = league.members.length > 0;
+      if (league.isPrivate && !isMember) {
+        return res.status(403).json({ error: 'You do not have access to this league.' });
+      }
+
+      // Build where clause
+      const whereClause: any = { leagueId: id };
+      if (status && ['pending', 'won', 'lost', 'void'].includes(status)) {
+        whereClause.status = status;
+      }
+      if (filterUserId) {
+        whereClause.userId = filterUserId;
+      }
+
+      const [bets, total] = await Promise.all([
+        prisma.bet.findMany({
+          where: whereClause,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+              },
+            },
+            match: {
+              include: {
+                homeTeam: { select: { name: true } },
+                awayTeam: { select: { name: true } },
+              },
+            },
+          },
+        }),
+        prisma.bet.count({ where: whereClause }),
+      ]);
+
+      const totalPages = Math.ceil(total / limit);
+
+      const betHistory: BetHistoryEntry[] = bets.map((bet) => ({
+        id: bet.id,
+        oddsUser: {
+          oddsUserId: bet.user.id,
+          username: bet.user.username,
+          avatar: bet.user.avatar,
+        },
+        match: {
+          id: bet.match.id,
+          homeTeam: bet.match.homeTeam.name,
+          awayTeam: bet.match.awayTeam.name,
+          homeScore: bet.match.homeScore,
+          awayScore: bet.match.awayScore,
+          startTime: bet.match.startTime,
+          status: bet.match.status,
+        },
+        predictionType: bet.predictionType,
+        predictionValue: bet.predictionValue,
+        amount: bet.amount,
+        status: bet.status,
+        potentialWin: bet.potentialWin,
+        actualWin: bet.actualWin,
+        createdAt: bet.createdAt,
+        settledAt: bet.settledAt,
+      }));
+
+      return res.status(200).json({
+        bets: betHistory,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+        },
+      });
+    } catch (error) {
+      console.error('Get league history error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
   }
