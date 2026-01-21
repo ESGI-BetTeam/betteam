@@ -29,7 +29,7 @@ RUN npm install --production
 
 # Copy built files and server from builder
 COPY --from=builder /app/apps/web/dist ./dist
-COPY apps/web/server.js ./server.js
+COPY --from=builder /app/apps/web/server.js ./server.js
 
 # Start Node.js server
 CMD ["node", "server.js"]
