@@ -1,7 +1,7 @@
 # Checklist API BetTeam
 
-> **Dernière mise à jour:** 2026-01-20
-> **Version:** 1.1.0
+> **Dernière mise à jour:** 2026-01-21
+> **Version:** 1.2.0
 
 Cette checklist permet de suivre l'avancement du développement de l'API BetTeam.
 
@@ -171,33 +171,35 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 
 ---
 
-## 8. Ligues (`/api/leagues`) ❌ À IMPLÉMENTER
+## 8. Ligues (`/api/leagues`) ✅ IMPLÉMENTÉ
 
 ### Endpoints
-- [ ] `POST /api/leagues` - Créer une ligue
-- [ ] `GET /api/leagues` - Lister ses ligues
-- [ ] `GET /api/leagues/:id` - Détails d'une ligue
-- [ ] `PATCH /api/leagues/:id` - Modifier une ligue
-- [ ] `DELETE /api/leagues/:id` - Supprimer une ligue
+- [x] `POST /api/leagues` - Créer une ligue
+- [x] `GET /api/leagues` - Lister ses ligues
+- [x] `GET /api/leagues/:id` - Détails d'une ligue
+- [x] `PATCH /api/leagues/:id` - Modifier une ligue
+- [x] `DELETE /api/leagues/:id` - Supprimer une ligue (soft delete)
+- [x] `POST /api/leagues/:id/regenerate-code` - Régénérer le code d'invitation
 
 ### Membres
-- [ ] `POST /api/leagues/:id/join` - Rejoindre via code d'invitation
-- [ ] `POST /api/leagues/:id/leave` - Quitter une ligue
-- [ ] `GET /api/leagues/:id/members` - Liste des membres
-- [ ] `PATCH /api/leagues/:id/members/:userId` - Modifier rôle d'un membre
-- [ ] `DELETE /api/leagues/:id/members/:userId` - Exclure un membre
+- [x] `POST /api/leagues/:id/join` - Rejoindre via code d'invitation
+- [x] `POST /api/leagues/:id/leave` - Quitter une ligue
+- [x] `GET /api/leagues/:id/members` - Liste des membres (pagination, tri)
+- [x] `PATCH /api/leagues/:id/members/:userId` - Modifier rôle d'un membre
+- [x] `DELETE /api/leagues/:id/members/:userId` - Exclure un membre
 
 ### Classement & Stats
-- [ ] `GET /api/leagues/:id/leaderboard` - Classement de la ligue
-- [ ] `GET /api/leagues/:id/stats` - Statistiques de la ligue
-- [ ] `GET /api/leagues/:id/history` - Historique des paris de la ligue
+- [x] `GET /api/leagues/:id/leaderboard` - Classement de la ligue
+- [x] `GET /api/leagues/:id/stats` - Statistiques de la ligue
+- [x] `GET /api/leagues/:id/history` - Historique des paris de la ligue
 
 ### Fonctionnalités
-- [ ] Génération code d'invitation unique
-- [ ] Rôles: owner, admin, member
-- [ ] Ligues privées/publiques
-- [ ] Limite de membres par ligue
+- [x] Génération code d'invitation unique (8 caractères)
+- [x] Rôles: owner, admin, member
+- [x] Ligues privées/publiques
+- [x] Limite de membres par ligue (50 max)
 - [ ] Notifications d'invitation
+- [ ] Transfert de propriété
 
 **Modèle Prisma:** ✅ Existe (`League`, `LeagueMember`)
 
@@ -298,7 +300,7 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 | Équipes | 30% | Basse |
 | Matchs | 80% | - |
 | Synchronisation | 70% | Moyenne |
-| **Ligues** | **0%** | **HAUTE** |
+| **Ligues** | **95%** | ✅ Terminé |
 | **Paris** | **0%** | **HAUTE** |
 | Notifications | 0% | Moyenne |
 | Statistiques | 0% | Basse |
@@ -308,7 +310,7 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 
 ## Prochaines étapes recommandées
 
-1. **Implémenter les Ligues** - Core feature pour l'aspect social
+1. ~~**Implémenter les Ligues** - Core feature pour l'aspect social~~ ✅
 2. **Implémenter les Paris** - Fonctionnalité principale de l'app
 3. **Ajouter les CRON Jobs** - Automatisation de la sync
 4. **WebSocket pour live scores** - Expérience temps réel
