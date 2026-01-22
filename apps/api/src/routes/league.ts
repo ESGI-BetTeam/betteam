@@ -1323,4 +1323,158 @@ router.get(
   }
 );
 
+// ============================================
+// LEAGUE COMPETITION ENDPOINTS
+// ============================================
+
+import { betsService } from '../services/bets.service';
+import {
+  GetLeagueCompetitionResponse,
+  UpdateLeagueCompetitionRequest,
+  UpdateLeagueCompetitionResponse,
+} from '@betteam/shared/api/challenges';
+
+// GET /api/leagues/:id/competition - Get league's current competition
+router.get(
+  '/:id/competition',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response<GetLeagueCompetitionResponse | { error: string }>) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+
+      const league = await prisma.league.findUnique({
+        where: { id },
+        include: {
+          currentCompetition: true,
+          members: {
+            where: { userId },
+          },
+        },
+      });
+
+      if (!league) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      if (!league.isActive) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      // Check membership for private leagues
+      const isMember = league.members.length > 0;
+      if (league.isPrivate && !isMember) {
+        return res.status(403).json({ error: 'You do not have access to this league.' });
+      }
+
+      // Get days until competition can be changed
+      const canChangeIn = await betsService.getDaysUntilCompetitionChange(id);
+
+      return res.status(200).json({
+        competition: league.currentCompetition
+          ? {
+              id: league.currentCompetition.id,
+              name: league.currentCompetition.name,
+              sport: league.currentCompetition.sport,
+              country: league.currentCompetition.country,
+              logoUrl: league.currentCompetition.logoUrl,
+            }
+          : null,
+        changedAt: league.competitionChangedAt,
+        canChangeIn,
+      });
+    } catch (error) {
+      console.error('Get league competition error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// PATCH /api/leagues/:id/competition - Update league's competition
+router.patch(
+  '/:id/competition',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & { body: UpdateLeagueCompetitionRequest.Body },
+    res: Response<UpdateLeagueCompetitionResponse | { error: string }>
+  ) => {
+    try {
+      const { id } = req.params;
+      const { competitionId } = req.body;
+      const userId = req.userId!;
+
+      if (!competitionId) {
+        return res.status(400).json({ error: 'Competition ID is required.' });
+      }
+
+      const league = await prisma.league.findUnique({
+        where: { id },
+        include: {
+          members: {
+            where: { userId },
+          },
+        },
+      });
+
+      if (!league) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      if (!league.isActive) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+
+      // Check if user is admin or owner
+      const userMembership = league.members[0];
+      if (!userMembership || !['owner', 'admin'].includes(userMembership.role)) {
+        return res.status(403).json({ error: 'Only league owners and admins can change the competition.' });
+      }
+
+      // Check if competition exists
+      const competition = await prisma.competition.findUnique({
+        where: { id: competitionId },
+      });
+
+      if (!competition) {
+        return res.status(404).json({ error: 'Competition not found.' });
+      }
+
+      if (!competition.isActive) {
+        return res.status(400).json({ error: 'This competition is not active.' });
+      }
+
+      // Check if can change competition (weekly limit for free plan)
+      const canChange = await betsService.canChangeCompetition(id);
+      if (!canChange.valid) {
+        return res.status(400).json({ error: canChange.error! });
+      }
+
+      // Update league competition
+      const now = new Date();
+      await prisma.league.update({
+        where: { id },
+        data: {
+          currentCompetitionId: competitionId,
+          competitionChangedAt: now,
+        },
+      });
+
+      return res.status(200).json({
+        competition: {
+          id: competition.id,
+          name: competition.name,
+          sport: competition.sport,
+          country: competition.country,
+          logoUrl: competition.logoUrl,
+        },
+        changedAt: now,
+        message: 'Competition updated successfully.',
+      });
+    } catch (error) {
+      console.error('Update league competition error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
 export default router;
