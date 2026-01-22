@@ -78,6 +78,7 @@ model Match {
   awayTeam      Team        @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
   bets          Bet[]
   groupBets     GroupBet[]
+  odds          MatchOdds?
 
   @@map("matches")
   @@index([externalId])
@@ -277,4 +278,29 @@ model GroupBet {
   @@index([createdById])
   @@index([status])
   @@index([closesAt])
+}
+
+// ============================================
+// ODDS DATA (The Odds API sync)
+// ============================================
+
+model MatchOdds {
+  id              String   @id @default(cuid())
+  matchId         String   @unique @map("match_id")
+  oddsApiId       String?  @map("odds_api_id") // ID de The Odds API
+  homeWinOdds     Float?   @map("home_win_odds") // Cote moyenne victoire domicile
+  drawOdds        Float?   @map("draw_odds") // Cote moyenne match nul
+  awayWinOdds     Float?   @map("away_win_odds") // Cote moyenne victoire extérieur
+  bookmakerCount  Int      @default(0) @map("bookmaker_count") // Nombre de bookmakers utilisés pour la moyenne
+  rawData         Json?    @map("raw_data") // Données brutes pour debug/historique
+  syncedAt        DateTime @default(now()) @map("synced_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  match           Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@map("match_odds")
+  @@index([matchId])
+  @@index([syncedAt])
 }
