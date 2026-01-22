@@ -1,12 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../lib/prisma';
 import {
   theOddsAPIClient,
   OddsEvent,
   ODDS_API_COMPETITION_MAPPING,
   THESPORTSDB_TO_ODDS_API,
 } from './client';
-
-const prisma = new PrismaClient();
 
 /**
  * Résultat du matching d'un match
