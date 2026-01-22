@@ -1,7 +1,7 @@
 # Checklist API BetTeam
 
-> **Dernière mise à jour:** 2026-01-21
-> **Version:** 1.3.0
+> **Dernière mise à jour:** 2026-01-22
+> **Version:** 1.4.0
 
 Cette checklist permet de suivre l'avancement du développement de l'API BetTeam.
 
@@ -205,34 +205,47 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 
 ---
 
-## 9. Paris (`/api/bets`) ❌ À IMPLÉMENTER
+## 9. Paris (`/api/bets`) ✅ IMPLÉMENTÉ (Partie 1)
 
-### Endpoints
-- [ ] `POST /api/bets` - Créer un pari
-- [ ] `GET /api/bets` - Lister ses paris
-- [ ] `GET /api/bets/:id` - Détails d'un pari
-- [ ] `DELETE /api/bets/:id` - Annuler un pari (si pending)
-- [ ] `GET /api/bets/history` - Historique des paris
+### Endpoints Paris Utilisateur
+- [x] `GET /api/bets` - Lister ses paris (pagination, filtres)
+- [x] `GET /api/bets/:id` - Détails d'un pari
+- [x] `GET /api/bets/history` - Historique des paris avec stats
+- [x] `GET /api/bets/weekly-limit` - Limite hebdomadaire (Free: 3/semaine)
 
-### Par ligue
-- [ ] `GET /api/leagues/:id/bets` - Paris d'une ligue
-- [ ] `POST /api/leagues/:id/bets` - Parier dans une ligue
+### Challenges (Paris de groupe imposés)
+- [x] `POST /api/leagues/:id/challenges` - Proposer un match (créer un challenge)
+- [x] `GET /api/leagues/:id/challenges` - Lister les challenges (pagination, filtres)
+- [x] `GET /api/leagues/:id/challenges/active` - Challenges actifs (ouverts)
+- [x] `GET /api/leagues/:id/challenges/:challengeId` - Détails d'un challenge
+- [x] `POST /api/leagues/:id/challenges/:challengeId/bets` - Placer un pari sur un challenge
+- [x] `GET /api/leagues/:id/challenges/:challengeId/bets` - Paris d'un challenge
+- [x] `GET /api/leagues/:id/available-matches` - Matchs disponibles pour créer un challenge
 
-### Par match
-- [ ] `GET /api/matches/:id/bets` - Paris sur un match
-- [ ] `GET /api/matches/:id/odds` - Cotes du match (si disponible)
+### Compétition de la Ligue
+- [x] `GET /api/leagues/:id/competition` - Compétition actuelle de la ligue
+- [x] `PATCH /api/leagues/:id/competition` - Changer de compétition (Free: 1x/semaine)
 
-### Fonctionnalités
-- [ ] Types de paris: winner, score, both_score, etc.
-- [ ] Validation: match non commencé
-- [ ] Validation: solde suffisant
-- [ ] Calcul automatique des gains potentiels
+### Règles métier implémentées
+- [x] **J-7**: Paris possibles 7 jours avant le match
+- [x] **M-10**: Fin des paris 10 minutes avant le début
+- [x] **Immutabilité**: Paris non modifiables/annulables après validation
+- [x] **Limite Free**: 3 paris par semaine par ligue
+- [x] **Changement compétition Free**: 1x par semaine
+- [x] Validation: membre de la ligue requis
+- [x] Validation: match dans la compétition de la ligue
+- [x] Validation: un seul pari par challenge par utilisateur
+- [x] Validation: solde de points suffisant
+- [x] Déduction automatique des points à la création du pari
+
+### À faire (Partie 2 - Cotes & Résolution)
+- [ ] Calcul automatique des gains potentiels (cotes)
 - [ ] Résolution automatique des paris (quand match terminé)
-- [ ] Mise à jour des points utilisateur
-- [ ] Historique des transactions de points
-- [ ] Statistiques de paris (taux de réussite, etc.)
+- [ ] Mise à jour des points utilisateur après résolution
+- [ ] CRON: fermeture automatique des challenges (M-10)
+- [ ] CRON: résolution des paris (match terminé)
 
-**Modèle Prisma:** ✅ Existe (`Bet`)
+**Modèle Prisma:** ✅ Existe (`Bet`, `GroupBet`)
 
 ---
 
@@ -399,7 +412,7 @@ model Contribution {
 | Matchs | 80% | - |
 | Synchronisation | 70% | Moyenne |
 | **Ligues** | **95%** | ✅ Terminé |
-| **Paris** | **0%** | **HAUTE** |
+| **Paris** | **70%** | ✅ En cours |
 | **Abonnements & Cagnotte** | **0%** | **HAUTE** |
 | Notifications | 0% | Moyenne |
 | Statistiques | 0% | Basse |
@@ -410,11 +423,12 @@ model Contribution {
 ## Prochaines étapes recommandées
 
 1. ~~**Implémenter les Ligues** - Core feature pour l'aspect social~~ ✅
-2. **Implémenter les Paris** - Fonctionnalité principale de l'app
-3. **Implémenter Abonnements & Cagnotte** - Monétisation (modèle Famileo)
-4. **Ajouter les CRON Jobs** - Automatisation de la sync + prélèvements
-5. **WebSocket pour live scores** - Expérience temps réel
-6. **Notifications** - Engagement utilisateur
+2. ~~**Implémenter les Paris (Partie 1)** - Challenges et paris de groupe~~ ✅
+3. **Implémenter les Paris (Partie 2)** - Cotes et résolution automatique
+4. **Implémenter Abonnements & Cagnotte** - Monétisation (modèle Famileo)
+5. **Ajouter les CRON Jobs** - Automatisation de la sync + fermeture challenges
+6. **WebSocket pour live scores** - Expérience temps réel
+7. **Notifications** - Engagement utilisateur
 
 ---
 
