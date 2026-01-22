@@ -5,6 +5,7 @@ import {
   matchesService,
   COMPETITION_IDS,
 } from '../services/thesportsdb';
+import { oddsService, ODDS_API_COMPETITION_MAPPING } from '../services/theoddsapi';
 
 const router = Router();
 
@@ -161,6 +162,100 @@ router.post('/all', async (req: Request, res: Response) => {
     console.error('Full sync error:', error);
     return res.status(500).json({
       error: 'Failed to complete full synchronization',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/sync/odds
+ * Synchroniser les cotes depuis The Odds API
+ *
+ * Body optionnel:
+ * - leagueId: ID TheSportsDB de la compétition (ex: "4334" pour Ligue 1)
+ *
+ * Note: Limité à 500 req/mois, utiliser avec parcimonie
+ * Les CRON jobs (9h et 18h) gèrent la sync automatique
+ */
+router.post('/odds', async (req: Request, res: Response) => {
+  try {
+    const { leagueId } = req.body;
+
+    if (leagueId) {
+      // Sync cotes pour une compétition spécifique
+      const result = await oddsService.syncOddsForCompetition(leagueId);
+      return res.status(200).json({
+        message: `Odds for league ${leagueId} synchronized successfully`,
+        ...result,
+      });
+    }
+
+    // Sync cotes pour toutes les compétitions supportées
+    const stats = await oddsService.syncAllOdds();
+    return res.status(200).json({
+      message: 'Odds synchronization completed',
+      ...stats,
+    });
+  } catch (error) {
+    console.error('Sync odds error:', error);
+    return res.status(500).json({
+      error: 'Failed to sync odds',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * GET /api/sync/odds/status
+ * Obtenir le statut de la synchronisation des cotes
+ */
+router.get('/odds/status', async (req: Request, res: Response) => {
+  try {
+    const stats = oddsService.getStats();
+
+    const { prisma } = await import('../lib/prisma');
+
+    const [oddsCount, recentOdds] = await Promise.all([
+      prisma.matchOdds.count(),
+      prisma.matchOdds.findMany({
+        orderBy: { syncedAt: 'desc' },
+        take: 10,
+        include: {
+          match: {
+            include: {
+              homeTeam: { select: { name: true } },
+              awayTeam: { select: { name: true } },
+              competition: { select: { name: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return res.status(200).json({
+      totalOddsRecords: oddsCount,
+      supportedCompetitions: Object.entries(ODDS_API_COMPETITION_MAPPING).map(
+        ([oddsKey, sportsDbId]) => ({
+          oddsApiKey: oddsKey,
+          theSportsDbId: sportsDbId,
+        })
+      ),
+      apiStats: stats.apiStats,
+      recentSyncs: recentOdds.map((o) => ({
+        matchId: o.matchId,
+        match: `${o.match.homeTeam.name} vs ${o.match.awayTeam.name}`,
+        competition: o.match.competition.name,
+        homeWinOdds: o.homeWinOdds,
+        drawOdds: o.drawOdds,
+        awayWinOdds: o.awayWinOdds,
+        bookmakerCount: o.bookmakerCount,
+        syncedAt: o.syncedAt,
+      })),
+    });
+  } catch (error) {
+    console.error('Get odds status error:', error);
+    return res.status(500).json({
+      error: 'Failed to get odds status',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
