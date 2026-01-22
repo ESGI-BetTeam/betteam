@@ -31,12 +31,12 @@
 
 ---
 
-### 🥈 Champion (4,99€/mois)
+### 🥈 Champion (5,99€/mois)
 
 | Feature | Détail |
 |---------|--------|
-| **Prix mensuel** | 4,99€ |
-| **Prix annuel** | ~48€/an (-20%) |
+| **Prix mensuel** | 5,99€ |
+| **Prix annuel** | ~59€/an (-20%) |
 | **Membres max** | 10 |
 | **Compétitions** | Toutes les compétitions, tous les sports |
 | **Changement compétition** | Illimité |
@@ -48,12 +48,12 @@
 
 ---
 
-### 🏆 MVP (9,99€/mois)
+### 🏆 MVP (11,99€/mois)
 
 | Feature | Détail |
 |---------|--------|
-| **Prix mensuel** | 9,99€ |
-| **Prix annuel** | ~96€/an (-20%) |
+| **Prix mensuel** | 11,99€ |
+| **Prix annuel** | ~120€/an (-20%) |
 | **Membres max** | 30 |
 | **Compétitions** | Toutes + custom events (matchs hors API) |
 | **Changement compétition** | Illimité |
@@ -77,8 +77,8 @@
 ### Contributions
 
 - **Contribution minimum** : Égale au prix de l'abonnement choisi
-  - Champion : minimum 4,99€ par contribution
-  - MVP : minimum 9,99€ par contribution
+  - Champion : minimum 5,99€ par contribution
+  - MVP : minimum 11,99€ par contribution
 - **Contribution libre** : Chaque membre contribue ce qu'il veut (au-dessus du minimum)
 - **Objectif** : La somme totale doit couvrir l'abonnement mensuel
 
