@@ -171,6 +171,44 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 
 ---
 
+## 7b. Synchronisation The Odds API - Cotes (`/api/sync/odds`) ✅ IMPLÉMENTÉ
+
+> **API externe:** https://the-odds-api.com/
+> **Limite:** 500 requêtes/mois (gratuit)
+> **Stratégie:** CRON 2x/jour (9h et 18h)
+
+### Endpoints
+- [x] `POST /api/sync/odds` - Sync cotes (toutes ou par compétition)
+- [x] `GET /api/sync/odds/status` - Statut de synchronisation des cotes
+- [x] `GET /api/matches/:id/odds` - Cotes d'un match spécifique
+- [x] `GET /api/matches/with-odds` - Matchs avec leurs cotes
+
+### Fonctionnalités
+- [x] Client HTTP The Odds API avec cache (2h TTL)
+- [x] Mapping compétitions TheSportsDB <-> The Odds API
+- [x] Matching intelligent des matchs (date + noms d'équipes normalisés)
+- [x] Calcul des cotes moyennes (tous bookmakers)
+- [x] Stockage en BDD (`MatchOdds`)
+- [ ] CRON job: sync cotes (2x/jour à 9h et 18h)
+
+### Compétitions supportées (mapping)
+| The Odds API | Competition | TheSportsDB ID |
+|--------------|-------------|----------------|
+| `soccer_epl` | Premier League (England) | 4328 |
+| `soccer_france_ligue_one` | Ligue 1 (France) | 4334 |
+| `soccer_germany_bundesliga` | Bundesliga (Germany) | 4331 |
+| `soccer_italy_serie_a` | Serie A (Italy) | 4332 |
+| `soccer_spain_la_liga` | La Liga (Spain) | 4335 |
+
+### Variables d'environnement
+```env
+THE_ODDS_API_KEY=your_api_key_here
+```
+
+**Modèle Prisma:** ✅ Existe (`MatchOdds`)
+
+---
+
 ## 8. Ligues (`/api/leagues`) ✅ IMPLÉMENTÉ
 
 ### Endpoints
@@ -239,13 +277,19 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 - [x] Déduction automatique des points à la création du pari
 
 ### À faire (Partie 2 - Cotes & Résolution)
+- [x] Intégration The Odds API pour récupérer les cotes
+- [x] Service de matching matchs TheSportsDB <-> The Odds API
+- [x] Modèle `MatchOdds` pour stocker les cotes moyennes
+- [x] Endpoints API pour récupérer les cotes (`GET /api/matches/:id/odds`, `GET /api/matches/with-odds`)
+- [x] Endpoint de sync manuelle (`POST /api/sync/odds`)
 - [ ] Calcul automatique des gains potentiels (cotes)
 - [ ] Résolution automatique des paris (quand match terminé)
 - [ ] Mise à jour des points utilisateur après résolution
 - [ ] CRON: fermeture automatique des challenges (M-10)
 - [ ] CRON: résolution des paris (match terminé)
+- [ ] CRON: sync des cotes (2x/jour à 9h et 18h) - **The Odds API (500 req/mois)**
 
-**Modèle Prisma:** ✅ Existe (`Bet`, `GroupBet`)
+**Modèle Prisma:** ✅ Existe (`Bet`, `GroupBet`, `MatchOdds`)
 
 ---
 
@@ -410,9 +454,10 @@ model Contribution {
 | Compétitions | 90% | - |
 | Équipes | 30% | Basse |
 | Matchs | 80% | - |
-| Synchronisation | 70% | Moyenne |
+| Synchronisation TheSportsDB | 70% | Moyenne |
+| **Sync The Odds API (Cotes)** | **90%** | ✅ Implémenté |
 | **Ligues** | **95%** | ✅ Terminé |
-| **Paris** | **70%** | ✅ En cours |
+| **Paris** | **80%** | ✅ En cours |
 | **Abonnements & Cagnotte** | **0%** | **HAUTE** |
 | Notifications | 0% | Moyenne |
 | Statistiques | 0% | Basse |
@@ -445,7 +490,9 @@ model Contribution {
 - **ORM:** Prisma 7.x
 - **Database:** PostgreSQL
 - **Auth:** JWT (jsonwebtoken)
-- **API externe:** TheSportsDB V2
+- **APIs externes:**
+  - TheSportsDB V2 (matchs, équipes, compétitions)
+  - The Odds API (cotes des paris)
 
 ---
 
