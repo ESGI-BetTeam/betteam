@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { matchesService } from '../services/thesportsdb';
+import { oddsService } from '../services/theoddsapi';
 
 const router = Router();
 
@@ -121,6 +122,53 @@ router.get('/upcoming', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/matches/with-odds
+ * Récupérer les matchs avec leurs cotes
+ * Query params:
+ * - competitionId: filtrer par compétition
+ * - limit: nombre max de résultats (défaut: 50)
+ * - onlyWithOdds: true pour ne retourner que les matchs avec cotes
+ */
+router.get('/with-odds', async (req: Request, res: Response) => {
+  try {
+    const { competitionId, limit, onlyWithOdds } = req.query;
+
+    const matches = await oddsService.getMatchesWithOdds({
+      competitionId: competitionId as string,
+      limit: limit ? parseInt(limit as string) : 50,
+      onlyWithOdds: onlyWithOdds === 'true',
+    });
+
+    return res.status(200).json({
+      matches: matches.map((match) => ({
+        id: match.id,
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        competition: match.competition,
+        startTime: match.startTime,
+        status: match.status,
+        odds: match.odds
+          ? {
+              homeWinOdds: match.odds.homeWinOdds,
+              drawOdds: match.odds.drawOdds,
+              awayWinOdds: match.odds.awayWinOdds,
+              bookmakerCount: match.odds.bookmakerCount,
+              lastUpdated: match.odds.syncedAt,
+            }
+          : null,
+      })),
+      count: matches.length,
+    });
+  } catch (error) {
+    console.error('Get matches with odds error:', error);
+    return res.status(500).json({
+      error: 'Failed to fetch matches with odds',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
  * GET /api/matches/:id
  * Récupérer un match par son ID
  */
@@ -141,6 +189,48 @@ router.get('/:id', async (req: Request, res: Response) => {
     console.error('Get match error:', error);
     return res.status(500).json({
       error: 'Failed to fetch match',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * GET /api/matches/:id/odds
+ * Récupérer les cotes d'un match spécifique
+ */
+router.get('/:id/odds', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const odds = await oddsService.getMatchOdds(id);
+
+    if (!odds) {
+      return res.status(404).json({
+        error: 'Odds not found for this match',
+        message: 'This match may not have odds available yet or is not supported by The Odds API',
+      });
+    }
+
+    return res.status(200).json({
+      matchId: odds.matchId,
+      match: {
+        homeTeam: odds.match.homeTeam,
+        awayTeam: odds.match.awayTeam,
+        competition: odds.match.competition,
+        startTime: odds.match.startTime,
+      },
+      odds: {
+        homeWin: odds.homeWinOdds,
+        draw: odds.drawOdds,
+        awayWin: odds.awayWinOdds,
+        bookmakerCount: odds.bookmakerCount,
+      },
+      lastUpdated: odds.syncedAt,
+    });
+  } catch (error) {
+    console.error('Get match odds error:', error);
+    return res.status(500).json({
+      error: 'Failed to fetch match odds',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }

@@ -7,10 +7,16 @@ info:
     ## Fonctionnalités principales
     - Authentification et gestion des utilisateurs
     - Création et gestion de ligues privées
-    - Paris sur des matchs sportifs
+    - Paris de groupe (Group Bets) avec cotes réelles
+    - Synchronisation des matchs via TheSportsDB
+    - Récupération des cotes via The Odds API
     - Suivi des résultats et classements
 
-  version: 1.2.0
+    ## APIs externes
+    - **TheSportsDB** - Matchs, équipes, compétitions
+    - **The Odds API** - Cotes des bookmakers (Top 5 ligues européennes)
+
+  version: 1.4.0
   contact:
     name: BetTeam Support
     email: support@betteam.com
@@ -31,16 +37,24 @@ tags:
     description: Authentification et gestion des sessions
   - name: Users
     description: Gestion des utilisateurs (CRUD)
+  - name: Competitions
+    description: Gestion des compétitions sportives
+  - name: Matches
+    description: Gestion des matchs sportifs
+  - name: Odds
+    description: Cotes des paris (The Odds API)
   - name: Leagues
     description: Gestion des ligues privées
   - name: League Members
     description: Gestion des membres d'une ligue
   - name: League Stats
     description: Classement et statistiques des ligues
-  - name: Matches
-    description: Gestion des matchs sportifs
+  - name: Group Bets
+    description: Paris de groupe - Matchs proposés aux membres d'une ligue
   - name: Bets
     description: Gestion des paris
+  - name: Sync
+    description: Synchronisation des données externes (TheSportsDB, The Odds API)
 
 paths:
   /health:
@@ -1163,8 +1177,6 @@ paths:
       summary: Lister les matchs
       description: Récupère la liste des matchs disponibles pour parier
       operationId: getMatches
-      security:
-        - bearerAuth: []
       parameters:
         - name: status
           in: query
@@ -1210,11 +1222,164 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Match'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                type: object
+                properties:
+                  matches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Match'
+                  count:
+                    type: integer
+                    example: 25
+
+  /matches/today:
+    get:
+      tags:
+        - Matches
+      summary: Matchs du jour
+      description: Récupère les matchs programmés pour aujourd'hui
+      operationId: getTodayMatches
+      responses:
+        '200':
+          description: Liste des matchs du jour
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Match'
+                  count:
+                    type: integer
+                  date:
+                    type: string
+                    format: date
+                    example: '2026-01-22'
+
+  /matches/upcoming:
+    get:
+      tags:
+        - Matches
+      summary: Matchs à venir
+      description: Récupère les matchs des 7 prochains jours
+      operationId: getUpcomingMatches
+      responses:
+        '200':
+          description: Liste des matchs à venir
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Match'
+                  count:
+                    type: integer
+
+  /matches/with-odds:
+    get:
+      tags:
+        - Matches
+        - Odds
+      summary: Matchs avec cotes
+      description: Récupère les matchs à venir avec leurs cotes de paris
+      operationId: getMatchesWithOdds
+      parameters:
+        - name: competitionId
+          in: query
+          schema:
+            type: string
+          description: Filtrer par compétition
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Nombre max de résultats
+        - name: onlyWithOdds
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Retourner uniquement les matchs avec cotes disponibles
+      responses:
+        '200':
+          description: Liste des matchs avec cotes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MatchWithOdds'
+                  count:
+                    type: integer
+
+  /matches/{id}:
+    get:
+      tags:
+        - Matches
+      summary: Détails d'un match
+      description: Récupère les informations détaillées d'un match
+      operationId: getMatchById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID du match
+      responses:
+        '200':
+          description: Détails du match
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /matches/{id}/odds:
+    get:
+      tags:
+        - Matches
+        - Odds
+      summary: Cotes d'un match
+      description: Récupère les cotes de paris pour un match spécifique
+      operationId: getMatchOdds
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID du match
+      responses:
+        '200':
+          description: Cotes du match
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchOddsResponse'
+        '404':
+          description: Cotes non disponibles pour ce match
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Odds not found for this match
+                  message:
+                    type: string
+                    example: This match may not have odds available yet or is not supported by The Odds API
 
   # ============================================
   # BETS ENDPOINTS
@@ -1298,6 +1463,761 @@ paths:
                   $ref: '#/components/schemas/Bet'
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  # ============================================
+  # COMPETITIONS ENDPOINTS
+  # ============================================
+  /competitions:
+    get:
+      tags:
+        - Competitions
+      summary: Lister les compétitions
+      description: Récupère la liste des compétitions sportives disponibles
+      operationId: getCompetitions
+      parameters:
+        - name: sport
+          in: query
+          schema:
+            type: string
+          description: Filtrer par sport (ex. Football)
+        - name: country
+          in: query
+          schema:
+            type: string
+          description: Filtrer par pays
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+          description: Filtrer par statut actif
+      responses:
+        '200':
+          description: Liste des compétitions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  competitions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Competition'
+                  count:
+                    type: integer
+
+  /competitions/{id}:
+    get:
+      tags:
+        - Competitions
+      summary: Détails d'une compétition
+      description: Récupère les informations détaillées d'une compétition
+      operationId: getCompetitionById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de la compétition
+      responses:
+        '200':
+          description: Détails de la compétition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Competition'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /competitions/{id}/teams:
+    get:
+      tags:
+        - Competitions
+      summary: Équipes d'une compétition
+      description: Récupère la liste des équipes d'une compétition
+      operationId: getCompetitionTeams
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de la compétition
+      responses:
+        '200':
+          description: Liste des équipes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Team'
+                  count:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /competitions/{id}/matches:
+    get:
+      tags:
+        - Competitions
+      summary: Matchs d'une compétition
+      description: Récupère la liste des matchs d'une compétition
+      operationId: getCompetitionMatches
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de la compétition
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [upcoming, live, finished, postponed, cancelled]
+          description: Filtrer par statut
+      responses:
+        '200':
+          description: Liste des matchs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Match'
+                  count:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================
+  # GROUP BETS ENDPOINTS
+  # ============================================
+  /leagues/{id}/challenges:
+    get:
+      tags:
+        - Group Bets
+      summary: Lister les paris de groupe d'une ligue
+      description: Récupère la liste des paris de groupe d'une ligue
+      operationId: getLeagueGroupBets
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, closed, settled]
+          description: Filtrer par statut
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Liste des paris de groupe
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challenges:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Challenge'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags:
+        - Group Bets
+      summary: Créer un pari de groupe
+      description: Propose un match pour les paris de groupe de la ligue
+      operationId: createGroupBet
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - matchId
+              properties:
+                matchId:
+                  type: string
+                  description: ID du match à proposer
+      responses:
+        '201':
+          description: Pari de groupe créé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challenge:
+                    $ref: '#/components/schemas/Challenge'
+                  message:
+                    type: string
+                    example: Group bet created successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /leagues/{id}/challenges/active:
+    get:
+      tags:
+        - Group Bets
+      summary: Paris de groupe actifs
+      description: Récupère les paris de groupe encore ouverts
+      operationId: getActiveGroupBets
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Liste des paris de groupe actifs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challenges:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Challenge'
+                  count:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /leagues/{id}/challenges/{challengeId}:
+    get:
+      tags:
+        - Group Bets
+      summary: Détails d'un pari de groupe
+      description: Récupère les informations détaillées d'un pari de groupe
+      operationId: getGroupBetById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+        - name: challengeId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID du pari de groupe
+      responses:
+        '200':
+          description: Détails du pari de groupe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChallengeWithBets'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /leagues/{id}/challenges/{challengeId}/bets:
+    get:
+      tags:
+        - Group Bets
+      summary: Paris placés sur un pari de groupe
+      description: Récupère les paris des membres sur un pari de groupe
+      operationId: getGroupBetBets
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+        - name: challengeId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID du pari de groupe
+      responses:
+        '200':
+          description: Liste des paris
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Bet'
+                  count:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Group Bets
+      summary: Placer un pari sur un pari de groupe
+      description: Place un pari sur un pari de groupe actif
+      operationId: placeBetOnGroupBet
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+        - name: challengeId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID du pari de groupe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - predictionType
+                - predictionValue
+                - amount
+              properties:
+                predictionType:
+                  type: string
+                  enum: [winner, score, both_score]
+                predictionValue:
+                  type: string
+                  description: Valeur de la prédiction (JSON)
+                amount:
+                  type: integer
+                  minimum: 1
+                  description: Montant du pari en points
+      responses:
+        '201':
+          description: Pari créé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bet:
+                    $ref: '#/components/schemas/Bet'
+                  message:
+                    type: string
+                    example: Bet placed successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leagues/{id}/available-matches:
+    get:
+      tags:
+        - Group Bets
+      summary: Matchs disponibles pour paris de groupe
+      description: Récupère les matchs de la compétition de la ligue disponibles pour créer un pari de groupe
+      operationId: getAvailableMatchesForGroupBet
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Liste des matchs disponibles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Match'
+                  count:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /leagues/{id}/competition:
+    get:
+      tags:
+        - Group Bets
+      summary: Compétition de la ligue
+      description: Récupère la compétition actuelle associée à la ligue
+      operationId: getLeagueCompetition
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Compétition de la ligue
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  competition:
+                    $ref: '#/components/schemas/Competition'
+                  canChange:
+                    type: boolean
+                    description: L'utilisateur peut-il changer la compétition
+                  lastChangedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags:
+        - Group Bets
+      summary: Changer la compétition
+      description: Change la compétition de la ligue (limité à 1x/semaine pour Free)
+      operationId: changeLeagueCompetition
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - competitionId
+              properties:
+                competitionId:
+                  type: string
+                  description: ID de la nouvelle compétition
+      responses:
+        '200':
+          description: Compétition changée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  competition:
+                    $ref: '#/components/schemas/Competition'
+                  message:
+                    type: string
+                    example: Competition changed successfully
+        '400':
+          description: Changement non autorisé (limite atteinte)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ============================================
+  # SYNC ENDPOINTS
+  # ============================================
+  /sync/competitions:
+    post:
+      tags:
+        - Sync
+      summary: Synchroniser les compétitions
+      description: Synchronise les compétitions depuis TheSportsDB
+      operationId: syncCompetitions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                leagueId:
+                  type: string
+                  description: ID TheSportsDB d'une compétition spécifique (optionnel)
+      responses:
+        '200':
+          description: Synchronisation réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: All competitions synchronized successfully
+                  count:
+                    type: integer
+
+  /sync/teams:
+    post:
+      tags:
+        - Sync
+      summary: Synchroniser les équipes
+      description: Synchronise les équipes depuis TheSportsDB
+      operationId: syncTeams
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                leagueId:
+                  type: string
+                  description: ID TheSportsDB d'une compétition (optionnel)
+      responses:
+        '200':
+          description: Synchronisation réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Teams synchronized successfully
+
+  /sync/matches:
+    post:
+      tags:
+        - Sync
+      summary: Synchroniser les matchs
+      description: Synchronise les matchs depuis TheSportsDB
+      operationId: syncMatches
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                leagueId:
+                  type: string
+                  description: ID TheSportsDB d'une compétition (optionnel)
+                type:
+                  type: string
+                  enum: [upcoming, past]
+                  description: Type de matchs à synchroniser
+      responses:
+        '200':
+          description: Synchronisation réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Matches synchronized successfully
+
+  /sync/all:
+    post:
+      tags:
+        - Sync
+      summary: Synchronisation complète
+      description: Synchronise compétitions, équipes et matchs
+      operationId: syncAll
+      responses:
+        '200':
+          description: Synchronisation complète réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Full synchronization completed successfully
+                  steps:
+                    type: array
+                    items:
+                      type: string
+                    example: [competitions, teams, matches]
+
+  /sync/odds:
+    post:
+      tags:
+        - Sync
+        - Odds
+      summary: Synchroniser les cotes
+      description: |
+        Synchronise les cotes depuis The Odds API.
+
+        **Attention:** Limité à 500 requêtes/mois. À utiliser avec parcimonie.
+        Les CRON jobs (9h et 18h) gèrent la sync automatique.
+      operationId: syncOdds
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                leagueId:
+                  type: string
+                  description: ID TheSportsDB d'une compétition spécifique (optionnel)
+      responses:
+        '200':
+          description: Synchronisation des cotes réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Odds synchronization completed
+                  competitionsSynced:
+                    type: integer
+                  matchesProcessed:
+                    type: integer
+                  matchesMatched:
+                    type: integer
+                  matchesUpdated:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: string
+
+  /sync/odds/status:
+    get:
+      tags:
+        - Sync
+        - Odds
+      summary: Statut de sync des cotes
+      description: Récupère les statistiques de synchronisation des cotes
+      operationId: getOddsStatus
+      responses:
+        '200':
+          description: Statut de synchronisation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalOddsRecords:
+                    type: integer
+                  supportedCompetitions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        oddsApiKey:
+                          type: string
+                          example: soccer_epl
+                        theSportsDbId:
+                          type: string
+                          example: '4328'
+                  apiStats:
+                    type: object
+                    properties:
+                      isConfigured:
+                        type: boolean
+                      requestCountThisSession:
+                        type: integer
+                  recentSyncs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        matchId:
+                          type: string
+                        match:
+                          type: string
+                          example: Manchester United vs Liverpool
+                        competition:
+                          type: string
+                          example: Premier League
+                        homeWinOdds:
+                          type: number
+                          example: 2.35
+                        drawOdds:
+                          type: number
+                          example: 3.40
+                        awayWinOdds:
+                          type: number
+                          example: 2.90
+                        bookmakerCount:
+                          type: integer
+                          example: 15
+                        syncedAt:
+                          type: string
+                          format: date-time
+
+  /sync/status:
+    get:
+      tags:
+        - Sync
+      summary: Statut de synchronisation général
+      description: Récupère les statistiques de synchronisation TheSportsDB
+      operationId: getSyncStatus
+      responses:
+        '200':
+          description: Statut de synchronisation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  counts:
+                    type: object
+                    properties:
+                      competitions:
+                        type: integer
+                      teams:
+                        type: integer
+                      matches:
+                        type: integer
+                  recentLogs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        status:
+                          type: string
+                        itemsSynced:
+                          type: integer
+                        durationMs:
+                          type: integer
+                        createdAt:
+                          type: string
+                          format: date-time
+                        competition:
+                          type: object
+                          nullable: true
+                          properties:
+                            name:
+                              type: string
 
 components:
   securitySchemes:
@@ -1635,34 +2555,169 @@ components:
           type: string
           nullable: true
         homeTeam:
-          type: object
-          properties:
-            id:
-              type: string
-            name:
-              type: string
-            logoUrl:
-              type: string
-              nullable: true
+          $ref: '#/components/schemas/Team'
         awayTeam:
-          type: object
-          properties:
-            id:
-              type: string
-            name:
-              type: string
-            logoUrl:
-              type: string
-              nullable: true
+          $ref: '#/components/schemas/Team'
         competition:
+          $ref: '#/components/schemas/Competition'
+
+    MatchWithOdds:
+      allOf:
+        - $ref: '#/components/schemas/Match'
+        - type: object
+          properties:
+            odds:
+              $ref: '#/components/schemas/MatchOdds'
+
+    MatchOdds:
+      type: object
+      nullable: true
+      properties:
+        homeWinOdds:
+          type: number
+          example: 2.35
+        drawOdds:
+          type: number
+          example: 3.40
+        awayWinOdds:
+          type: number
+          example: 2.90
+        bookmakerCount:
+          type: integer
+          example: 15
+        lastUpdated:
+          type: string
+          format: date-time
+
+    MatchOddsResponse:
+      type: object
+      properties:
+        matchId:
+          type: string
+        match:
           type: object
           properties:
-            id:
+            homeTeam:
+              $ref: '#/components/schemas/Team'
+            awayTeam:
+              $ref: '#/components/schemas/Team'
+            competition:
+              $ref: '#/components/schemas/Competition'
+            startTime:
               type: string
-            name:
-              type: string
-            sport:
-              type: string
+              format: date-time
+        odds:
+          type: object
+          properties:
+            homeWin:
+              type: number
+              example: 2.35
+            draw:
+              type: number
+              example: 3.40
+            awayWin:
+              type: number
+              example: 2.90
+            bookmakerCount:
+              type: integer
+              example: 15
+        lastUpdated:
+          type: string
+          format: date-time
+
+    Team:
+      type: object
+      properties:
+        id:
+          type: string
+        externalId:
+          type: string
+        name:
+          type: string
+          example: Manchester United
+        shortName:
+          type: string
+          nullable: true
+          example: Man Utd
+        logoUrl:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+          example: England
+
+    Competition:
+      type: object
+      properties:
+        id:
+          type: string
+        externalId:
+          type: string
+        name:
+          type: string
+          example: Premier League
+        sport:
+          type: string
+          example: Football
+        country:
+          type: string
+          nullable: true
+          example: England
+        logoUrl:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+          example: true
+
+    Challenge:
+      description: Pari de groupe (Group Bet) - Match proposé aux membres d'une ligue
+      type: object
+      properties:
+        id:
+          type: string
+        leagueId:
+          type: string
+        matchId:
+          type: string
+        createdById:
+          type: string
+        status:
+          type: string
+          enum: [open, closed, settled]
+        closesAt:
+          type: string
+          format: date-time
+          description: Date limite pour parier (Match - 10min)
+        createdAt:
+          type: string
+          format: date-time
+        settledAt:
+          type: string
+          format: date-time
+          nullable: true
+        match:
+          $ref: '#/components/schemas/Match'
+        createdBy:
+          $ref: '#/components/schemas/User'
+        _count:
+          type: object
+          properties:
+            bets:
+              type: integer
+              example: 5
+
+    ChallengeWithBets:
+      description: Pari de groupe avec la liste des paris des membres
+      allOf:
+        - $ref: '#/components/schemas/Challenge'
+        - type: object
+          properties:
+            bets:
+              type: array
+              items:
+                $ref: '#/components/schemas/Bet'
 
     Bet:
       type: object
