@@ -47,8 +47,8 @@ const plans: Plan[] = [
   {
     name: 'Champion',
     icon: <Trophy size={24} />,
-    priceMonthly: '4,99€',
-    priceYearly: '3,99€',
+    priceMonthly: '5,99€',
+    priceYearly: '4,99€',
     period: '/mois',
     description: 'Le choix populaire',
     features: [
@@ -68,8 +68,8 @@ const plans: Plan[] = [
   {
     name: 'MVP',
     icon: <Crown size={24} />,
-    priceMonthly: '9,99€',
-    priceYearly: '7,99€',
+    priceMonthly: '11,99€',
+    priceYearly: '9,99€',
     period: '/mois',
     description: 'Pour les vrais passionnés',
     features: [
@@ -163,7 +163,7 @@ export default function Pricing() {
                       )}
                       {isYearly && plan.priceMonthly !== '0€' && (
                         <span className="text-sm text-white/40">
-                          (Facturé {plan.name === 'Champion' ? '47,90€' : '95,90€'}/an)
+                          (Total {plan.name === 'Champion' ? '59.90€' : '119,90€'}/an)
                         </span>
                       )}
                     </div>
