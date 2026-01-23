@@ -173,6 +173,63 @@ class TeamsService {
   }
 
   /**
+   * Récupérer les équipes avec pagination et filtres
+   */
+  async getTeamsWithPagination(options: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    country?: string;
+  }) {
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, Math.max(1, options.limit || 20));
+    const skip = (page - 1) * limit;
+
+    // Construire les conditions de recherche
+    const where: any = {};
+
+    if (options.search) {
+      where.OR = [
+        { name: { contains: options.search, mode: 'insensitive' } },
+        { shortName: { contains: options.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (options.country) {
+      where.country = { equals: options.country, mode: 'insensitive' };
+    }
+
+    const [teams, total] = await Promise.all([
+      prisma.team.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' },
+        include: {
+          _count: {
+            select: {
+              players: true,
+              homeMatches: true,
+              awayMatches: true,
+            },
+          },
+        },
+      }),
+      prisma.team.count({ where }),
+    ]);
+
+    return {
+      teams,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
    * Rechercher des équipes par nom
    */
   async searchTeams(query: string) {
@@ -200,13 +257,161 @@ class TeamsService {
         homeMatches: {
           take: 5,
           orderBy: { startTime: 'desc' },
+          include: {
+            competition: true,
+            awayTeam: true,
+          },
         },
         awayMatches: {
           take: 5,
           orderBy: { startTime: 'desc' },
+          include: {
+            competition: true,
+            homeTeam: true,
+          },
+        },
+        _count: {
+          select: {
+            players: true,
+            homeMatches: true,
+            awayMatches: true,
+          },
         },
       },
     });
+  }
+
+  /**
+   * Récupérer les matchs d'une équipe avec filtres
+   */
+  async getTeamMatches(teamId: string, options: {
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const limit = Math.min(100, Math.max(1, options.limit || 20));
+    const offset = Math.max(0, options.offset || 0);
+
+    // Construire les conditions
+    const where: any = {
+      OR: [
+        { homeTeamId: teamId },
+        { awayTeamId: teamId },
+      ],
+    };
+
+    if (options.status) {
+      where.status = options.status;
+    }
+
+    const [matches, total] = await Promise.all([
+      prisma.match.findMany({
+        where,
+        skip: offset,
+        take: limit,
+        orderBy: { startTime: 'desc' },
+        include: {
+          competition: true,
+          homeTeam: true,
+          awayTeam: true,
+          odds: true,
+        },
+      }),
+      prisma.match.count({ where }),
+    ]);
+
+    return { matches, total };
+  }
+
+  /**
+   * Récupérer les statistiques d'une équipe
+   */
+  async getTeamStats(teamId: string) {
+    // Récupérer tous les matchs terminés
+    const matches = await prisma.match.findMany({
+      where: {
+        OR: [
+          { homeTeamId: teamId },
+          { awayTeamId: teamId },
+        ],
+        status: 'finished',
+      },
+      select: {
+        homeTeamId: true,
+        awayTeamId: true,
+        homeScore: true,
+        awayScore: true,
+      },
+    });
+
+    let wins = 0;
+    let draws = 0;
+    let losses = 0;
+    let goalsFor = 0;
+    let goalsAgainst = 0;
+
+    for (const match of matches) {
+      const isHome = match.homeTeamId === teamId;
+      const teamScore = isHome ? match.homeScore : match.awayScore;
+      const opponentScore = isHome ? match.awayScore : match.homeScore;
+
+      if (teamScore !== null && opponentScore !== null) {
+        goalsFor += teamScore;
+        goalsAgainst += opponentScore;
+
+        if (teamScore > opponentScore) {
+          wins++;
+        } else if (teamScore < opponentScore) {
+          losses++;
+        } else {
+          draws++;
+        }
+      }
+    }
+
+    const totalMatches = wins + draws + losses;
+    const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
+
+    // Compter les matchs par rôle
+    const [homeMatchesCount, awayMatchesCount, playersCount] = await Promise.all([
+      prisma.match.count({ where: { homeTeamId: teamId } }),
+      prisma.match.count({ where: { awayTeamId: teamId } }),
+      prisma.player.count({ where: { teamId } }),
+    ]);
+
+    return {
+      totalMatches,
+      homeMatches: homeMatchesCount,
+      awayMatches: awayMatchesCount,
+      wins,
+      draws,
+      losses,
+      goalsFor,
+      goalsAgainst,
+      goalDifference: goalsFor - goalsAgainst,
+      winRate,
+      playersCount,
+    };
+  }
+
+  /**
+   * Récupérer la liste des pays disponibles
+   */
+  async getAvailableCountries() {
+    const teams = await prisma.team.findMany({
+      where: {
+        country: { not: null },
+      },
+      select: {
+        country: true,
+      },
+      distinct: ['country'],
+      orderBy: {
+        country: 'asc',
+      },
+    });
+
+    return teams.map((t) => t.country).filter((c): c is string => c !== null);
   }
 }
 
