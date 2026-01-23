@@ -13,6 +13,7 @@ import {
   DeleteUserResponse,
 } from '@betteam/shared/api/users';
 import { requireAuth, requireSelf, AuthenticatedRequest } from '../middleware/auth';
+import { favoritesService } from '../services/favorites.service';
 
 const router = Router();
 
@@ -20,6 +21,28 @@ const transformPrivateUserToUser = (privateUser: PrivateUser): User => {
   const { passwordHash, ...user } = privateUser;
   return user;
 };
+
+// GET /api/users/me/favorite-teams - Get current user's favorite teams
+router.get(
+  '/me/favorite-teams',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const { page, limit } = req.query;
+
+      const result = await favoritesService.getUserFavoriteTeams(userId, {
+        page: page ? parseInt(page as string) : undefined,
+        limit: limit ? parseInt(limit as string) : undefined,
+      });
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('Get favorite teams error:', error);
+      return res.status(500).json({ error: 'Failed to fetch favorite teams.' });
+    }
+  }
+);
 
 // GET /api/users/:id - Get user by ID
 router.get(

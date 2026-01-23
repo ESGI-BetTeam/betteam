@@ -3,6 +3,7 @@ import {
   competitionsService,
   teamsService,
   matchesService,
+  playersService,
   COMPETITION_IDS,
 } from '../services/thesportsdb';
 import { oddsService, ODDS_API_COMPETITION_MAPPING } from '../services/theoddsapi';
@@ -84,6 +85,38 @@ router.post('/teams', async (req: Request, res: Response) => {
     console.error('Sync teams error:', error);
     return res.status(500).json({
       error: 'Failed to sync teams',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/sync/players
+ * Synchroniser les joueurs
+ * Body optionnel:
+ * - teamId: ID externe TheSportsDB de l'équipe
+ */
+router.post('/players', async (req: Request, res: Response) => {
+  try {
+    const { teamId } = req.body;
+
+    if (teamId) {
+      // Sync joueurs pour une équipe spécifique
+      await playersService.syncTeamPlayers(teamId);
+      return res.status(200).json({
+        message: `Players for team ${teamId} synchronized successfully`,
+      });
+    }
+
+    // Sync joueurs pour toutes les équipes
+    await playersService.syncAllPlayers();
+    return res.status(200).json({
+      message: 'Players for all teams synchronized successfully',
+    });
+  } catch (error) {
+    console.error('Sync players error:', error);
+    return res.status(500).json({
+      error: 'Failed to sync players',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
@@ -269,9 +302,10 @@ router.get('/status', async (req: Request, res: Response) => {
   try {
     const { prisma } = await import('../lib/prisma');
 
-    const [competitionsCount, teamsCount, matchesCount, recentLogs] = await Promise.all([
+    const [competitionsCount, teamsCount, playersCount, matchesCount, recentLogs] = await Promise.all([
       prisma.competition.count({ where: { isActive: true } }),
       prisma.team.count(),
+      prisma.player.count(),
       prisma.match.count(),
       prisma.syncLog.findMany({
         orderBy: { createdAt: 'desc' },
@@ -290,6 +324,7 @@ router.get('/status', async (req: Request, res: Response) => {
       counts: {
         competitions: competitionsCount,
         teams: teamsCount,
+        players: playersCount,
         matches: matchesCount,
       },
       recentLogs,
