@@ -1,7 +1,7 @@
 # Checklist API BetTeam
 
-> **Dernière mise à jour:** 2026-01-22
-> **Version:** 1.4.0
+> **Dernière mise à jour:** 2026-01-23
+> **Version:** 1.5.0
 
 Cette checklist permet de suivre l'avancement du développement de l'API BetTeam.
 
@@ -110,20 +110,32 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 
 ---
 
-## 5. Équipes (`/api/teams`)
+## 5. Équipes (`/api/teams`) ✅ IMPLÉMENTÉ
 
 ### Endpoints
 - [x] Équipes via `/api/competitions/:id/teams`
-- [ ] `GET /api/teams` - Liste de toutes les équipes
-- [ ] `GET /api/teams/:id` - Détails d'une équipe
-- [ ] `GET /api/teams/:id/matches` - Matchs d'une équipe
-- [ ] `GET /api/teams/:id/players` - Joueurs d'une équipe
+- [x] `GET /api/teams` - Liste de toutes les équipes (pagination, recherche, filtres)
+- [x] `GET /api/teams/:id` - Détails d'une équipe
+- [x] `GET /api/teams/:id/stats` - Statistiques d'une équipe
+- [x] `GET /api/teams/:id/matches` - Matchs d'une équipe
+- [x] `GET /api/teams/:id/players` - Joueurs d'une équipe
+- [x] `GET /api/teams/countries` - Liste des pays disponibles
+- [x] `GET /api/teams/search` - Recherche d'équipes
+
+### Favoris utilisateur
+- [x] `POST /api/teams/:id/favorite` - Ajouter aux favoris
+- [x] `DELETE /api/teams/:id/favorite` - Retirer des favoris
+- [x] `GET /api/teams/:id/is-favorite` - Vérifier si favori
+- [x] `GET /api/users/me/favorite-teams` - Mes équipes favorites
 
 ### Fonctionnalités
 - [x] Sync depuis TheSportsDB
-- [ ] Recherche d'équipes
-- [ ] Statistiques équipe
-- [ ] Favoris utilisateur (équipes suivies)
+- [x] Recherche d'équipes
+- [x] Statistiques équipe (wins, draws, losses, goals, winRate)
+- [x] Favoris utilisateur (équipes suivies)
+- [x] Sync joueurs (`POST /api/sync/players`)
+
+**Modèle Prisma:** ✅ Existe (`Team`, `Player`, `UserFavoriteTeam`)
 
 ---
 
@@ -452,9 +464,9 @@ model Contribution {
 | Authentification | 85% | - |
 | Utilisateurs | 80% | - |
 | Compétitions | 90% | - |
-| Équipes | 30% | Basse |
+| **Équipes** | **100%** | ✅ Terminé |
 | Matchs | 80% | - |
-| Synchronisation TheSportsDB | 70% | Moyenne |
+| Synchronisation TheSportsDB | 80% | Moyenne |
 | **Sync The Odds API (Cotes)** | **90%** | ✅ Implémenté |
 | **Ligues** | **95%** | ✅ Terminé |
 | **Paris** | **80%** | ✅ En cours |

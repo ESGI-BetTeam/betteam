@@ -39,6 +39,8 @@ tags:
     description: Gestion des utilisateurs (CRUD)
   - name: Competitions
     description: Gestion des compétitions sportives
+  - name: Teams
+    description: Gestion des équipes sportives
   - name: Matches
     description: Gestion des matchs sportifs
   - name: Odds
@@ -1598,6 +1600,423 @@ paths:
           $ref: '#/components/responses/NotFound'
 
   # ============================================
+  # TEAMS ENDPOINTS
+  # ============================================
+  /teams:
+    get:
+      tags:
+        - Teams
+      summary: Lister les équipes
+      description: Récupère la liste des équipes avec pagination et filtres
+      operationId: getTeams
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Numéro de page
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Nombre d'éléments par page
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Recherche par nom d'équipe
+        - name: country
+          in: query
+          schema:
+            type: string
+          description: Filtrer par pays
+      responses:
+        '200':
+          description: Liste des équipes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeamWithCounts'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /teams/countries:
+    get:
+      tags:
+        - Teams
+      summary: Liste des pays
+      description: Récupère la liste des pays disponibles
+      operationId: getTeamCountries
+      responses:
+        '200':
+          description: Liste des pays
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  countries:
+                    type: array
+                    items:
+                      type: string
+                    example: [England, France, Germany, Spain, Italy]
+                  count:
+                    type: integer
+
+  /teams/search:
+    get:
+      tags:
+        - Teams
+      summary: Rechercher des équipes
+      description: Recherche d'équipes par nom
+      operationId: searchTeams
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Terme de recherche
+      responses:
+        '200':
+          description: Résultats de recherche
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Team'
+                  count:
+                    type: integer
+                  query:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /teams/{id}:
+    get:
+      tags:
+        - Teams
+      summary: Détails d'une équipe
+      description: Récupère les informations détaillées d'une équipe
+      operationId: getTeamById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'équipe
+        - name: includeStats
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Inclure les statistiques
+      responses:
+        '200':
+          description: Détails de l'équipe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamWithDetails'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /teams/{id}/stats:
+    get:
+      tags:
+        - Teams
+      summary: Statistiques d'une équipe
+      description: Récupère les statistiques d'une équipe
+      operationId: getTeamStats
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'équipe
+      responses:
+        '200':
+          description: Statistiques de l'équipe
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      shortName:
+                        type: string
+                        nullable: true
+                      logoUrl:
+                        type: string
+                        nullable: true
+                  stats:
+                    $ref: '#/components/schemas/TeamStats'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /teams/{id}/matches:
+    get:
+      tags:
+        - Teams
+      summary: Matchs d'une équipe
+      description: Récupère les matchs d'une équipe
+      operationId: getTeamMatches
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'équipe
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [upcoming, live, finished, postponed, cancelled]
+          description: Filtrer par statut
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Nombre max de résultats
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Décalage pour pagination
+      responses:
+        '200':
+          description: Liste des matchs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      shortName:
+                        type: string
+                        nullable: true
+                      logoUrl:
+                        type: string
+                        nullable: true
+                  matches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Match'
+                  total:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /teams/{id}/players:
+    get:
+      tags:
+        - Teams
+      summary: Joueurs d'une équipe
+      description: Récupère les joueurs d'une équipe
+      operationId: getTeamPlayers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'équipe
+      responses:
+        '200':
+          description: Liste des joueurs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      shortName:
+                        type: string
+                        nullable: true
+                      logoUrl:
+                        type: string
+                        nullable: true
+                  players:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Player'
+                  count:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /teams/{id}/favorite:
+    post:
+      tags:
+        - Teams
+      summary: Ajouter aux favoris
+      description: Ajoute une équipe aux favoris de l'utilisateur
+      operationId: addFavoriteTeam
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'équipe
+      responses:
+        '201':
+          description: Équipe ajoutée aux favoris
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Team added to favorites
+                  team:
+                    $ref: '#/components/schemas/Team'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Teams
+      summary: Retirer des favoris
+      description: Retire une équipe des favoris de l'utilisateur
+      operationId: removeFavoriteTeam
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'équipe
+      responses:
+        '200':
+          description: Équipe retirée des favoris
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Team removed from favorites
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /teams/{id}/is-favorite:
+    get:
+      tags:
+        - Teams
+      summary: Vérifier si favori
+      description: Vérifie si une équipe est dans les favoris de l'utilisateur
+      operationId: checkFavoriteTeam
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'équipe
+      responses:
+        '200':
+          description: Statut favori
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teamId:
+                    type: string
+                  isFavorite:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/favorite-teams:
+    get:
+      tags:
+        - Users
+        - Teams
+      summary: Mes équipes favorites
+      description: Récupère les équipes favorites de l'utilisateur connecté
+      operationId: getMyFavoriteTeams
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Numéro de page
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Nombre par page
+      responses:
+        '200':
+          description: Liste des équipes favorites
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Team'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================
   # GROUP BETS ENDPOINTS
   # ============================================
   /leagues/{id}/challenges:
@@ -2036,6 +2455,34 @@ paths:
                     type: string
                     example: Matches synchronized successfully
 
+  /sync/players:
+    post:
+      tags:
+        - Sync
+      summary: Synchroniser les joueurs
+      description: Synchronise les joueurs depuis TheSportsDB
+      operationId: syncPlayers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                teamId:
+                  type: string
+                  description: ID TheSportsDB d'une équipe (optionnel)
+      responses:
+        '200':
+          description: Synchronisation réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Players synchronized successfully
+
   /sync/all:
     post:
       tags:
@@ -2191,6 +2638,8 @@ paths:
                       competitions:
                         type: integer
                       teams:
+                        type: integer
+                      players:
                         type: integer
                       matches:
                         type: integer
@@ -2646,6 +3095,136 @@ components:
           type: string
           nullable: true
           example: England
+
+    TeamWithCounts:
+      allOf:
+        - $ref: '#/components/schemas/Team'
+        - type: object
+          properties:
+            _count:
+              type: object
+              properties:
+                players:
+                  type: integer
+                  example: 25
+                homeMatches:
+                  type: integer
+                  example: 15
+                awayMatches:
+                  type: integer
+                  example: 14
+
+    TeamWithDetails:
+      allOf:
+        - $ref: '#/components/schemas/Team'
+        - type: object
+          properties:
+            homeMatches:
+              type: array
+              items:
+                $ref: '#/components/schemas/Match'
+            awayMatches:
+              type: array
+              items:
+                $ref: '#/components/schemas/Match'
+            _count:
+              type: object
+              properties:
+                players:
+                  type: integer
+                homeMatches:
+                  type: integer
+                awayMatches:
+                  type: integer
+            stats:
+              $ref: '#/components/schemas/TeamStats'
+
+    TeamStats:
+      type: object
+      properties:
+        totalMatches:
+          type: integer
+          example: 29
+        homeMatches:
+          type: integer
+          example: 15
+        awayMatches:
+          type: integer
+          example: 14
+        wins:
+          type: integer
+          example: 18
+        draws:
+          type: integer
+          example: 5
+        losses:
+          type: integer
+          example: 6
+        goalsFor:
+          type: integer
+          example: 52
+        goalsAgainst:
+          type: integer
+          example: 28
+        goalDifference:
+          type: integer
+          example: 24
+        winRate:
+          type: integer
+          example: 62
+          description: Taux de victoire en pourcentage
+        playersCount:
+          type: integer
+          example: 25
+
+    Player:
+      type: object
+      properties:
+        id:
+          type: string
+        externalId:
+          type: string
+        teamId:
+          type: string
+        name:
+          type: string
+          example: Marcus Rashford
+        nationality:
+          type: string
+          nullable: true
+          example: England
+        position:
+          type: string
+          nullable: true
+          example: Forward
+        number:
+          type: string
+          nullable: true
+          example: '10'
+        dateOfBirth:
+          type: string
+          format: date
+          nullable: true
+        height:
+          type: string
+          nullable: true
+          example: '1.85m'
+        weight:
+          type: string
+          nullable: true
+          example: '70kg'
+        photoUrl:
+          type: string
+          nullable: true
+        syncedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     Competition:
       type: object
