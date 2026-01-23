@@ -12,6 +12,14 @@ export interface LeagueMember {
   user?: User;
 }
 
+export interface LeagueCompetition {
+  id: string;
+  name: string;
+  sport: string;
+  country: string | null;
+  logoUrl: string | null;
+}
+
 export interface League {
   id: string;
   name: string;
@@ -20,11 +28,15 @@ export interface League {
   ownerId: string;
   inviteCode: string;
   isActive: boolean;
+  currentCompetitionId: string | null;
+  competitionChangedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   owner?: User;
+  currentCompetition?: LeagueCompetition | null;
   members?: LeagueMember[];
   _count?: {
     members: number;
+    groupBets?: number;
   };
 }

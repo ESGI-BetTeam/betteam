@@ -1,6 +1,8 @@
 // Interfaces
 export * from './interfaces/User';
 export * from './interfaces/League';
+export * from './interfaces/Bet';
+export * from './interfaces/Challenge';
 
 // API Types - Auth
 export * from './api/registerRequest';
@@ -22,3 +24,7 @@ export * from './api/users';
 
 // API Types - Leagues
 export * from './api/leagues';
+
+// API Types - Bets & Challenges
+export * from './api/bets';
+export * from './api/challenges';

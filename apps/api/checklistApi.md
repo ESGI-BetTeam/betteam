@@ -1,7 +1,7 @@
 # Checklist API BetTeam
 
-> **Dernière mise à jour:** 2026-01-21
-> **Version:** 1.3.0
+> **Dernière mise à jour:** 2026-01-22
+> **Version:** 1.4.0
 
 Cette checklist permet de suivre l'avancement du développement de l'API BetTeam.
 
@@ -171,6 +171,44 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 
 ---
 
+## 7b. Synchronisation The Odds API - Cotes (`/api/sync/odds`) ✅ IMPLÉMENTÉ
+
+> **API externe:** https://the-odds-api.com/
+> **Limite:** 500 requêtes/mois (gratuit)
+> **Stratégie:** CRON 2x/jour (9h et 18h)
+
+### Endpoints
+- [x] `POST /api/sync/odds` - Sync cotes (toutes ou par compétition)
+- [x] `GET /api/sync/odds/status` - Statut de synchronisation des cotes
+- [x] `GET /api/matches/:id/odds` - Cotes d'un match spécifique
+- [x] `GET /api/matches/with-odds` - Matchs avec leurs cotes
+
+### Fonctionnalités
+- [x] Client HTTP The Odds API avec cache (2h TTL)
+- [x] Mapping compétitions TheSportsDB <-> The Odds API
+- [x] Matching intelligent des matchs (date + noms d'équipes normalisés)
+- [x] Calcul des cotes moyennes (tous bookmakers)
+- [x] Stockage en BDD (`MatchOdds`)
+- [ ] CRON job: sync cotes (2x/jour à 9h et 18h)
+
+### Compétitions supportées (mapping)
+| The Odds API | Competition | TheSportsDB ID |
+|--------------|-------------|----------------|
+| `soccer_epl` | Premier League (England) | 4328 |
+| `soccer_france_ligue_one` | Ligue 1 (France) | 4334 |
+| `soccer_germany_bundesliga` | Bundesliga (Germany) | 4331 |
+| `soccer_italy_serie_a` | Serie A (Italy) | 4332 |
+| `soccer_spain_la_liga` | La Liga (Spain) | 4335 |
+
+### Variables d'environnement
+```env
+THE_ODDS_API_KEY=your_api_key_here
+```
+
+**Modèle Prisma:** ✅ Existe (`MatchOdds`)
+
+---
+
 ## 8. Ligues (`/api/leagues`) ✅ IMPLÉMENTÉ
 
 ### Endpoints
@@ -205,34 +243,53 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 
 ---
 
-## 9. Paris (`/api/bets`) ❌ À IMPLÉMENTER
+## 9. Paris (`/api/bets`) ✅ IMPLÉMENTÉ (Partie 1)
 
-### Endpoints
-- [ ] `POST /api/bets` - Créer un pari
-- [ ] `GET /api/bets` - Lister ses paris
-- [ ] `GET /api/bets/:id` - Détails d'un pari
-- [ ] `DELETE /api/bets/:id` - Annuler un pari (si pending)
-- [ ] `GET /api/bets/history` - Historique des paris
+### Endpoints Paris Utilisateur
+- [x] `GET /api/bets` - Lister ses paris (pagination, filtres)
+- [x] `GET /api/bets/:id` - Détails d'un pari
+- [x] `GET /api/bets/history` - Historique des paris avec stats
+- [x] `GET /api/bets/weekly-limit` - Limite hebdomadaire (Free: 3/semaine)
 
-### Par ligue
-- [ ] `GET /api/leagues/:id/bets` - Paris d'une ligue
-- [ ] `POST /api/leagues/:id/bets` - Parier dans une ligue
+### Challenges (Paris de groupe imposés)
+- [x] `POST /api/leagues/:id/challenges` - Proposer un match (créer un challenge)
+- [x] `GET /api/leagues/:id/challenges` - Lister les challenges (pagination, filtres)
+- [x] `GET /api/leagues/:id/challenges/active` - Challenges actifs (ouverts)
+- [x] `GET /api/leagues/:id/challenges/:challengeId` - Détails d'un challenge
+- [x] `POST /api/leagues/:id/challenges/:challengeId/bets` - Placer un pari sur un challenge
+- [x] `GET /api/leagues/:id/challenges/:challengeId/bets` - Paris d'un challenge
+- [x] `GET /api/leagues/:id/available-matches` - Matchs disponibles pour créer un challenge
 
-### Par match
-- [ ] `GET /api/matches/:id/bets` - Paris sur un match
-- [ ] `GET /api/matches/:id/odds` - Cotes du match (si disponible)
+### Compétition de la Ligue
+- [x] `GET /api/leagues/:id/competition` - Compétition actuelle de la ligue
+- [x] `PATCH /api/leagues/:id/competition` - Changer de compétition (Free: 1x/semaine)
 
-### Fonctionnalités
-- [ ] Types de paris: winner, score, both_score, etc.
-- [ ] Validation: match non commencé
-- [ ] Validation: solde suffisant
-- [ ] Calcul automatique des gains potentiels
+### Règles métier implémentées
+- [x] **J-7**: Paris possibles 7 jours avant le match
+- [x] **M-10**: Fin des paris 10 minutes avant le début
+- [x] **Immutabilité**: Paris non modifiables/annulables après validation
+- [x] **Limite Free**: 3 paris par semaine par ligue
+- [x] **Changement compétition Free**: 1x par semaine
+- [x] Validation: membre de la ligue requis
+- [x] Validation: match dans la compétition de la ligue
+- [x] Validation: un seul pari par challenge par utilisateur
+- [x] Validation: solde de points suffisant
+- [x] Déduction automatique des points à la création du pari
+
+### À faire (Partie 2 - Cotes & Résolution)
+- [x] Intégration The Odds API pour récupérer les cotes
+- [x] Service de matching matchs TheSportsDB <-> The Odds API
+- [x] Modèle `MatchOdds` pour stocker les cotes moyennes
+- [x] Endpoints API pour récupérer les cotes (`GET /api/matches/:id/odds`, `GET /api/matches/with-odds`)
+- [x] Endpoint de sync manuelle (`POST /api/sync/odds`)
+- [ ] Calcul automatique des gains potentiels (cotes)
 - [ ] Résolution automatique des paris (quand match terminé)
-- [ ] Mise à jour des points utilisateur
-- [ ] Historique des transactions de points
-- [ ] Statistiques de paris (taux de réussite, etc.)
+- [ ] Mise à jour des points utilisateur après résolution
+- [ ] CRON: fermeture automatique des challenges (M-10)
+- [ ] CRON: résolution des paris (match terminé)
+- [ ] CRON: sync des cotes (2x/jour à 9h et 18h) - **The Odds API (500 req/mois)**
 
-**Modèle Prisma:** ✅ Existe (`Bet`)
+**Modèle Prisma:** ✅ Existe (`Bet`, `GroupBet`, `MatchOdds`)
 
 ---
 
@@ -397,9 +454,10 @@ model Contribution {
 | Compétitions | 90% | - |
 | Équipes | 30% | Basse |
 | Matchs | 80% | - |
-| Synchronisation | 70% | Moyenne |
+| Synchronisation TheSportsDB | 70% | Moyenne |
+| **Sync The Odds API (Cotes)** | **90%** | ✅ Implémenté |
 | **Ligues** | **95%** | ✅ Terminé |
-| **Paris** | **0%** | **HAUTE** |
+| **Paris** | **80%** | ✅ En cours |
 | **Abonnements & Cagnotte** | **0%** | **HAUTE** |
 | Notifications | 0% | Moyenne |
 | Statistiques | 0% | Basse |
@@ -410,11 +468,12 @@ model Contribution {
 ## Prochaines étapes recommandées
 
 1. ~~**Implémenter les Ligues** - Core feature pour l'aspect social~~ ✅
-2. **Implémenter les Paris** - Fonctionnalité principale de l'app
-3. **Implémenter Abonnements & Cagnotte** - Monétisation (modèle Famileo)
-4. **Ajouter les CRON Jobs** - Automatisation de la sync + prélèvements
-5. **WebSocket pour live scores** - Expérience temps réel
-6. **Notifications** - Engagement utilisateur
+2. ~~**Implémenter les Paris (Partie 1)** - Challenges et paris de groupe~~ ✅
+3. **Implémenter les Paris (Partie 2)** - Cotes et résolution automatique
+4. **Implémenter Abonnements & Cagnotte** - Monétisation (modèle Famileo)
+5. **Ajouter les CRON Jobs** - Automatisation de la sync + fermeture challenges
+6. **WebSocket pour live scores** - Expérience temps réel
+7. **Notifications** - Engagement utilisateur
 
 ---
 
@@ -431,7 +490,9 @@ model Contribution {
 - **ORM:** Prisma 7.x
 - **Database:** PostgreSQL
 - **Auth:** JWT (jsonwebtoken)
-- **API externe:** TheSportsDB V2
+- **APIs externes:**
+  - TheSportsDB V2 (matchs, équipes, compétitions)
+  - The Odds API (cotes des paris)
 
 ---
 
