@@ -125,7 +125,6 @@ class CronService {
         }
       },
       {
-        scheduled: true,
         timezone: CRON_CONFIG.timezone,
       }
     );
