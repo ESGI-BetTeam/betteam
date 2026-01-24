@@ -174,9 +174,9 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 - [x] Gestion erreur 429 avec retry
 - [x] Logs de synchronisation (SyncLog)
 - [x] Cache en mémoire (TTL configurable)
-- [ ] CRON job: sync compétitions (1x/jour à 3h)
-- [ ] CRON job: sync équipes (1x/jour à 4h)
-- [ ] CRON job: sync matchs (toutes les 6h)
+- [x] CRON job: sync compétitions (1x/jour à 3h)
+- [x] CRON job: sync équipes (1x/jour à 4h)
+- [x] CRON job: sync matchs (toutes les 6h)
 - [ ] Sync des joueurs
 - [ ] Sync des classements (standings)
 - [ ] Webhook pour notifications de mise à jour
@@ -201,7 +201,7 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 - [x] Matching intelligent des matchs (date + noms d'équipes normalisés)
 - [x] Calcul des cotes moyennes (tous bookmakers)
 - [x] Stockage en BDD (`MatchOdds`)
-- [ ] CRON job: sync cotes (2x/jour à 9h et 18h)
+- [x] CRON job: sync cotes (2x/jour à 9h et 18h)
 
 ### Compétitions supportées (mapping)
 | The Odds API | Competition | TheSportsDB ID |
@@ -299,7 +299,7 @@ THE_ODDS_API_KEY=your_api_key_here
 - [ ] Mise à jour des points utilisateur après résolution
 - [ ] CRON: fermeture automatique des challenges (M-10)
 - [ ] CRON: résolution des paris (match terminé)
-- [ ] CRON: sync des cotes (2x/jour à 9h et 18h) - **The Odds API (500 req/mois)**
+- [x] CRON: sync des cotes (2x/jour à 9h et 18h) - **The Odds API (500 req/mois)**
 
 **Modèle Prisma:** ✅ Existe (`Bet`, `GroupBet`, `MatchOdds`)
 
