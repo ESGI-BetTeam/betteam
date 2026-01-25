@@ -1,7 +1,7 @@
 # Checklist API BetTeam
 
-> **Dernière mise à jour:** 2026-01-23
-> **Version:** 1.5.0
+> **Dernière mise à jour:** 2026-01-25
+> **Version:** 1.6.0
 
 Cette checklist permet de suivre l'avancement du développement de l'API BetTeam.
 
@@ -466,8 +466,8 @@ model Contribution {
 | Compétitions | 90% | - |
 | **Équipes** | **100%** | ✅ Terminé |
 | Matchs | 80% | - |
-| Synchronisation TheSportsDB | 80% | Moyenne |
-| **Sync The Odds API (Cotes)** | **90%** | ✅ Implémenté |
+| **Synchronisation TheSportsDB** | **95%** | ✅ CRONs actifs |
+| **Sync The Odds API (Cotes)** | **100%** | ✅ Terminé |
 | **Ligues** | **95%** | ✅ Terminé |
 | **Paris** | **80%** | ✅ En cours |
 | **Abonnements & Cagnotte** | **0%** | **HAUTE** |
@@ -481,11 +481,12 @@ model Contribution {
 
 1. ~~**Implémenter les Ligues** - Core feature pour l'aspect social~~ ✅
 2. ~~**Implémenter les Paris (Partie 1)** - Challenges et paris de groupe~~ ✅
-3. **Implémenter les Paris (Partie 2)** - Cotes et résolution automatique
-4. **Implémenter Abonnements & Cagnotte** - Monétisation (modèle Famileo)
-5. **Ajouter les CRON Jobs** - Automatisation de la sync + fermeture challenges
-6. **WebSocket pour live scores** - Expérience temps réel
-7. **Notifications** - Engagement utilisateur
+3. ~~**Ajouter les CRON Jobs de sync** - TheSportsDB + The Odds API~~ ✅
+4. **Implémenter les Paris (Partie 2)** - Résolution automatique des paris
+5. **CRON: fermeture challenges + résolution paris** - Automatisation métier
+6. **Implémenter Abonnements & Cagnotte** - Monétisation (modèle Famileo)
+7. **WebSocket pour live scores** - Expérience temps réel
+8. **Notifications** - Engagement utilisateur
 
 ---
 
@@ -502,9 +503,22 @@ model Contribution {
 - **ORM:** Prisma 7.x
 - **Database:** PostgreSQL
 - **Auth:** JWT (jsonwebtoken)
+- **CRON:** node-cron v4.x
 - **APIs externes:**
   - TheSportsDB V2 (matchs, équipes, compétitions)
   - The Odds API (cotes des paris)
+
+### CRON Jobs actifs (Timezone: Europe/Paris)
+
+| Tâche | Expression | Horaire | Service |
+|-------|------------|---------|---------|
+| Sync Compétitions | `0 3 * * *` | 03:00 | `competitionsService.syncAllCompetitions()` |
+| Sync Équipes | `0 4 * * *` | 04:00 | `teamsService.syncAllTeams()` |
+| Sync Matchs | `0 */6 * * *` | 00:00, 06:00, 12:00, 18:00 | `matchesService.syncAllMatches()` |
+| Sync Cotes | `0 9,18 * * *` | 09:00, 18:00 | `oddsService.syncAllOdds()` |
+
+**Fichier:** `src/services/cron/index.ts`
+**Logs:** Table `sync_logs` (type: `cron-*`)
 
 ---
 
