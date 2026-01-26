@@ -57,6 +57,8 @@ tags:
     description: Gestion des paris
   - name: Sync
     description: Synchronisation des données externes (TheSportsDB, The Odds API)
+  - name: Cleanup
+    description: Nettoyage des données obsolètes (matchs terminés, cotes, tokens expirés)
 
 paths:
   /health:
@@ -2668,6 +2670,125 @@ paths:
                             name:
                               type: string
 
+  # ============================================
+  # CLEANUP ENDPOINTS
+  # ============================================
+
+  /cleanup/stats:
+    get:
+      tags:
+        - Cleanup
+      summary: Statistiques de nettoyage
+      description: Récupère les statistiques des données à nettoyer (matchs terminés, cotes obsolètes, etc.)
+      operationId: getCleanupStats
+      responses:
+        '200':
+          description: Statistiques de nettoyage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cleanup statistics
+                  stats:
+                    type: object
+                    properties:
+                      finishedMatchOdds:
+                        type: integer
+                        description: Nombre de cotes de matchs terminés à supprimer
+                      finishedMatchesWithoutBets:
+                        type: integer
+                        description: Nombre de matchs terminés sans paris à supprimer
+                      oldSyncLogs:
+                        type: integer
+                        description: Nombre de logs de sync de plus de 30 jours
+                      expiredTokens:
+                        type: integer
+                        description: Nombre de tokens expirés
+
+  /cleanup/run:
+    post:
+      tags:
+        - Cleanup
+      summary: Exécuter le nettoyage complet
+      description: |
+        Exécute le nettoyage complet en mode safe:
+        - Supprime les cotes (MatchOdds) des matchs terminés
+        - Supprime les matchs terminés SANS paris ni challenges
+        - Supprime les logs de sync de plus de 30 jours
+        - Supprime les tokens expirés
+
+        Les matchs avec historique de paris sont conservés pour les statistiques.
+      operationId: runCleanup
+      responses:
+        '200':
+          description: Nettoyage effectué
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cleanup completed successfully
+                  result:
+                    type: object
+                    properties:
+                      matchOddsDeleted:
+                        type: integer
+                      matchesDeleted:
+                        type: integer
+                      syncLogsDeleted:
+                        type: integer
+                      errors:
+                        type: array
+                        items:
+                          type: string
+
+  /cleanup/match-odds:
+    post:
+      tags:
+        - Cleanup
+      summary: Nettoyer les cotes des matchs terminés
+      description: Supprime uniquement les cotes (MatchOdds) des matchs terminés, annulés ou reportés
+      operationId: cleanupMatchOdds
+      responses:
+        '200':
+          description: Cotes nettoyées
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Match odds cleanup completed
+                  matchOddsDeleted:
+                    type: integer
+
+  /cleanup/matches:
+    post:
+      tags:
+        - Cleanup
+      summary: Nettoyer les matchs terminés sans paris
+      description: Supprime uniquement les matchs terminés qui n'ont aucun pari ni challenge associé
+      operationId: cleanupMatches
+      responses:
+        '200':
+          description: Matchs nettoyés
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Matches cleanup completed
+                  matchesDeleted:
+                    type: integer
+
 components:
   securitySchemes:
     bearerAuth:
@@ -3037,6 +3158,16 @@ components:
         lastUpdated:
           type: string
           format: date-time
+        oddsHomeTeam:
+          type: string
+          nullable: true
+          description: Nom de l'équipe à domicile selon The Odds API
+          example: Brest
+        oddsAwayTeam:
+          type: string
+          nullable: true
+          description: Nom de l'équipe à l'extérieur selon The Odds API
+          example: Toulouse
 
     MatchOddsResponse:
       type: object
@@ -3070,6 +3201,16 @@ components:
             bookmakerCount:
               type: integer
               example: 15
+            oddsHomeTeam:
+              type: string
+              nullable: true
+              description: Nom de l'équipe à domicile selon The Odds API
+              example: Brest
+            oddsAwayTeam:
+              type: string
+              nullable: true
+              description: Nom de l'équipe à l'extérieur selon The Odds API
+              example: Toulouse
         lastUpdated:
           type: string
           format: date-time
