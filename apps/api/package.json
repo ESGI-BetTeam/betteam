@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon",
     "build": "tsc",
-    "start": "node dist/apps/api/src/index.js",
+    "start": "prisma migrate deploy && prisma generate && node dist/apps/api/src/index.js",
     "type-check": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
