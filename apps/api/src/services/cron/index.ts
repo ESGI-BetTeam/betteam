@@ -35,8 +35,17 @@ class CronService {
 
   /**
    * Initialise et démarre toutes les tâches CRON
+   * Désactivé si ENABLE_CRON=false (utile pour environnement de dev)
    */
   async initialize(): Promise<void> {
+    // Vérifier si les CRON sont activés (par défaut: true)
+    const enableCron = process.env.ENABLE_CRON !== 'false';
+
+    if (!enableCron) {
+      console.log('⏰ [CRON] CRON jobs désactivés (ENABLE_CRON=false)');
+      return;
+    }
+
     console.log('⏰ [CRON] Initialisation des tâches planifiées...');
     console.log(`⏰ [CRON] Timezone: ${CRON_CONFIG.timezone}`);
 
