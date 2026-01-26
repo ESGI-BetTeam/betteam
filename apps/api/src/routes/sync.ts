@@ -7,8 +7,13 @@ import {
   COMPETITION_IDS,
 } from '../services/thesportsdb';
 import { oddsService, ODDS_API_COMPETITION_MAPPING } from '../services/theoddsapi';
+import { requireAuth, requireAdmin, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
+
+// All sync routes require admin authentication
+router.use(requireAuth);
+router.use(requireAdmin);
 
 /**
  * POST /api/sync/competitions

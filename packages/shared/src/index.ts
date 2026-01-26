@@ -34,3 +34,6 @@ export * from './api/challenges';
 // API Types - Plans & Wallet
 export * from './api/plans';
 export * from './api/wallet';
+
+// API Types - Admin
+export * from './api/admin';

@@ -1,7 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { cleanupService } from '../services/cleanup';
+import { requireAuth, requireAdmin, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
+
+// All cleanup routes require admin authentication
+router.use(requireAuth);
+router.use(requireAdmin);
 
 /**
  * GET /api/cleanup/stats
