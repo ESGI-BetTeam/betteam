@@ -22,6 +22,7 @@ import competitionsRouter from './routes/competitions';
 import teamsRouter from './routes/teams';
 import syncRouter from './routes/sync';
 import usersRouter from './routes/users';
+import cleanupRouter from './routes/cleanup';
 
 // Import CRON service
 import { cronService } from './services/cron';
@@ -95,6 +96,7 @@ app.use('/api/competitions', competitionsRouter);
 app.use('/api/teams', teamsRouter);
 app.use('/api/sync', syncRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/cleanup', cleanupRouter);
 console.log('🔧 [7/8] Routes registered');
 
 // Root endpoint

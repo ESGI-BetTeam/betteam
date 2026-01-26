@@ -5,6 +5,7 @@ import { competitionsService } from '../thesportsdb/competitions.service';
 import { teamsService } from '../thesportsdb/teams.service';
 import { matchesService } from '../thesportsdb/matches.service';
 import { oddsService } from '../theoddsapi/odds.service';
+import { cleanupService } from '../cleanup';
 
 /**
  * Configuration des tâches CRON
@@ -13,6 +14,8 @@ import { oddsService } from '../theoddsapi/odds.service';
 const CRON_CONFIG = {
   timezone: 'Europe/Paris',
   jobs: {
+    // Cleanup - Nettoyage des données obsolètes à 2h00
+    cleanup: '0 2 * * *',
     // TheSportsDB - Sync compétitions à 3h00
     syncCompetitions: '0 3 * * *',
     // TheSportsDB - Sync équipes à 4h00
@@ -36,6 +39,22 @@ class CronService {
   async initialize(): Promise<void> {
     console.log('⏰ [CRON] Initialisation des tâches planifiées...');
     console.log(`⏰ [CRON] Timezone: ${CRON_CONFIG.timezone}`);
+
+    // CRON 0: Cleanup données obsolètes (1x/jour à 2h)
+    this.scheduleTask(
+      'cleanup',
+      CRON_CONFIG.jobs.cleanup,
+      async () => {
+        console.log('⏰ [CRON] Démarrage cleanup...');
+        const startTime = Date.now();
+        try {
+          await cleanupService.runFullCleanup();
+          await this.logCronExecution('cron-cleanup', 'success', Date.now() - startTime);
+        } catch (error) {
+          await this.logCronExecution('cron-cleanup', 'error', Date.now() - startTime, error);
+        }
+      }
+    );
 
     // CRON 1: Sync compétitions (1x/jour à 3h)
     this.scheduleTask(
@@ -166,6 +185,7 @@ class CronService {
     console.log('┌──────────────────────────────────────────────────────┐');
     console.log('│ Tâche               │ Horaire          │ Fréquence  │');
     console.log('├──────────────────────────────────────────────────────┤');
+    console.log('│ Cleanup             │ 02:00            │ 1x/jour    │');
     console.log('│ Sync Compétitions   │ 03:00            │ 1x/jour    │');
     console.log('│ Sync Équipes        │ 04:00            │ 1x/jour    │');
     console.log('│ Sync Matchs         │ 00:00, 06:00...  │ Toutes 6h  │');
@@ -189,12 +209,15 @@ class CronService {
   /**
    * Exécute manuellement une tâche CRON (pour tests/debug)
    */
-  async runManually(taskName: 'competitions' | 'teams' | 'matches' | 'odds'): Promise<void> {
+  async runManually(taskName: 'cleanup' | 'competitions' | 'teams' | 'matches' | 'odds'): Promise<void> {
     console.log(`⏰ [CRON] Exécution manuelle: ${taskName}`);
     const startTime = Date.now();
 
     try {
       switch (taskName) {
+        case 'cleanup':
+          await cleanupService.runFullCleanup();
+          break;
         case 'competitions':
           await competitionsService.syncAllCompetitions();
           break;

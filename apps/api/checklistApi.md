@@ -1,7 +1,7 @@
 # Checklist API BetTeam
 
-> **Dernière mise à jour:** 2026-01-25
-> **Version:** 1.6.0
+> **Dernière mise à jour:** 2026-01-26
+> **Version:** 1.7.0
 
 Cette checklist permet de suivre l'avancement du développement de l'API BetTeam.
 
@@ -201,6 +201,7 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 - [x] Matching intelligent des matchs (date + noms d'équipes normalisés)
 - [x] Calcul des cotes moyennes (tous bookmakers)
 - [x] Stockage en BDD (`MatchOdds`)
+- [x] Colonnes `oddsHomeTeam` / `oddsAwayTeam` (noms équipes selon The Odds API)
 - [x] CRON job: sync cotes (2x/jour à 9h et 18h)
 
 ### Compétitions supportées (mapping)
@@ -218,6 +219,38 @@ THE_ODDS_API_KEY=your_api_key_here
 ```
 
 **Modèle Prisma:** ✅ Existe (`MatchOdds`)
+
+---
+
+## 7c. Cleanup - Nettoyage des données (`/api/cleanup`) ✅ IMPLÉMENTÉ
+
+> **Objectif:** Maintenir une base de données propre et performante
+> **Mode:** Safe (conserve l'historique des paris)
+> **CRON:** 1x/jour à 02:00
+
+### Endpoints
+- [x] `GET /api/cleanup/stats` - Statistiques avant nettoyage
+- [x] `POST /api/cleanup/run` - Exécuter le nettoyage complet
+- [x] `POST /api/cleanup/match-odds` - Nettoyer uniquement les cotes
+- [x] `POST /api/cleanup/matches` - Nettoyer uniquement les matchs
+
+### Fonctionnalités (mode safe)
+- [x] Suppression des `MatchOdds` des matchs terminés/annulés/reportés
+- [x] Suppression des `Match` terminés **SANS** paris ni challenges
+- [x] Suppression des `SyncLog` de plus de 30 jours
+- [x] Suppression des tokens expirés/révoqués (RefreshToken, PasswordResetToken)
+- [x] Conservation des matchs avec historique de paris (statistiques utilisateurs)
+- [x] CRON job automatique à 02:00 (avant les syncs)
+
+### Ce qui est conservé
+| Donnée | Conservée | Raison |
+|--------|-----------|--------|
+| Matchs avec paris | ✅ Oui | Historique et statistiques |
+| Matchs avec challenges | ✅ Oui | Historique et statistiques |
+| Matchs sans paris (terminés) | ❌ Non | Inutile |
+| Cotes des matchs terminés | ❌ Non | Inutile après le match |
+
+**Service:** `src/services/cleanup/cleanup.service.ts`
 
 ---
 
@@ -468,6 +501,7 @@ model Contribution {
 | Matchs | 80% | - |
 | **Synchronisation TheSportsDB** | **95%** | ✅ CRONs actifs |
 | **Sync The Odds API (Cotes)** | **100%** | ✅ Terminé |
+| **Cleanup** | **100%** | ✅ Terminé |
 | **Ligues** | **95%** | ✅ Terminé |
 | **Paris** | **80%** | ✅ En cours |
 | **Abonnements & Cagnotte** | **0%** | **HAUTE** |
@@ -512,6 +546,7 @@ model Contribution {
 
 | Tâche | Expression | Horaire | Service |
 |-------|------------|---------|---------|
+| **Cleanup** | `0 2 * * *` | 02:00 | `cleanupService.runFullCleanup()` |
 | Sync Compétitions | `0 3 * * *` | 03:00 | `competitionsService.syncAllCompetitions()` |
 | Sync Équipes | `0 4 * * *` | 04:00 | `teamsService.syncAllTeams()` |
 | Sync Matchs | `0 */6 * * *` | 00:00, 06:00, 12:00, 18:00 | `matchesService.syncAllMatches()` |

@@ -332,6 +332,8 @@ model MatchOdds {
   id              String   @id @default(cuid())
   matchId         String   @unique @map("match_id")
   oddsApiId       String?  @map("odds_api_id") // ID de The Odds API
+  oddsHomeTeam    String?  @map("odds_home_team") // Nom équipe domicile selon The Odds API
+  oddsAwayTeam    String?  @map("odds_away_team") // Nom équipe extérieur selon The Odds API
   homeWinOdds     Float?   @map("home_win_odds") // Cote moyenne victoire domicile
   drawOdds        Float?   @map("draw_odds") // Cote moyenne match nul
   awayWinOdds     Float?   @map("away_win_odds") // Cote moyenne victoire extérieur
