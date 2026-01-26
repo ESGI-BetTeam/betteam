@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { prisma } from '../lib/prisma';
-import { User, PrivateUser} from '@betteam/shared/interfaces/User';
+import { User, PrivateUser, UserRole } from '@betteam/shared/interfaces/User';
 import { RegisterRequest } from '@betteam/shared/api/registerRequest';
 import { RegisterResponse } from '@betteam/shared/api/registerResponse';
 import { LoginRequest } from '@betteam/shared/api/loginRequest';
@@ -80,9 +80,12 @@ const createRefreshToken = async (userId: string): Promise<string> => {
   return refreshToken;
 };
 
-const transformPrivateUserToUser = (privateUser: PrivateUser): User => {
+// Type for Prisma user that returns role as string
+type PrismaUser = Omit<PrivateUser, 'role'> & { role: string };
+
+const transformPrivateUserToUser = (privateUser: PrismaUser): User => {
   const { passwordHash, ...user } = privateUser;
-  return user;
+  return { ...user, role: user.role as UserRole };
 }
 
 // POST /api/auth/register

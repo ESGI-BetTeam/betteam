@@ -1,7 +1,7 @@
 # Checklist API BetTeam
 
 > **Derniere mise a jour:** 2026-01-26
-> **Version:** 1.9.0 (+ Audit Securite)
+> **Version:** 2.0.0 (+ Administration)
 
 Cette checklist permet de suivre l'avancement du développement de l'API BetTeam.
 
@@ -44,7 +44,7 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 - [ ] Rate limiting global **CRITIQUE**
 - [ ] Protection CSRF (CORS permissif) **CRITIQUE**
 - [ ] Helmet.js (headers de securite) **HAUTE**
-- [ ] Protection routes sync/cleanup **CRITIQUE**
+- [x] Protection routes sync/cleanup (requireAdmin)
 
 ---
 
@@ -376,21 +376,41 @@ THE_ODDS_API_KEY=your_api_key_here
 
 ---
 
-## 12. Administration ❌ À IMPLÉMENTER
+## 12. Administration ✅ IMPLÉMENTÉ
+
+> **Accès:** Réservé aux utilisateurs avec `role: "admin"`
+> **Protection:** Middleware `requireAuth` + `requireAdmin` sur toutes les routes
 
 ### Endpoints
-- [ ] `GET /api/admin/users` - Gestion des utilisateurs
-- [ ] `PATCH /api/admin/users/:id` - Modifier un utilisateur
-- [ ] `DELETE /api/admin/users/:id` - Supprimer définitivement
-- [ ] `GET /api/admin/leagues` - Gestion des ligues
-- [ ] `GET /api/admin/bets` - Gestion des paris
-- [ ] `POST /api/admin/sync/force` - Forcer une synchronisation
+- [x] `GET /api/admin/dashboard` - Statistiques globales du dashboard
+- [x] `GET /api/admin/users` - Gestion des utilisateurs (pagination, recherche, filtres)
+- [x] `PATCH /api/admin/users/:id` - Modifier un utilisateur (rôle, bannissement)
+- [x] `DELETE /api/admin/users/:id` - Supprimer définitivement un utilisateur
+- [x] `GET /api/admin/leagues` - Gestion des ligues (pagination, recherche, filtres)
+- [x] `GET /api/admin/bets` - Statistiques globales des paris
+- [x] `POST /api/admin/sync/force` - Forcer une synchronisation (competitions, teams, matches, odds, all)
 
 ### Fonctionnalités
-- [ ] Rôle admin dans User
-- [ ] Dashboard admin
-- [ ] Logs d'audit
-- [ ] Bannissement utilisateurs
+- [x] Rôle admin dans User (`role: "user" | "admin"`)
+- [x] Dashboard admin avec statistiques
+- [x] Bannissement utilisateurs (via `isActive: false`)
+- [x] Protection des routes `/api/sync/*` et `/api/cleanup/*` (admin uniquement)
+- [ ] Logs d'audit (à implémenter si nécessaire)
+- [ ] Interface frontend admin (à développer)
+
+### Middleware
+```typescript
+// Usage dans les routes admin
+router.use(requireAuth);
+router.use(requireAdmin);
+```
+
+**Fichiers:**
+- `src/routes/admin.ts` - Routes admin
+- `src/services/admin.service.ts` - Logique métier admin
+- `src/middleware/auth.ts` - Middleware `requireAdmin`
+
+**Types partagés:** `@betteam/shared/api/admin`
 
 ---
 
@@ -461,7 +481,7 @@ THE_ODDS_API_KEY=your_api_key_here
 | **Abonnements & Cagnotte** | **90%** | Termine (mock payment) |
 | Notifications | 0% | Moyenne |
 | Statistiques | 0% | Basse |
-| Administration | 0% | Basse |
+| **Administration** | **90%** | Termine (logs audit a faire) |
 | **Audit Securite** | **100%** | URGENT - 3 critiques, 5 hautes |
 
 ---
@@ -531,23 +551,23 @@ THE_ODDS_API_KEY=your_api_key_here
 ### VULNERABILITES CRITIQUES
 
 #### 1. Routes de Synchronisation Non Protegees
-**Fichier:** `src/routes/sync.ts:17-341`
+**Fichier:** `src/routes/sync.ts`
 **Severite:** CRITIQUE
 
 ```typescript
-// AUCUNE AUTHENTIFICATION sur ces routes !
-router.post('/competitions', async (req: Request, res: Response) => { ... });
-router.post('/all', async (req: Request, res: Response) => { ... });
+// CORRIGÉ - Toutes les routes sync sont maintenant protégées
+router.use(requireAuth);
+router.use(requireAdmin);
 ```
 
-**Impact:**
-- Declenchement de synchronisations massives (DoS)
-- Epuisement des quotas d'API externes (The Odds API: 500 req/mois)
-- Surcharge de la base de donnees
+**Impact:** (résolu)
+- ~~Declenchement de synchronisations massives (DoS)~~
+- ~~Epuisement des quotas d'API externes (The Odds API: 500 req/mois)~~
+- ~~Surcharge de la base de donnees~~
 
 **Recommandation:** Ajouter `requireAuth` et une verification de role admin.
 
-**Status:** [ ] A corriger
+**Status:** [x] Corrigé
 
 ---
 
@@ -764,9 +784,11 @@ const generateInviteCode = (): string => {
 **Fichier:** `src/routes/cleanup.ts`
 **Severite:** MOYENNE
 
-Les routes `/api/cleanup` sont probablement non protegees comme les routes `/api/sync`.
+~~Les routes `/api/cleanup` sont probablement non protegees comme les routes `/api/sync`.~~
 
-**Status:** [ ] A verifier et corriger
+Les routes `/api/cleanup` sont maintenant protégées avec `requireAuth` et `requireAdmin`.
+
+**Status:** [x] Corrigé
 
 ---
 
@@ -870,8 +892,8 @@ Les utilisateurs desactives (`isActive: false`) conservent leurs donnees. Pas de
 
 ### CHECKLIST DE REMEDIATION
 
-- [ ] Proteger `/api/sync/*` avec authentification admin
-- [ ] Proteger `/api/cleanup/*` avec authentification admin
+- [x] Proteger `/api/sync/*` avec authentification admin
+- [x] Proteger `/api/cleanup/*` avec authentification admin
 - [ ] Configurer CORS strictement
 - [ ] Ajouter rate limiting (auth: 5 req/15min, global: 100 req/min)
 - [ ] Installer et configurer Helmet
