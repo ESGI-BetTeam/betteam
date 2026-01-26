@@ -154,6 +154,8 @@ router.get('/with-odds', async (req: Request, res: Response) => {
               awayWinOdds: match.odds.awayWinOdds,
               bookmakerCount: match.odds.bookmakerCount,
               lastUpdated: match.odds.syncedAt,
+              oddsHomeTeam: match.odds.oddsHomeTeam,
+              oddsAwayTeam: match.odds.oddsAwayTeam,
             }
           : null,
       })),
@@ -224,6 +226,8 @@ router.get('/:id/odds', async (req: Request, res: Response) => {
         draw: odds.drawOdds,
         awayWin: odds.awayWinOdds,
         bookmakerCount: odds.bookmakerCount,
+        oddsHomeTeam: odds.oddsHomeTeam,
+        oddsAwayTeam: odds.oddsAwayTeam,
       },
       lastUpdated: odds.syncedAt,
     });

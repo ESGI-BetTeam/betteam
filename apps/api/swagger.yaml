@@ -3037,6 +3037,16 @@ components:
         lastUpdated:
           type: string
           format: date-time
+        oddsHomeTeam:
+          type: string
+          nullable: true
+          description: Nom de l'équipe à domicile selon The Odds API
+          example: Brest
+        oddsAwayTeam:
+          type: string
+          nullable: true
+          description: Nom de l'équipe à l'extérieur selon The Odds API
+          example: Toulouse
 
     MatchOddsResponse:
       type: object
@@ -3070,6 +3080,16 @@ components:
             bookmakerCount:
               type: integer
               example: 15
+            oddsHomeTeam:
+              type: string
+              nullable: true
+              description: Nom de l'équipe à domicile selon The Odds API
+              example: Brest
+            oddsAwayTeam:
+              type: string
+              nullable: true
+              description: Nom de l'équipe à l'extérieur selon The Odds API
+              example: Toulouse
         lastUpdated:
           type: string
           format: date-time

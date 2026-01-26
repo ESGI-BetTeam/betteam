@@ -233,6 +233,8 @@ class OddsService {
             create: {
               matchId: dbMatch.id,
               oddsApiId: matchingEvent.id,
+              oddsHomeTeam: matchingEvent.home_team,
+              oddsAwayTeam: matchingEvent.away_team,
               homeWinOdds: avgOdds.homeWinOdds,
               drawOdds: avgOdds.drawOdds,
               awayWinOdds: avgOdds.awayWinOdds,
@@ -242,6 +244,8 @@ class OddsService {
             },
             update: {
               oddsApiId: matchingEvent.id,
+              oddsHomeTeam: matchingEvent.home_team,
+              oddsAwayTeam: matchingEvent.away_team,
               homeWinOdds: avgOdds.homeWinOdds,
               drawOdds: avgOdds.drawOdds,
               awayWinOdds: avgOdds.awayWinOdds,
