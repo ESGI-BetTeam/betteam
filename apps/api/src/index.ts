@@ -24,6 +24,7 @@ import syncRouter from './routes/sync';
 import usersRouter from './routes/users';
 import cleanupRouter from './routes/cleanup';
 import plansRouter from './routes/plans';
+import adminRouter from './routes/admin';
 
 // Import CRON service
 import { cronService } from './services/cron';
@@ -99,6 +100,7 @@ app.use('/api/sync', syncRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/cleanup', cleanupRouter);
 app.use('/api/plans', plansRouter);
+app.use('/api/admin', adminRouter);
 console.log('🔧 [7/8] Routes registered');
 
 // Root endpoint
