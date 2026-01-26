@@ -280,7 +280,9 @@ THE_ODDS_API_KEY=your_api_key_here
 - [x] Génération code d'invitation unique (8 caractères)
 - [x] Rôles: owner, admin, member
 - [x] Ligues privées/publiques
-- [x] Limite de membres par ligue (50 max)
+- [x] Limite de membres par plan (Free: 4, Champion: 10, MVP: 30)
+- [x] Création automatique de la cagnotte à la création de ligue
+- [x] Vérification du gel de ligue lors de l'adhésion
 - [ ] Notifications d'invitation
 - [ ] Transfert de propriété
 
@@ -313,8 +315,8 @@ THE_ODDS_API_KEY=your_api_key_here
 - [x] **J-7**: Paris possibles 7 jours avant le match
 - [x] **M-10**: Fin des paris 10 minutes avant le début
 - [x] **Immutabilité**: Paris non modifiables/annulables après validation
-- [x] **Limite Free**: 3 paris par semaine par ligue
-- [x] **Changement compétition Free**: 1x par semaine
+- [x] **Limites selon plan**: Free (1 changement/semaine), Champion/MVP (illimité)
+- [x] **Gel de ligue**: Impossible de changer de compétition si ligue gelée
 - [x] Validation: membre de la ligue requis
 - [x] Validation: match dans la compétition de la ligue
 - [x] Validation: un seul pari par challenge par utilisateur
