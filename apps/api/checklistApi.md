@@ -1,7 +1,7 @@
 # Checklist API BetTeam
 
-> **Dernière mise à jour:** 2026-01-22
-> **Version:** 1.4.0
+> **Dernière mise à jour:** 2026-01-26
+> **Version:** 1.7.0
 
 Cette checklist permet de suivre l'avancement du développement de l'API BetTeam.
 
@@ -110,20 +110,32 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 
 ---
 
-## 5. Équipes (`/api/teams`)
+## 5. Équipes (`/api/teams`) ✅ IMPLÉMENTÉ
 
 ### Endpoints
 - [x] Équipes via `/api/competitions/:id/teams`
-- [ ] `GET /api/teams` - Liste de toutes les équipes
-- [ ] `GET /api/teams/:id` - Détails d'une équipe
-- [ ] `GET /api/teams/:id/matches` - Matchs d'une équipe
-- [ ] `GET /api/teams/:id/players` - Joueurs d'une équipe
+- [x] `GET /api/teams` - Liste de toutes les équipes (pagination, recherche, filtres)
+- [x] `GET /api/teams/:id` - Détails d'une équipe
+- [x] `GET /api/teams/:id/stats` - Statistiques d'une équipe
+- [x] `GET /api/teams/:id/matches` - Matchs d'une équipe
+- [x] `GET /api/teams/:id/players` - Joueurs d'une équipe
+- [x] `GET /api/teams/countries` - Liste des pays disponibles
+- [x] `GET /api/teams/search` - Recherche d'équipes
+
+### Favoris utilisateur
+- [x] `POST /api/teams/:id/favorite` - Ajouter aux favoris
+- [x] `DELETE /api/teams/:id/favorite` - Retirer des favoris
+- [x] `GET /api/teams/:id/is-favorite` - Vérifier si favori
+- [x] `GET /api/users/me/favorite-teams` - Mes équipes favorites
 
 ### Fonctionnalités
 - [x] Sync depuis TheSportsDB
-- [ ] Recherche d'équipes
-- [ ] Statistiques équipe
-- [ ] Favoris utilisateur (équipes suivies)
+- [x] Recherche d'équipes
+- [x] Statistiques équipe (wins, draws, losses, goals, winRate)
+- [x] Favoris utilisateur (équipes suivies)
+- [x] Sync joueurs (`POST /api/sync/players`)
+
+**Modèle Prisma:** ✅ Existe (`Team`, `Player`, `UserFavoriteTeam`)
 
 ---
 
@@ -162,9 +174,9 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 - [x] Gestion erreur 429 avec retry
 - [x] Logs de synchronisation (SyncLog)
 - [x] Cache en mémoire (TTL configurable)
-- [ ] CRON job: sync compétitions (1x/jour à 3h)
-- [ ] CRON job: sync équipes (1x/jour à 4h)
-- [ ] CRON job: sync matchs (toutes les 6h)
+- [x] CRON job: sync compétitions (1x/jour à 3h)
+- [x] CRON job: sync équipes (1x/jour à 4h)
+- [x] CRON job: sync matchs (toutes les 6h)
 - [ ] Sync des joueurs
 - [ ] Sync des classements (standings)
 - [ ] Webhook pour notifications de mise à jour
@@ -189,7 +201,8 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 - [x] Matching intelligent des matchs (date + noms d'équipes normalisés)
 - [x] Calcul des cotes moyennes (tous bookmakers)
 - [x] Stockage en BDD (`MatchOdds`)
-- [ ] CRON job: sync cotes (2x/jour à 9h et 18h)
+- [x] Colonnes `oddsHomeTeam` / `oddsAwayTeam` (noms équipes selon The Odds API)
+- [x] CRON job: sync cotes (2x/jour à 9h et 18h)
 
 ### Compétitions supportées (mapping)
 | The Odds API | Competition | TheSportsDB ID |
@@ -206,6 +219,38 @@ THE_ODDS_API_KEY=your_api_key_here
 ```
 
 **Modèle Prisma:** ✅ Existe (`MatchOdds`)
+
+---
+
+## 7c. Cleanup - Nettoyage des données (`/api/cleanup`) ✅ IMPLÉMENTÉ
+
+> **Objectif:** Maintenir une base de données propre et performante
+> **Mode:** Safe (conserve l'historique des paris)
+> **CRON:** 1x/jour à 02:00
+
+### Endpoints
+- [x] `GET /api/cleanup/stats` - Statistiques avant nettoyage
+- [x] `POST /api/cleanup/run` - Exécuter le nettoyage complet
+- [x] `POST /api/cleanup/match-odds` - Nettoyer uniquement les cotes
+- [x] `POST /api/cleanup/matches` - Nettoyer uniquement les matchs
+
+### Fonctionnalités (mode safe)
+- [x] Suppression des `MatchOdds` des matchs terminés/annulés/reportés
+- [x] Suppression des `Match` terminés **SANS** paris ni challenges
+- [x] Suppression des `SyncLog` de plus de 30 jours
+- [x] Suppression des tokens expirés/révoqués (RefreshToken, PasswordResetToken)
+- [x] Conservation des matchs avec historique de paris (statistiques utilisateurs)
+- [x] CRON job automatique à 02:00 (avant les syncs)
+
+### Ce qui est conservé
+| Donnée | Conservée | Raison |
+|--------|-----------|--------|
+| Matchs avec paris | ✅ Oui | Historique et statistiques |
+| Matchs avec challenges | ✅ Oui | Historique et statistiques |
+| Matchs sans paris (terminés) | ❌ Non | Inutile |
+| Cotes des matchs terminés | ❌ Non | Inutile après le match |
+
+**Service:** `src/services/cleanup/cleanup.service.ts`
 
 ---
 
@@ -287,7 +332,7 @@ THE_ODDS_API_KEY=your_api_key_here
 - [ ] Mise à jour des points utilisateur après résolution
 - [ ] CRON: fermeture automatique des challenges (M-10)
 - [ ] CRON: résolution des paris (match terminé)
-- [ ] CRON: sync des cotes (2x/jour à 9h et 18h) - **The Odds API (500 req/mois)**
+- [x] CRON: sync des cotes (2x/jour à 9h et 18h) - **The Odds API (500 req/mois)**
 
 **Modèle Prisma:** ✅ Existe (`Bet`, `GroupBet`, `MatchOdds`)
 
@@ -452,10 +497,11 @@ model Contribution {
 | Authentification | 85% | - |
 | Utilisateurs | 80% | - |
 | Compétitions | 90% | - |
-| Équipes | 30% | Basse |
+| **Équipes** | **100%** | ✅ Terminé |
 | Matchs | 80% | - |
-| Synchronisation TheSportsDB | 70% | Moyenne |
-| **Sync The Odds API (Cotes)** | **90%** | ✅ Implémenté |
+| **Synchronisation TheSportsDB** | **95%** | ✅ CRONs actifs |
+| **Sync The Odds API (Cotes)** | **100%** | ✅ Terminé |
+| **Cleanup** | **100%** | ✅ Terminé |
 | **Ligues** | **95%** | ✅ Terminé |
 | **Paris** | **80%** | ✅ En cours |
 | **Abonnements & Cagnotte** | **0%** | **HAUTE** |
@@ -469,11 +515,12 @@ model Contribution {
 
 1. ~~**Implémenter les Ligues** - Core feature pour l'aspect social~~ ✅
 2. ~~**Implémenter les Paris (Partie 1)** - Challenges et paris de groupe~~ ✅
-3. **Implémenter les Paris (Partie 2)** - Cotes et résolution automatique
-4. **Implémenter Abonnements & Cagnotte** - Monétisation (modèle Famileo)
-5. **Ajouter les CRON Jobs** - Automatisation de la sync + fermeture challenges
-6. **WebSocket pour live scores** - Expérience temps réel
-7. **Notifications** - Engagement utilisateur
+3. ~~**Ajouter les CRON Jobs de sync** - TheSportsDB + The Odds API~~ ✅
+4. **Implémenter les Paris (Partie 2)** - Résolution automatique des paris
+5. **CRON: fermeture challenges + résolution paris** - Automatisation métier
+6. **Implémenter Abonnements & Cagnotte** - Monétisation (modèle Famileo)
+7. **WebSocket pour live scores** - Expérience temps réel
+8. **Notifications** - Engagement utilisateur
 
 ---
 
@@ -490,9 +537,23 @@ model Contribution {
 - **ORM:** Prisma 7.x
 - **Database:** PostgreSQL
 - **Auth:** JWT (jsonwebtoken)
+- **CRON:** node-cron v4.x
 - **APIs externes:**
   - TheSportsDB V2 (matchs, équipes, compétitions)
   - The Odds API (cotes des paris)
+
+### CRON Jobs actifs (Timezone: Europe/Paris)
+
+| Tâche | Expression | Horaire | Service |
+|-------|------------|---------|---------|
+| **Cleanup** | `0 2 * * *` | 02:00 | `cleanupService.runFullCleanup()` |
+| Sync Compétitions | `0 3 * * *` | 03:00 | `competitionsService.syncAllCompetitions()` |
+| Sync Équipes | `0 4 * * *` | 04:00 | `teamsService.syncAllTeams()` |
+| Sync Matchs | `0 */6 * * *` | 00:00, 06:00, 12:00, 18:00 | `matchesService.syncAllMatches()` |
+| Sync Cotes | `0 9,18 * * *` | 09:00, 18:00 | `oddsService.syncAllOdds()` |
+
+**Fichier:** `src/services/cron/index.ts`
+**Logs:** Table `sync_logs` (type: `cron-*`)
 
 ---
 
