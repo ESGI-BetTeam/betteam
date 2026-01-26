@@ -19,8 +19,14 @@ import leagueRouter from './routes/league';
 import challengesRouter from './routes/challenges';
 import matchesRouter from './routes/matches';
 import competitionsRouter from './routes/competitions';
+import teamsRouter from './routes/teams';
 import syncRouter from './routes/sync';
 import usersRouter from './routes/users';
+import cleanupRouter from './routes/cleanup';
+
+// Import CRON service
+import { cronService } from './services/cron';
+
 console.log('🔧 [3/8] Routes imported');
 
 const app = express();
@@ -87,8 +93,10 @@ app.use('/api/leagues', leagueRouter);
 app.use('/api/leagues/:leagueId/challenges', challengesRouter);
 app.use('/api/matches', matchesRouter);
 app.use('/api/competitions', competitionsRouter);
+app.use('/api/teams', teamsRouter);
 app.use('/api/sync', syncRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/cleanup', cleanupRouter);
 console.log('🔧 [7/8] Routes registered');
 
 // Root endpoint
@@ -110,6 +118,9 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   try {
     await prisma.$connect();
     console.log('✅ Database connected successfully');
+
+    // Initialize CRON jobs after database is connected
+    await cronService.initialize();
   } catch (error) {
     console.error('❌ Database connection failed:', error);
     process.exit(1);
@@ -141,6 +152,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down gracefully...');
+  cronService.stop();
   await prisma.$disconnect();
   console.log('✅ Database disconnected');
   process.exit(0);
@@ -148,6 +160,7 @@ process.on('SIGINT', async () => {
 
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down gracefully...');
+  cronService.stop();
   await prisma.$disconnect();
   console.log('✅ Database disconnected');
   process.exit(0);
