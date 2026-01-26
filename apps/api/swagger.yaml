@@ -25,7 +25,10 @@ info:
     - **TheSportsDB** - Matchs, équipes, compétitions
     - **The Odds API** - Cotes des bookmakers (Top 5 ligues européennes)
 
-  version: 1.5.0
+    ## Administration
+    Les routes `/api/admin/*`, `/api/sync/*` et `/api/cleanup/*` sont réservées aux utilisateurs avec le rôle `admin`.
+
+  version: 2.0.0
   contact:
     name: BetTeam Support
     email: support@betteam.com
@@ -72,6 +75,8 @@ tags:
     description: Plans d'abonnement (Free, Champion, MVP)
   - name: Wallet
     description: Cagnotte partagée des ligues et contributions
+  - name: Admin
+    description: Administration de la plateforme (réservé aux admins)
 
 paths:
   /health:
@@ -3119,6 +3124,300 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  # ============================================
+  # ADMIN - Administration de la plateforme
+  # ============================================
+
+  /admin/dashboard:
+    get:
+      tags:
+        - Admin
+      summary: Statistiques du dashboard admin
+      description: |
+        Retourne les statistiques globales de la plateforme.
+        **Réservé aux administrateurs.**
+      operationId: getAdminDashboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Statistiques du dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDashboardStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: Liste des utilisateurs (admin)
+      description: |
+        Liste tous les utilisateurs avec leurs statistiques.
+        Supporte la pagination, la recherche et les filtres.
+        **Réservé aux administrateurs.**
+      operationId: getAdminUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Numéro de page
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Nombre d'éléments par page
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Recherche par username, email, nom
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [user, admin]
+          description: Filtrer par rôle
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+          description: Filtrer par statut actif/inactif
+      responses:
+        '200':
+          description: Liste des utilisateurs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUsersResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/users/{id}:
+    patch:
+      tags:
+        - Admin
+      summary: Modifier un utilisateur (admin)
+      description: |
+        Permet de modifier le rôle ou le statut d'un utilisateur.
+        Utilisé pour promouvoir/rétrograder un admin ou bannir un utilisateur.
+        **Réservé aux administrateurs.**
+      operationId: updateAdminUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [user, admin]
+                  description: Nouveau rôle de l'utilisateur
+                isActive:
+                  type: boolean
+                  description: Statut actif (false = banni)
+      responses:
+        '200':
+          description: Utilisateur modifié
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AdminUserWithStats'
+                  message:
+                    type: string
+                    example: User updated successfully.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Admin
+      summary: Supprimer définitivement un utilisateur
+      description: |
+        Supprime définitivement un utilisateur et toutes ses données associées.
+        **Attention : action irréversible.**
+        **Réservé aux administrateurs.**
+      operationId: deleteAdminUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'utilisateur
+      responses:
+        '200':
+          description: Utilisateur supprimé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User permanently deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/leagues:
+    get:
+      tags:
+        - Admin
+      summary: Liste des ligues (admin)
+      description: |
+        Liste toutes les ligues avec leurs statistiques.
+        Supporte la pagination, la recherche et les filtres.
+        **Réservé aux administrateurs.**
+      operationId: getAdminLeagues
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Numéro de page
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Nombre d'éléments par page
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Recherche par nom ou code d'invitation
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+          description: Filtrer par statut actif/inactif
+        - name: isFrozen
+          in: query
+          schema:
+            type: boolean
+          description: Filtrer par statut gelé
+      responses:
+        '200':
+          description: Liste des ligues
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLeaguesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/bets:
+    get:
+      tags:
+        - Admin
+      summary: Statistiques globales des paris
+      description: |
+        Retourne les statistiques globales des paris sur la plateforme.
+        **Réservé aux administrateurs.**
+      operationId: getAdminBetsStats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Statistiques des paris
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBetsStatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/sync/force:
+    post:
+      tags:
+        - Admin
+      summary: Forcer une synchronisation
+      description: |
+        Déclenche manuellement une synchronisation des données externes.
+        Types disponibles : `competitions`, `teams`, `matches`, `odds`, `all`.
+        **Réservé aux administrateurs.**
+      operationId: forceAdminSync
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  enum: [competitions, teams, matches, odds, all]
+                  description: Type de synchronisation à effectuer
+                  example: all
+      responses:
+        '200':
+          description: Synchronisation réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSyncResponse'
+        '207':
+          description: Synchronisation partielle (certaines erreurs)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSyncResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -3179,6 +3478,11 @@ components:
           format: uri
           nullable: true
           example: https://api.betteam.com/avatars/user123.jpg
+        role:
+          type: string
+          enum: [user, admin]
+          description: Rôle global de l'utilisateur sur la plateforme
+          example: user
         isActive:
           type: boolean
           example: true
@@ -3953,6 +4257,268 @@ components:
               format: uri
               nullable: true
               example: https://example.com/avatar.jpg
+
+    # ============================================
+    # ADMIN SCHEMAS
+    # ============================================
+
+    AdminDashboardStats:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            users:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 150
+                active:
+                  type: integer
+                  example: 142
+                admins:
+                  type: integer
+                  example: 3
+                newThisWeek:
+                  type: integer
+                  example: 12
+            leagues:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 45
+                active:
+                  type: integer
+                  example: 40
+                frozen:
+                  type: integer
+                  example: 2
+            bets:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 1250
+                pending:
+                  type: integer
+                  example: 87
+                totalPointsWagered:
+                  type: integer
+                  example: 125000
+            sync:
+              type: object
+              properties:
+                lastCompetitionsSync:
+                  type: string
+                  format: date-time
+                  nullable: true
+                lastTeamsSync:
+                  type: string
+                  format: date-time
+                  nullable: true
+                lastMatchesSync:
+                  type: string
+                  format: date-time
+                  nullable: true
+                lastOddsSync:
+                  type: string
+                  format: date-time
+                  nullable: true
+
+    AdminUserWithStats:
+      type: object
+      properties:
+        id:
+          type: string
+          example: clx1234567890
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        username:
+          type: string
+          example: johndoe
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [user, admin]
+          example: user
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        stats:
+          type: object
+          properties:
+            totalBets:
+              type: integer
+              example: 25
+            leaguesOwned:
+              type: integer
+              example: 2
+            leaguesMember:
+              type: integer
+              example: 5
+
+    AdminUsersResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUserWithStats'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    AdminLeagueWithStats:
+      type: object
+      properties:
+        id:
+          type: string
+          example: clx1234567890
+        name:
+          type: string
+          example: Ligue des Champions
+        description:
+          type: string
+          nullable: true
+        isPrivate:
+          type: boolean
+          example: true
+        isActive:
+          type: boolean
+          example: true
+        inviteCode:
+          type: string
+          example: ABC12345
+        planId:
+          type: string
+          example: champion
+        createdAt:
+          type: string
+          format: date-time
+        owner:
+          type: object
+          properties:
+            id:
+              type: string
+            username:
+              type: string
+            email:
+              type: string
+        stats:
+          type: object
+          properties:
+            totalMembers:
+              type: integer
+              example: 8
+            totalBets:
+              type: integer
+              example: 156
+            totalChallenges:
+              type: integer
+              example: 42
+        wallet:
+          type: object
+          nullable: true
+          properties:
+            balance:
+              type: number
+              example: 23.50
+            isFrozen:
+              type: boolean
+              example: false
+
+    AdminLeaguesResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminLeagueWithStats'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    AdminBetsStatsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            totalBets:
+              type: integer
+              example: 1250
+            betsByStatus:
+              type: object
+              properties:
+                pending:
+                  type: integer
+                  example: 87
+                won:
+                  type: integer
+                  example: 542
+                lost:
+                  type: integer
+                  example: 608
+                void:
+                  type: integer
+                  example: 13
+            totalPointsWagered:
+              type: integer
+              example: 125000
+            totalPointsWon:
+              type: integer
+              example: 89500
+            averageBetAmount:
+              type: integer
+              example: 100
+            topBettors:
+              type: array
+              items:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                  username:
+                    type: string
+                  totalBets:
+                    type: integer
+                  winRate:
+                    type: integer
+                    description: Pourcentage de paris gagnés
+
+    AdminSyncResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Sync completed successfully.
+        results:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              itemsSynced:
+                type: integer
 
     Error:
       type: object
