@@ -14,14 +14,30 @@ async function main() {
 
   // Clear existing data
   console.log('🧹 Cleaning database...');
+  await prisma.contribution.deleteMany();
+  await prisma.leagueWallet.deleteMany();
   await prisma.bet.deleteMany();
   await prisma.leagueMember.deleteMany();
   await prisma.league.deleteMany();
+  await prisma.plan.deleteMany();
   await prisma.match.deleteMany();
   await prisma.team.deleteMany();
   await prisma.competition.deleteMany();
-  await prisma.syncLog.deleteMany(); 
+  await prisma.syncLog.deleteMany();
   await prisma.user.deleteMany();
+
+  // Create plans
+  console.log('💎 Creating plans...');
+  const plans = [
+    { id: 'free', name: 'Free', maxMembers: 4, maxCompetitions: 1, maxChangesWeek: 1, monthlyPrice: 0, features: {} },
+    { id: 'champion', name: 'Champion', maxMembers: 10, maxCompetitions: -1, maxChangesWeek: -1, monthlyPrice: 5.99, features: { unlimitedCompetitions: true, unlimitedChanges: true } },
+    { id: 'mvp', name: 'MVP', maxMembers: 30, maxCompetitions: -1, maxChangesWeek: -1, monthlyPrice: 11.99, features: { unlimitedCompetitions: true, unlimitedChanges: true, prioritySupport: true } },
+  ];
+
+  for (const plan of plans) {
+    await prisma.plan.create({ data: plan });
+  }
+  console.log(`✅ Created ${plans.length} plans`);
 
   // Create sample users
   console.log('👤 Creating users...');
@@ -144,6 +160,16 @@ async function main() {
       ownerId: user1.id,
       inviteCode: 'DEMO2024',
       isPrivate: true,
+      planId: 'free',
+    },
+  });
+
+  // Create wallet for the league
+  console.log('💰 Creating league wallet...');
+  await prisma.leagueWallet.create({
+    data: {
+      leagueId: league.id,
+      balance: 0,
     },
   });
 
