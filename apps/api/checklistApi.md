@@ -1,7 +1,7 @@
 # Checklist API BetTeam
 
-> **Dernière mise à jour:** 2026-01-26
-> **Version:** 1.8.0
+> **Derniere mise a jour:** 2026-01-26
+> **Version:** 1.9.0 (+ Audit Securite)
 
 Cette checklist permet de suivre l'avancement du développement de l'API BetTeam.
 
@@ -37,13 +37,14 @@ Cette checklist permet de suivre l'avancement du développement de l'API BetTeam
 - [ ] Métriques de performance
 - [ ] Alerting en cas d'erreur
 
-### Sécurité
+### Securite (voir Section 14 - Audit Securite)
 - [x] JWT Authentication
 - [x] Hachage des mots de passe (bcrypt)
-- [x] Validation des entrées utilisateur
-- [ ] Rate limiting global
-- [ ] Protection CSRF
-- [ ] Helmet.js (headers de sécurité)
+- [~] Validation des entrees utilisateur (partielle, Zod recommande)
+- [ ] Rate limiting global **CRITIQUE**
+- [ ] Protection CSRF (CORS permissif) **CRITIQUE**
+- [ ] Helmet.js (headers de securite) **HAUTE**
+- [ ] Protection routes sync/cleanup **CRITIQUE**
 
 ---
 
@@ -444,23 +445,24 @@ THE_ODDS_API_KEY=your_api_key_here
 
 ## Résumé de progression
 
-| Module | Progression | Priorité |
+| Module | Progression | Priorite |
 |--------|-------------|----------|
 | Infrastructure | 70% | - |
 | Authentification | 85% | - |
 | Utilisateurs | 80% | - |
-| Compétitions | 90% | - |
-| **Équipes** | **100%** | ✅ Terminé |
+| Competitions | 90% | - |
+| **Equipes** | **100%** | Termine |
 | Matchs | 80% | - |
-| **Synchronisation TheSportsDB** | **95%** | ✅ CRONs actifs |
-| **Sync The Odds API (Cotes)** | **100%** | ✅ Terminé |
-| **Cleanup** | **100%** | ✅ Terminé |
-| **Ligues** | **95%** | ✅ Terminé |
-| **Paris** | **80%** | ✅ En cours |
-| **Abonnements & Cagnotte** | **90%** | ✅ Terminé (mock payment) |
+| **Synchronisation TheSportsDB** | **95%** | CRONs actifs |
+| **Sync The Odds API (Cotes)** | **100%** | Termine |
+| **Cleanup** | **100%** | Termine |
+| **Ligues** | **95%** | Termine |
+| **Paris** | **80%** | En cours |
+| **Abonnements & Cagnotte** | **90%** | Termine (mock payment) |
 | Notifications | 0% | Moyenne |
 | Statistiques | 0% | Basse |
 | Administration | 0% | Basse |
+| **Audit Securite** | **100%** | URGENT - 3 critiques, 5 hautes |
 
 ---
 
@@ -509,6 +511,378 @@ THE_ODDS_API_KEY=your_api_key_here
 
 **Fichier:** `src/services/cron/index.ts`
 **Logs:** Table `sync_logs` (type: `cron-*`)
+
+---
+
+## 14. Audit de Securite
+
+> **Date de l'audit:** 2026-01-26
+> **Auditeur:** Claude Opus 4.5
+> **Perimetre:** API Backend (apps/api)
+
+### Resume Executif
+
+| Categorie | Critique | Haute | Moyenne | Basse |
+|-----------|----------|-------|---------|-------|
+| Vulnerabilites | 3 | 5 | 6 | 4 |
+
+---
+
+### VULNERABILITES CRITIQUES
+
+#### 1. Routes de Synchronisation Non Protegees
+**Fichier:** `src/routes/sync.ts:17-341`
+**Severite:** CRITIQUE
+
+```typescript
+// AUCUNE AUTHENTIFICATION sur ces routes !
+router.post('/competitions', async (req: Request, res: Response) => { ... });
+router.post('/all', async (req: Request, res: Response) => { ... });
+```
+
+**Impact:**
+- Declenchement de synchronisations massives (DoS)
+- Epuisement des quotas d'API externes (The Odds API: 500 req/mois)
+- Surcharge de la base de donnees
+
+**Recommandation:** Ajouter `requireAuth` et une verification de role admin.
+
+**Status:** [ ] A corriger
+
+---
+
+#### 2. Configuration CORS Permissive
+**Fichier:** `src/index.ts:38`
+**Severite:** CRITIQUE
+
+```typescript
+app.use(cors()); // Permet TOUTES les origines !
+```
+
+**Impact:**
+- Permet les attaques CSRF
+- Exposition a des requetes cross-origin malveillantes
+- Vol de session/tokens par des sites tiers
+
+**Recommandation:**
+```typescript
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+}));
+```
+
+**Status:** [ ] A corriger
+
+---
+
+#### 3. Absence de Rate Limiting
+**Fichier:** `src/index.ts` (absent)
+**Severite:** CRITIQUE
+
+**Impact:**
+- Attaques par force brute sur `/api/auth/login`
+- Credential stuffing
+- Enumeration de comptes via `/api/auth/forgot-password`
+- DoS applicatif
+
+**Recommandation:**
+```typescript
+import rateLimit from 'express-rate-limit';
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 tentatives
+  message: 'Too many login attempts'
+});
+
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+```
+
+**Status:** [ ] A corriger
+
+---
+
+### VULNERABILITES HAUTES
+
+#### 4. Politique de Mot de Passe Faible
+**Fichier:** `src/routes/auth.ts:421-423`
+**Severite:** HAUTE
+
+```typescript
+if (newPassword.length < 6) {
+  return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+}
+```
+
+**Impact:** Mots de passe triviaux facilement crackables.
+
+**Recommandation:** Minimum 8 caracteres, exiger majuscule + chiffre + caractere special.
+
+**Status:** [ ] A corriger
+
+---
+
+#### 5. JWT Secret Non Valide
+**Fichier:** `src/routes/auth.ts:35`, `src/middleware/auth.ts:41`
+**Severite:** HAUTE
+
+```typescript
+jwt.verify(token, process.env.JWT_SECRET!) // Le "!" crashe si undefined
+```
+
+**Impact:**
+- Crash de l'application si `JWT_SECRET` non defini
+- Pas de validation de la robustesse du secret
+
+**Recommandation:**
+```typescript
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must be set and at least 32 characters');
+}
+```
+
+**Status:** [ ] A corriger
+
+---
+
+#### 6. Absence d'En-tetes de Securite (Helmet)
+**Fichier:** `src/index.ts` (absent)
+**Severite:** HAUTE
+
+**Impact:** Vulnerable a :
+- XSS via injection de scripts
+- Clickjacking
+- MIME sniffing
+
+**Recommandation:**
+```typescript
+import helmet from 'helmet';
+app.use(helmet());
+```
+
+**Status:** [ ] A corriger
+
+---
+
+#### 7. Absence de Validation d'Input
+**Fichier:** Toutes les routes
+**Severite:** HAUTE
+
+Aucune bibliotheque de validation (Zod, Joi, express-validator) n'est utilisee.
+
+**Exemple problematique** (`src/routes/users.ts:96-101`):
+```typescript
+if (search) {
+  whereClause.OR = [
+    { username: { contains: search, mode: 'insensitive' } }, // Pas de sanitization
+```
+
+**Recommandation:** Utiliser Zod pour valider toutes les entrees.
+
+**Status:** [ ] A corriger
+
+---
+
+#### 8. Fuite d'Information Sensible dans les Logs
+**Fichier:** `src/routes/auth.ts:395-400`
+**Severite:** HAUTE
+
+```typescript
+console.log('PASSWORD RESET REQUESTED');
+console.log(`User: ${user.email}`);
+console.log(`Reset URL: ${resetUrl}`);  // Token de reset en clair !
+```
+
+**Impact:** Si les logs sont compromis, tokens de reset accessibles.
+
+**Recommandation:** Ne jamais logger de tokens ou URLs sensibles, meme en developpement.
+
+**Status:** [ ] A corriger
+
+---
+
+### VULNERABILITES MOYENNES
+
+#### 9. Journalisation d'Adresses IP (RGPD)
+**Fichier:** `src/index.ts:45`
+**Severite:** MOYENNE
+
+```typescript
+console.log(`[${timestamp}] ${req.method} ${req.path} - IP: ${req.ip}`);
+```
+
+**Impact:** Non-conformite RGPD potentielle si pas de consentement.
+
+**Status:** [ ] A corriger
+
+---
+
+#### 10. Enumeration de Champs a l'Inscription
+**Fichier:** `src/routes/auth.ts:108-112`
+**Severite:** MOYENNE
+
+```typescript
+if (existingUser) {
+  const field = existingUser.email === email ? 'Email' : "Username";
+  return res.status(409).json({
+    error: `${field} is already used by another account.`,
+  });
+}
+```
+
+**Impact:** Permet de determiner si un email/username existe deja.
+
+**Recommandation:** Message generique : "Email or username already in use."
+
+**Status:** [ ] A corriger
+
+---
+
+#### 11. Code d'Invitation Previsible
+**Fichier:** `src/routes/league.ts:39-41`
+**Severite:** MOYENNE
+
+```typescript
+const generateInviteCode = (): string => {
+  return crypto.randomBytes(4).toString('hex').toUpperCase(); // 8 caracteres hex
+};
+```
+
+**Impact:** Seulement 4 milliards de combinaisons possibles. Brute-forceable avec rate limiting absent.
+
+**Recommandation:** Augmenter a `crypto.randomBytes(16)` (32 caracteres).
+
+**Status:** [ ] A corriger
+
+---
+
+#### 12. Absence de Controle sur les Routes de Cleanup
+**Fichier:** `src/routes/cleanup.ts`
+**Severite:** MOYENNE
+
+Les routes `/api/cleanup` sont probablement non protegees comme les routes `/api/sync`.
+
+**Status:** [ ] A verifier et corriger
+
+---
+
+#### 13. Token Refresh Sans Limite de Rotation
+**Fichier:** `src/routes/auth.ts:281-338`
+**Severite:** MOYENNE
+
+Pas de limite sur le nombre de refresh tokens generes. Un attaquant avec un refresh token valide peut generer des tokens indefiniment.
+
+**Status:** [ ] A corriger
+
+---
+
+#### 14. Pas de Verification de Version JWT
+**Fichier:** `src/middleware/auth.ts`
+**Severite:** MOYENNE
+
+Aucun mecanisme pour invalider tous les JWT existants (ex: apres changement de mot de passe). Le refresh token est revoque mais les access tokens existants restent valides 15 minutes.
+
+**Status:** [ ] A evaluer
+
+---
+
+### VULNERABILITES BASSES
+
+#### 15. `.env.example` avec Valeurs par Defaut Faibles
+**Fichier:** `.env.example:8`
+
+```bash
+JWT_SECRET=your-secret-key-change-this
+```
+
+Risque de copie en production.
+
+**Status:** [ ] A corriger
+
+---
+
+#### 16. Absence de Logs Structures
+Les `console.log` ne sont pas adaptes a la production (pas de niveaux, pas de formatage JSON).
+
+**Status:** [ ] A implementer (Winston/Pino)
+
+---
+
+#### 17. Pas de Timeout sur les Requetes Prisma
+Les requetes DB n'ont pas de timeout configure.
+
+**Status:** [ ] A evaluer
+
+---
+
+#### 18. Soft Delete Incomplet
+Les utilisateurs desactives (`isActive: false`) conservent leurs donnees. Pas de mecanisme de purge RGPD.
+
+**Status:** [ ] A implementer
+
+---
+
+### POINTS POSITIFS
+
+| Aspect | Implementation |
+|--------|----------------|
+| Hachage Mot de Passe | bcryptjs avec 10 rounds |
+| Refresh Token Rotation | Implemente |
+| Token Hashing en DB | SHA-256 |
+| Protection SQL Injection | Prisma parametre |
+| Separation Access/Refresh Tokens | JWT 15min + Refresh 7j |
+| Revocation Tokens apres Reset Password | Implemente |
+| Protection contre Enumeration (forgot-password) | Message generique |
+| Middleware `requireSelf` | Protege les ressources utilisateur |
+
+---
+
+### RECOMMANDATIONS PRIORITAIRES
+
+1. **URGENT:** Ajouter authentification sur `/api/sync/*` et `/api/cleanup/*`
+2. **URGENT:** Configurer CORS avec origines specifiques
+3. **URGENT:** Implementer rate limiting sur auth endpoints
+4. **HAUTE:** Installer et configurer Helmet
+5. **HAUTE:** Implementer validation Zod/Joi sur toutes les routes
+6. **HAUTE:** Renforcer la politique de mots de passe
+7. **MOYENNE:** Ajouter validation JWT_SECRET au demarrage
+8. **MOYENNE:** Supprimer les logs sensibles
+
+---
+
+### DEPENDANCES DE SECURITE RECOMMANDEES
+
+```json
+{
+  "dependencies": {
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.0",
+    "zod": "^3.22.0"
+  }
+}
+```
+
+---
+
+### CHECKLIST DE REMEDIATION
+
+- [ ] Proteger `/api/sync/*` avec authentification admin
+- [ ] Proteger `/api/cleanup/*` avec authentification admin
+- [ ] Configurer CORS strictement
+- [ ] Ajouter rate limiting (auth: 5 req/15min, global: 100 req/min)
+- [ ] Installer et configurer Helmet
+- [ ] Implementer validation Zod sur toutes les routes
+- [ ] Renforcer politique mot de passe (8 chars, majuscule, chiffre, special)
+- [ ] Valider JWT_SECRET au demarrage (min 32 chars)
+- [ ] Supprimer logs sensibles (tokens, URLs de reset)
+- [ ] Remplacer console.log par Winston/Pino
+- [ ] Augmenter entropie code invitation (32 chars)
+- [ ] Message generique a l'inscription
+- [ ] Implementer purge RGPD des comptes supprimes
 
 ---
 
