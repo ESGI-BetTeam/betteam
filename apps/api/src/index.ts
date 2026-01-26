@@ -23,6 +23,7 @@ import teamsRouter from './routes/teams';
 import syncRouter from './routes/sync';
 import usersRouter from './routes/users';
 import cleanupRouter from './routes/cleanup';
+import plansRouter from './routes/plans';
 
 // Import CRON service
 import { cronService } from './services/cron';
@@ -97,6 +98,7 @@ app.use('/api/teams', teamsRouter);
 app.use('/api/sync', syncRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/cleanup', cleanupRouter);
+app.use('/api/plans', plansRouter);
 console.log('🔧 [7/8] Routes registered');
 
 // Root endpoint

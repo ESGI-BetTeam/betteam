@@ -1,7 +1,7 @@
 # Checklist API BetTeam
 
 > **Dernière mise à jour:** 2026-01-26
-> **Version:** 1.7.0
+> **Version:** 1.8.0
 
 Cette checklist permet de suivre l'avancement du développement de l'API BetTeam.
 
@@ -280,7 +280,9 @@ THE_ODDS_API_KEY=your_api_key_here
 - [x] Génération code d'invitation unique (8 caractères)
 - [x] Rôles: owner, admin, member
 - [x] Ligues privées/publiques
-- [x] Limite de membres par ligue (50 max)
+- [x] Limite de membres par plan (Free: 4, Champion: 10, MVP: 30)
+- [x] Création automatique de la cagnotte à la création de ligue
+- [x] Vérification du gel de ligue lors de l'adhésion
 - [ ] Notifications d'invitation
 - [ ] Transfert de propriété
 
@@ -313,8 +315,8 @@ THE_ODDS_API_KEY=your_api_key_here
 - [x] **J-7**: Paris possibles 7 jours avant le match
 - [x] **M-10**: Fin des paris 10 minutes avant le début
 - [x] **Immutabilité**: Paris non modifiables/annulables après validation
-- [x] **Limite Free**: 3 paris par semaine par ligue
-- [x] **Changement compétition Free**: 1x par semaine
+- [x] **Limites selon plan**: Free (1 changement/semaine), Champion/MVP (illimité)
+- [x] **Gel de ligue**: Impossible de changer de compétition si ligue gelée
 - [x] Validation: membre de la ligue requis
 - [x] Validation: match dans la compétition de la ligue
 - [x] Validation: un seul pari par challenge par utilisateur
@@ -391,101 +393,52 @@ THE_ODDS_API_KEY=your_api_key_here
 
 ---
 
-## 13. Abonnements & Cagnotte (`/api/plans`, `/api/leagues/:id/wallet`) ❌ À IMPLÉMENTER
+## 13. Abonnements & Cagnotte (`/api/plans`, `/api/leagues/:id/wallet`) ✅ IMPLÉMENTÉ
 
 > Système d'abonnement par ligue avec cagnotte partagée (modèle Famileo)
 
 ### Plans (`/api/plans`)
-- [ ] `GET /api/plans` - Liste des plans disponibles (Free, Premium, Premium+)
+- [x] `GET /api/plans` - Liste des plans disponibles (Free, Champion, MVP)
+- [x] `GET /api/plans/:id` - Détails d'un plan
+
+### Plans disponibles
+| Plan | Prix/mois | Membres | Compétitions | Changements/semaine |
+|------|-----------|---------|--------------|---------------------|
+| Free | 0€ | 4 | 1 | 1 |
+| Champion | 5.99€ | 10 | Illimité | Illimité |
+| MVP | 11.99€ | 30 | Illimité | Illimité |
 
 ### Cagnotte Ligue (`/api/leagues/:id/wallet`)
-- [ ] `GET /api/leagues/:id/wallet` - Détails de la cagnotte (solde, mois couverts, historique)
-- [ ] `POST /api/leagues/:id/wallet/contribute` - Contribuer à la cagnotte
-- [ ] `GET /api/leagues/:id/wallet/history` - Historique complet des contributions
+- [x] `GET /api/leagues/:id/wallet` - Détails de la cagnotte (solde, mois couverts, historique)
+- [x] `POST /api/leagues/:id/wallet/contribute` - Contribuer à la cagnotte
+- [x] `GET /api/leagues/:id/wallet/history` - Historique complet des contributions
 
 ### Gestion abonnement ligue
-- [ ] `POST /api/leagues/:id/upgrade` - Passer à un plan supérieur
-- [ ] `POST /api/leagues/:id/downgrade` - Revenir à un plan inférieur
+- [x] `POST /api/leagues/:id/upgrade` - Passer à un plan supérieur
+- [x] `POST /api/leagues/:id/downgrade` - Revenir à un plan inférieur
 
 ### Fonctionnalités
-- [ ] Plans: Free (gratuit), Premium, Premium+ avec limites différentes
-- [ ] Limites par plan: maxMembers, maxSports, features
-- [ ] Cagnotte partagée par ligue (LeagueWallet)
-- [ ] Contributions des membres (Contribution)
-- [ ] Calcul automatique des mois couverts (solde / prix mensuel)
-- [ ] Date de prochain prélèvement (nextPaymentDate)
-- [ ] Historique des contributions avec user, montant, date
-- [ ] Intégration Stripe pour paiements
-- [ ] CRON: prélèvement mensuel automatique sur la cagnotte
-- [ ] CRON: notification si solde insuffisant
-- [ ] CRON: downgrade automatique vers Free après X jours sans solde
-- [ ] Webhooks Stripe pour confirmation de paiement
+- [x] Plans: Free, Champion, MVP avec limites différentes
+- [x] Limites par plan: maxMembers, maxCompetitions, maxChangesWeek
+- [x] Cagnotte partagée par ligue (LeagueWallet)
+- [x] Contributions des membres (Contribution)
+- [x] Calcul automatique des mois couverts (solde / prix mensuel)
+- [x] Date de prochain prélèvement (nextPaymentDate)
+- [x] Historique des contributions avec user, montant, date
+- [x] CRON: prélèvement mensuel automatique sur la cagnotte (1x/jour à 01:00)
+- [x] Gel automatique si solde insuffisant et >4 membres
+- [x] Downgrade automatique vers Free si solde insuffisant et ≤4 membres
+- [ ] Intégration Stripe pour paiements (TODO - actuellement mock)
+- [ ] Webhooks Stripe pour confirmation de paiement (TODO)
+- [ ] Notifications solde insuffisant (TODO)
 
-### Modèles Prisma à créer
-```prisma
-model Plan {
-  id              String   @id @default("free")
-  name            String   // "Free", "Premium", "Premium+"
-  maxMembers      Int      // 10, 50, 200
-  maxSports       Int      // 1, 5, -1 (illimité)
-  monthlyPrice    Float    // 0, 5.99, 9.99
-  yearlyPrice     Float?   // Option annuelle
-  features        Json     // { "liveScores": true, ... }
-  leagues         League[]
-}
+### Règles métier
+- **Contributions**: Tous les membres peuvent contribuer à la cagnotte
+- **Downgrade auto**: Si solde insuffisant et ≤4 membres → passage automatique à Free
+- **Gel**: Si solde insuffisant et >4 membres → ligue gelée (pas de nouveaux membres, pas de changement de compétition)
+- **Paiement**: Mock pour l'instant (TODO: Stripe)
 
-model LeagueWallet {
-  id                String         @id @default(uuid())
-  leagueId          String         @unique
-  league            League         @relation(...)
-  balance           Float          @default(0)
-  nextPaymentDate   DateTime?
-  contributions     Contribution[]
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-}
-
-model Contribution {
-  id              String       @id @default(uuid())
-  walletId        String
-  wallet          LeagueWallet @relation(...)
-  userId          String
-  user            User         @relation(...)
-  amount          Float
-  paymentId       String?      // ID Stripe
-  status          String       @default("completed")
-  createdAt       DateTime     @default(now())
-}
-```
-
-### Réponse API Wallet (exemple)
-```json
-{
-  "wallet": {
-    "balance": 17.97,
-    "monthsCovered": 3,
-    "plan": {
-      "name": "Premium",
-      "monthlyPrice": 5.99
-    },
-    "nextPaymentDate": "2026-02-16",
-    "manager": {
-      "id": "uuid",
-      "username": "JohnDoe",
-      "avatar": "url"
-    },
-    "history": [
-      {
-        "user": { "id": "uuid", "username": "Alice", "avatar": "url" },
-        "amount": 5.99,
-        "createdAt": "2025-11-16"
-      }
-    ]
-  }
-}
-```
-
-**Modèle Prisma:** ❌ À créer (`Plan`, `LeagueWallet`, `Contribution`)
+**Modèle Prisma:** ✅ Existe (`Plan`, `LeagueWallet`, `Contribution`)
 
 ---
 
@@ -504,7 +457,7 @@ model Contribution {
 | **Cleanup** | **100%** | ✅ Terminé |
 | **Ligues** | **95%** | ✅ Terminé |
 | **Paris** | **80%** | ✅ En cours |
-| **Abonnements & Cagnotte** | **0%** | **HAUTE** |
+| **Abonnements & Cagnotte** | **90%** | ✅ Terminé (mock payment) |
 | Notifications | 0% | Moyenne |
 | Statistiques | 0% | Basse |
 | Administration | 0% | Basse |
@@ -516,11 +469,12 @@ model Contribution {
 1. ~~**Implémenter les Ligues** - Core feature pour l'aspect social~~ ✅
 2. ~~**Implémenter les Paris (Partie 1)** - Challenges et paris de groupe~~ ✅
 3. ~~**Ajouter les CRON Jobs de sync** - TheSportsDB + The Odds API~~ ✅
-4. **Implémenter les Paris (Partie 2)** - Résolution automatique des paris
-5. **CRON: fermeture challenges + résolution paris** - Automatisation métier
-6. **Implémenter Abonnements & Cagnotte** - Monétisation (modèle Famileo)
-7. **WebSocket pour live scores** - Expérience temps réel
-8. **Notifications** - Engagement utilisateur
+4. ~~**Implémenter Abonnements & Cagnotte** - Monétisation (modèle Famileo)~~ ✅
+5. **Implémenter les Paris (Partie 2)** - Résolution automatique des paris
+6. **CRON: fermeture challenges + résolution paris** - Automatisation métier
+7. **Intégration Stripe** - Paiements réels (remplacer mock)
+8. **WebSocket pour live scores** - Expérience temps réel
+9. **Notifications** - Engagement utilisateur
 
 ---
 
@@ -546,6 +500,7 @@ model Contribution {
 
 | Tâche | Expression | Horaire | Service |
 |-------|------------|---------|---------|
+| **Paiements Cagnotte** | `0 1 * * *` | 01:00 | `walletService.processAllDuePayments()` |
 | **Cleanup** | `0 2 * * *` | 02:00 | `cleanupService.runFullCleanup()` |
 | Sync Compétitions | `0 3 * * *` | 03:00 | `competitionsService.syncAllCompetitions()` |
 | Sync Équipes | `0 4 * * *` | 04:00 | `teamsService.syncAllTeams()` |

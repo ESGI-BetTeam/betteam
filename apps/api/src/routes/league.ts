@@ -127,6 +127,7 @@ router.post(
             isPrivate,
             ownerId: userId,
             inviteCode,
+            planId: 'free', // Default to free plan
           },
           include: {
             owner: {
@@ -152,6 +153,14 @@ router.post(
             userId,
             role: 'owner',
             points: 1000, // Starting points
+          },
+        });
+
+        // Create wallet for the league
+        await tx.leagueWallet.create({
+          data: {
+            leagueId: newLeague.id,
+            balance: 0,
           },
         });
 
@@ -591,6 +600,8 @@ router.post(
       const league = await prisma.league.findUnique({
         where: { id },
         include: {
+          plan: true,
+          wallet: true,
           members: {
             where: { userId },
           },
@@ -608,6 +619,11 @@ router.post(
         return res.status(404).json({ error: 'League not found.' });
       }
 
+      // Check if league is frozen
+      if (league.wallet?.isFrozen) {
+        return res.status(400).json({ error: 'Cette ligue est gelée. Contactez un administrateur pour ajouter des fonds.' });
+      }
+
       // Check invite code
       if (league.inviteCode !== inviteCode.toUpperCase()) {
         return res.status(400).json({ error: 'Invalid invite code.' });
@@ -618,10 +634,12 @@ router.post(
         return res.status(409).json({ error: 'You are already a member of this league.' });
       }
 
-      // Optional: Check max members limit (e.g., 50 members per league)
-      const MAX_MEMBERS = 50;
-      if (league._count.members >= MAX_MEMBERS) {
-        return res.status(400).json({ error: 'This league has reached its maximum member limit.' });
+      // Check max members limit based on plan
+      const maxMembers = league.plan?.maxMembers ?? 4;
+      if (league._count.members >= maxMembers) {
+        return res.status(400).json({
+          error: `Cette ligue a atteint sa limite de ${maxMembers} membres. Demandez à un administrateur de passer à un plan supérieur.`,
+        });
       }
 
       // Add user as member
@@ -1328,11 +1346,24 @@ router.get(
 // ============================================
 
 import { betsService } from '../services/bets.service';
+import { walletService } from '../services/wallet.service';
+import { plansService } from '../services/plans.service';
 import {
   GetLeagueCompetitionResponse,
   UpdateLeagueCompetitionRequest,
   UpdateLeagueCompetitionResponse,
 } from '@betteam/shared/api/challenges';
+import {
+  GetWalletResponse,
+  ContributeRequest,
+  ContributeResponse,
+  GetWalletHistoryRequest,
+  GetWalletHistoryResponse,
+  UpgradeLeagueRequest,
+  UpgradeLeagueResponse,
+  DowngradeLeagueRequest,
+  DowngradeLeagueResponse,
+} from '@betteam/shared/api/wallet';
 
 // GET /api/leagues/:id/competition - Get league's current competition
 router.get(
@@ -1472,6 +1503,241 @@ router.patch(
       });
     } catch (error) {
       console.error('Update league competition error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// ============================================
+// LEAGUE WALLET ENDPOINTS
+// ============================================
+
+// GET /api/leagues/:id/wallet - Get wallet details
+router.get(
+  '/:id/wallet',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response<GetWalletResponse | { error: string }>) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+
+      // Verify user is a member of the league
+      const membership = await prisma.leagueMember.findUnique({
+        where: {
+          leagueId_userId: { leagueId: id, userId },
+        },
+      });
+
+      if (!membership) {
+        return res.status(403).json({ error: 'You are not a member of this league.' });
+      }
+
+      const wallet = await walletService.getWallet(id);
+
+      if (!wallet) {
+        return res.status(404).json({ error: 'Wallet not found.' });
+      }
+
+      return res.status(200).json({ wallet });
+    } catch (error) {
+      console.error('Get wallet error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// POST /api/leagues/:id/wallet/contribute - Contribute to wallet
+router.post(
+  '/:id/wallet/contribute',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & { body: ContributeRequest.Body },
+    res: Response<ContributeResponse | { error: string }>
+  ) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+      const { amount } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Amount must be greater than 0.' });
+      }
+
+      // Verify user is a member of the league
+      const membership = await prisma.leagueMember.findUnique({
+        where: {
+          leagueId_userId: { leagueId: id, userId },
+        },
+      });
+
+      if (!membership) {
+        return res.status(403).json({ error: 'You are not a member of this league.' });
+      }
+
+      const result = await walletService.contribute(id, userId, amount);
+
+      return res.status(201).json({
+        contribution: result.contribution,
+        newBalance: result.newBalance,
+        monthsCovered: result.monthsCovered,
+        message: 'Contribution successful. Thank you!',
+      });
+    } catch (error) {
+      console.error('Contribute error:', error);
+      if (error instanceof Error) {
+        return res.status(400).json({ error: error.message });
+      }
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// GET /api/leagues/:id/wallet/history - Get contribution history
+router.get(
+  '/:id/wallet/history',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & { query: GetWalletHistoryRequest.Query },
+    res: Response<GetWalletHistoryResponse | { error: string }>
+  ) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+      const page = Math.max(1, parseInt(req.query.page as unknown as string) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as unknown as string) || 20));
+
+      // Verify user is a member of the league
+      const membership = await prisma.leagueMember.findUnique({
+        where: {
+          leagueId_userId: { leagueId: id, userId },
+        },
+      });
+
+      if (!membership) {
+        return res.status(403).json({ error: 'You are not a member of this league.' });
+      }
+
+      const { contributions, total } = await walletService.getContributionHistory(id, page, limit);
+      const totalPages = Math.ceil(total / limit);
+
+      return res.status(200).json({
+        contributions,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+        },
+      });
+    } catch (error) {
+      console.error('Get contribution history error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// POST /api/leagues/:id/upgrade - Upgrade league plan
+router.post(
+  '/:id/upgrade',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & { body: UpgradeLeagueRequest.Body },
+    res: Response<UpgradeLeagueResponse | { error: string }>
+  ) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+      const { planId } = req.body;
+
+      if (!planId) {
+        return res.status(400).json({ error: 'Plan ID is required.' });
+      }
+
+      // Verify user is owner or admin
+      const membership = await prisma.leagueMember.findUnique({
+        where: {
+          leagueId_userId: { leagueId: id, userId },
+        },
+      });
+
+      if (!membership || !['owner', 'admin'].includes(membership.role)) {
+        return res.status(403).json({ error: 'Only league owners and admins can upgrade the plan.' });
+      }
+
+      const result = await walletService.upgradePlan(id, planId);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error! });
+      }
+
+      const plan = await plansService.getPlanById(planId);
+
+      if (!plan) {
+        return res.status(500).json({ error: 'Plan not found after upgrade.' });
+      }
+
+      const nextMonth = new Date();
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      nextMonth.setDate(1);
+
+      return res.status(200).json({
+        plan,
+        nextPaymentDate: nextMonth,
+        message: `Plan upgraded to ${plan.name} successfully!`,
+      });
+    } catch (error) {
+      console.error('Upgrade plan error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  }
+);
+
+// POST /api/leagues/:id/downgrade - Downgrade league plan
+router.post(
+  '/:id/downgrade',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & { body: DowngradeLeagueRequest.Body },
+    res: Response<DowngradeLeagueResponse | { error: string }>
+  ) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+      const { planId } = req.body;
+
+      if (!planId) {
+        return res.status(400).json({ error: 'Plan ID is required.' });
+      }
+
+      // Verify user is owner or admin
+      const membership = await prisma.leagueMember.findUnique({
+        where: {
+          leagueId_userId: { leagueId: id, userId },
+        },
+      });
+
+      if (!membership || !['owner', 'admin'].includes(membership.role)) {
+        return res.status(403).json({ error: 'Only league owners and admins can downgrade the plan.' });
+      }
+
+      const result = await walletService.downgradePlan(id, planId);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error! });
+      }
+
+      const plan = await plansService.getPlanById(planId);
+
+      if (!plan) {
+        return res.status(500).json({ error: 'Plan not found after downgrade.' });
+      }
+
+      return res.status(200).json({
+        plan,
+        message: `Plan downgraded to ${plan.name} successfully.`,
+      });
+    } catch (error) {
+      console.error('Downgrade plan error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
   }
