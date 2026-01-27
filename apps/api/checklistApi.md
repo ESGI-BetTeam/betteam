@@ -360,19 +360,29 @@ THE_ODDS_API_KEY=your_api_key_here
 
 ---
 
-## 11. Statistiques & Analytics ❌ À IMPLÉMENTER
+## 11. Statistiques & Analytics ✅ IMPLÉMENTÉ
 
 ### Endpoints
-- [ ] `GET /api/stats/global` - Statistiques globales
-- [ ] `GET /api/stats/user/:id` - Statistiques utilisateur
-- [ ] `GET /api/stats/league/:id` - Statistiques ligue
+- [x] `GET /api/stats/global` - Statistiques globales (paris, utilisateurs, ligues, top parieurs)
+- [x] `GET /api/stats/user/:id` - Statistiques utilisateur (paris, séries, sport favori, récents)
+- [x] `GET /api/stats/league/:id` - Statistiques ligue (membres, activité récente, classement)
 
 ### Fonctionnalités
-- [ ] Nombre total de paris
-- [ ] Taux de réussite
-- [ ] Points gagnés/perdus
-- [ ] Série de victoires/défaites
-- [ ] Meilleurs parieurs
+- [x] Nombre total de paris (global, par utilisateur, par ligue)
+- [x] Taux de réussite (global, par utilisateur, par ligue)
+- [x] Points gagnés/perdus et solde net
+- [x] Série de victoires/défaites (actuelle, meilleure, pire)
+- [x] Meilleurs parieurs (top 10 global, classement par ligue)
+- [x] Sport favori par utilisateur
+- [x] Activité récente de la ligue (paris placés, gagnés, perdus, challenges créés)
+- [x] Paris récents par utilisateur (10 derniers)
+- [x] Accès restreint aux stats de ligue (membres uniquement)
+
+**Fichiers:**
+- `src/routes/stats.ts` - Routes statistiques
+- `src/services/stats.service.ts` - Logique métier statistiques
+
+**Types partagés:** `@betteam/shared/api/stats`
 
 ---
 
@@ -480,7 +490,7 @@ router.use(requireAdmin);
 | **Paris** | **80%** | En cours |
 | **Abonnements & Cagnotte** | **90%** | Termine (mock payment) |
 | Notifications | 0% | Moyenne |
-| Statistiques | 0% | Basse |
+| **Statistiques** | **100%** | Terminé |
 | **Administration** | **90%** | Termine (logs audit a faire) |
 | **Audit Securite** | **100%** | URGENT - 3 critiques, 5 hautes |
 
