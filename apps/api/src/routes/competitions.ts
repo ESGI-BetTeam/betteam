@@ -34,6 +34,7 @@ router.get('/', async (req: Request, res: Response) => {
       },
     });
 
+    res.set('Cache-Control', 'public, max-age=3600'); // 1h - synced daily
     return res.status(200).json({
       competitions,
       count: competitions.length,
@@ -81,6 +82,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       });
     }
 
+    res.set('Cache-Control', 'public, max-age=3600'); // 1h - synced daily
     return res.status(200).json(competition);
   } catch (error) {
     console.error('Get competition error:', error);
@@ -123,6 +125,7 @@ router.get('/:id/teams', async (req: Request, res: Response) => {
       },
     });
 
+    res.set('Cache-Control', 'public, max-age=3600'); // 1h - synced daily
     return res.status(200).json({
       competition: {
         id: competition.id,
@@ -181,6 +184,7 @@ router.get('/:id/matches', async (req: Request, res: Response) => {
       skip: offset ? parseInt(offset as string) : 0,
     });
 
+    res.set('Cache-Control', 'public, max-age=300'); // 5 min - matches synced every 6h
     return res.status(200).json({
       competition: {
         id: competition.id,

@@ -1016,55 +1016,58 @@ router.get(
         return res.status(403).json({ error: 'You do not have access to this league.' });
       }
 
-      // Get all members with their bet statistics
-      const members = await prisma.leagueMember.findMany({
-        where: { leagueId: id },
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              avatar: true,
+      // Run members query and aggregated bet stats in parallel (eliminates N+1)
+      const [members, allBetStats, totalMembers] = await Promise.all([
+        prisma.leagueMember.findMany({
+          where: { leagueId: id },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+              },
             },
           },
-        },
-        orderBy: { points: 'desc' },
-        take: limit,
+          orderBy: { points: 'desc' },
+          take: limit,
+        }),
+        // Single aggregated query for all members' bet stats
+        prisma.bet.groupBy({
+          by: ['userId', 'status'],
+          where: { leagueId: id },
+          _count: true,
+        }),
+        prisma.leagueMember.count({ where: { leagueId: id } }),
+      ]);
+
+      // Build a map of userId -> { total, won, lost } from the single query
+      const betStatsMap = new Map<string, { total: number; won: number; lost: number }>();
+      for (const row of allBetStats) {
+        const entry = betStatsMap.get(row.userId) ?? { total: 0, won: 0, lost: 0 };
+        entry.total += row._count;
+        if (row.status === 'won') entry.won += row._count;
+        if (row.status === 'lost') entry.lost += row._count;
+        betStatsMap.set(row.userId, entry);
+      }
+
+      const leaderboard: LeaderboardEntry[] = members.map((member, index) => {
+        const stats = betStatsMap.get(member.userId) ?? { total: 0, won: 0, lost: 0 };
+        const winRate = stats.total > 0 ? Math.round((stats.won / stats.total) * 100) : 0;
+
+        return {
+          rank: index + 1,
+          userId: member.userId,
+          username: member.user.username,
+          avatar: member.user.avatar,
+          points: member.points,
+          totalBets: stats.total,
+          wonBets: stats.won,
+          lostBets: stats.lost,
+          winRate,
+          joinedAt: member.joinedAt,
+        };
       });
-
-      // Get bet stats for each member
-      const leaderboard: LeaderboardEntry[] = await Promise.all(
-        members.map(async (member, index) => {
-          const betStats = await prisma.bet.groupBy({
-            by: ['status'],
-            where: {
-              userId: member.userId,
-              leagueId: id,
-            },
-            _count: true,
-          });
-
-          const totalBets = betStats.reduce((acc, stat) => acc + stat._count, 0);
-          const wonBets = betStats.find((s) => s.status === 'won')?._count || 0;
-          const lostBets = betStats.find((s) => s.status === 'lost')?._count || 0;
-          const winRate = totalBets > 0 ? Math.round((wonBets / totalBets) * 100) : 0;
-
-          return {
-            rank: index + 1,
-            userId: member.userId,
-            username: member.user.username,
-            avatar: member.user.avatar,
-            points: member.points,
-            totalBets,
-            wonBets,
-            lostBets,
-            winRate,
-            joinedAt: member.joinedAt,
-          };
-        })
-      );
-
-      const totalMembers = await prisma.leagueMember.count({ where: { leagueId: id } });
 
       return res.status(200).json({
         leaderboard,
@@ -1109,16 +1112,38 @@ router.get(
         return res.status(403).json({ error: 'You do not have access to this league.' });
       }
 
-      // Get total members
-      const totalMembers = await prisma.leagueMember.count({ where: { leagueId: id } });
-
-      // Get bet statistics
-      const betStats = await prisma.bet.groupBy({
-        by: ['status'],
-        where: { leagueId: id },
-        _count: true,
-        _sum: { amount: true, actualWin: true },
-      });
+      // Run all independent queries in parallel
+      const [totalMembers, betStats, mostActiveBets, userBetStatsByStatus, lastBet] = await Promise.all([
+        // Total members
+        prisma.leagueMember.count({ where: { leagueId: id } }),
+        // Bet statistics by status
+        prisma.bet.groupBy({
+          by: ['status'],
+          where: { leagueId: id },
+          _count: true,
+          _sum: { amount: true, actualWin: true },
+        }),
+        // Most active user (top 1 by bet count)
+        prisma.bet.groupBy({
+          by: ['userId'],
+          where: { leagueId: id },
+          _count: true,
+          orderBy: { _count: { userId: 'desc' } },
+          take: 1,
+        }),
+        // All bets grouped by userId + status (eliminates N+1 for best performer)
+        prisma.bet.groupBy({
+          by: ['userId', 'status'],
+          where: { leagueId: id },
+          _count: true,
+        }),
+        // Last activity
+        prisma.bet.findFirst({
+          where: { leagueId: id },
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true },
+        }),
+      ]);
 
       const totalBets = betStats.reduce((acc, stat) => acc + stat._count, 0);
       const totalBetsWon = betStats.find((s) => s.status === 'won')?._count || 0;
@@ -1132,21 +1157,51 @@ router.get(
 
       const averageWinRate = totalBets > 0 ? Math.round((totalBetsWon / totalBets) * 100) : 0;
 
-      // Get most active user
-      const mostActiveBets = await prisma.bet.groupBy({
-        by: ['userId'],
-        where: { leagueId: id },
-        _count: true,
-        orderBy: { _count: { userId: 'desc' } },
-        take: 1,
-      });
+      // Compute per-user totals and won counts from the batched query
+      const userTotalsMap = new Map<string, { total: number; won: number }>();
+      for (const row of userBetStatsByStatus) {
+        const entry = userTotalsMap.get(row.userId) ?? { total: 0, won: 0 };
+        entry.total += row._count;
+        if (row.status === 'won') {
+          entry.won += row._count;
+        }
+        userTotalsMap.set(row.userId, entry);
+      }
+
+      // Find best performer (highest win rate with minimum 5 bets) - no extra queries
+      let bestPerformerId: string | null = null;
+      let bestWinRate = 0;
+      let bestWonCount = 0;
+      for (const [userId, stats] of userTotalsMap) {
+        if (stats.total >= 5) {
+          const winRate = (stats.won / stats.total) * 100;
+          if (winRate > bestWinRate) {
+            bestWinRate = winRate;
+            bestPerformerId = userId;
+            bestWonCount = stats.won;
+          }
+        }
+      }
+
+      // Batch-fetch user info for mostActive + bestPerformer in a single query
+      const userIdsToFetch = new Set<string>();
+      if (mostActiveBets.length > 0) userIdsToFetch.add(mostActiveBets[0].userId);
+      if (bestPerformerId) userIdsToFetch.add(bestPerformerId);
+
+      const usersMap = new Map<string, { id: string; username: string; avatar: string | null }>();
+      if (userIdsToFetch.size > 0) {
+        const users = await prisma.user.findMany({
+          where: { id: { in: [...userIdsToFetch] } },
+          select: { id: true, username: true, avatar: true },
+        });
+        for (const u of users) {
+          usersMap.set(u.id, u);
+        }
+      }
 
       let mostActiveUser = null;
       if (mostActiveBets.length > 0) {
-        const user = await prisma.user.findUnique({
-          where: { id: mostActiveBets[0].userId },
-          select: { id: true, username: true, avatar: true },
-        });
+        const user = usersMap.get(mostActiveBets[0].userId);
         if (user) {
           mostActiveUser = {
             userId: user.id,
@@ -1157,48 +1212,19 @@ router.get(
         }
       }
 
-      // Get best performer (highest win rate with minimum 5 bets)
-      const userBetStats = await prisma.bet.groupBy({
-        by: ['userId'],
-        where: { leagueId: id },
-        _count: true,
-      });
-
       let bestPerformer = null;
-      let bestWinRate = 0;
-
-      for (const userStat of userBetStats) {
-        if (userStat._count >= 5) {
-          const wonCount = await prisma.bet.count({
-            where: { leagueId: id, userId: userStat.userId, status: 'won' },
-          });
-          const winRate = (wonCount / userStat._count) * 100;
-
-          if (winRate > bestWinRate) {
-            bestWinRate = winRate;
-            const user = await prisma.user.findUnique({
-              where: { id: userStat.userId },
-              select: { id: true, username: true, avatar: true },
-            });
-            if (user) {
-              bestPerformer = {
-                userId: user.id,
-                username: user.username,
-                avatar: user.avatar,
-                winRate: Math.round(winRate),
-                wonBets: wonCount,
-              };
-            }
-          }
+      if (bestPerformerId) {
+        const user = usersMap.get(bestPerformerId);
+        if (user) {
+          bestPerformer = {
+            userId: user.id,
+            username: user.username,
+            avatar: user.avatar,
+            winRate: Math.round(bestWinRate),
+            wonBets: bestWonCount,
+          };
         }
       }
-
-      // Get last activity
-      const lastBet = await prisma.bet.findFirst({
-        where: { leagueId: id },
-        orderBy: { createdAt: 'desc' },
-        select: { createdAt: true },
-      });
 
       return res.status(200).json({
         stats: {
