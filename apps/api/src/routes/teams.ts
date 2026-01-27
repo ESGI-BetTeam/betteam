@@ -25,6 +25,7 @@ router.get('/', async (req: Request, res: Response) => {
       country: country as string,
     });
 
+    res.set('Cache-Control', 'public, max-age=3600'); // 1h - synced daily
     return res.status(200).json(result);
   } catch (error) {
     console.error('Get teams error:', error);
@@ -43,6 +44,7 @@ router.get('/countries', async (req: Request, res: Response) => {
   try {
     const countries = await teamsService.getAvailableCountries();
 
+    res.set('Cache-Control', 'public, max-age=86400'); // 24h - rarely changes
     return res.status(200).json({
       countries,
       count: countries.length,
@@ -75,6 +77,7 @@ router.get('/search', async (req: Request, res: Response) => {
 
     const teams = await teamsService.searchTeams(q);
 
+    res.set('Cache-Control', 'public, max-age=3600'); // 1h
     return res.status(200).json({
       teams,
       count: teams.length,
@@ -112,6 +115,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       stats = await teamsService.getTeamStats(id);
     }
 
+    res.set('Cache-Control', 'public, max-age=3600'); // 1h - synced daily
     return res.status(200).json({
       ...team,
       stats,
@@ -143,6 +147,7 @@ router.get('/:id/stats', async (req: Request, res: Response) => {
 
     const stats = await teamsService.getTeamStats(id);
 
+    res.set('Cache-Control', 'public, max-age=3600'); // 1h
     return res.status(200).json({
       team: {
         id: team.id,
@@ -188,6 +193,7 @@ router.get('/:id/matches', async (req: Request, res: Response) => {
       offset: offset ? parseInt(offset as string) : undefined,
     });
 
+    res.set('Cache-Control', 'public, max-age=300'); // 5 min
     return res.status(200).json({
       team: {
         id: team.id,
@@ -225,6 +231,7 @@ router.get('/:id/players', async (req: Request, res: Response) => {
 
     const players = await playersService.getPlayersByTeamId(id);
 
+    res.set('Cache-Control', 'public, max-age=3600'); // 1h - synced daily
     return res.status(200).json({
       team: {
         id: team.id,

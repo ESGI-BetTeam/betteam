@@ -47,6 +47,7 @@ router.get('/', async (req: Request, res: Response) => {
       );
     }
 
+    res.set('Cache-Control', 'public, max-age=300'); // 5 min - synced by CRON every 6h
     return res.status(200).json({
       matches,
       count: matches.length,
@@ -77,6 +78,7 @@ router.get('/today', async (req: Request, res: Response) => {
       endDate: tomorrow,
     });
 
+    res.set('Cache-Control', 'public, max-age=300'); // 5 min
     return res.status(200).json({
       matches,
       count: matches.length,
@@ -108,6 +110,7 @@ router.get('/upcoming', async (req: Request, res: Response) => {
       limit: 50,
     });
 
+    res.set('Cache-Control', 'public, max-age=300'); // 5 min
     return res.status(200).json({
       matches,
       count: matches.length,
@@ -139,6 +142,7 @@ router.get('/with-odds', async (req: Request, res: Response) => {
       onlyWithOdds: onlyWithOdds === 'true',
     });
 
+    res.set('Cache-Control', 'public, max-age=600'); // 10 min - odds synced 2x/day
     return res.status(200).json({
       matches: matches.map((match) => ({
         id: match.id,
@@ -186,6 +190,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       });
     }
 
+    res.set('Cache-Control', 'public, max-age=300'); // 5 min
     return res.status(200).json(match);
   } catch (error) {
     console.error('Get match error:', error);
@@ -213,6 +218,7 @@ router.get('/:id/odds', async (req: Request, res: Response) => {
       });
     }
 
+    res.set('Cache-Control', 'public, max-age=600'); // 10 min - odds synced 2x/day
     return res.status(200).json({
       matchId: odds.matchId,
       match: {

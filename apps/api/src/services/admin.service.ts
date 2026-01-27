@@ -423,29 +423,32 @@ class AdminService {
       }),
     ]);
 
-    // Get usernames for top bettors
+    // Batch-fetch usernames and win counts for top bettors (eliminates N+1)
     const topBettorIds = topBettors.map((b) => b.userId);
-    const topBettorUsers = await prisma.user.findMany({
-      where: { id: { in: topBettorIds } },
-      select: { id: true, username: true },
-    });
+    const [topBettorUsers, topBettorWins] = await Promise.all([
+      prisma.user.findMany({
+        where: { id: { in: topBettorIds } },
+        select: { id: true, username: true },
+      }),
+      prisma.bet.groupBy({
+        by: ['userId'],
+        where: { userId: { in: topBettorIds }, status: 'won' },
+        _count: true,
+      }),
+    ]);
 
-    // Get win rates for top bettors
-    const topBettorStats = await Promise.all(
-      topBettors.map(async (bettor) => {
-        const wins = await prisma.bet.count({
-          where: { userId: bettor.userId, status: 'won' },
-        });
-        const total = bettor._count;
-        const user = topBettorUsers.find((u) => u.id === bettor.userId);
-        return {
-          userId: bettor.userId,
-          username: user?.username ?? 'Unknown',
-          totalBets: total,
-          winRate: total > 0 ? Math.round((wins / total) * 100) : 0,
-        };
-      })
-    );
+    const winsMap = new Map(topBettorWins.map((w) => [w.userId, w._count]));
+    const topBettorStats = topBettors.map((bettor) => {
+      const total = bettor._count;
+      const wins = winsMap.get(bettor.userId) ?? 0;
+      const user = topBettorUsers.find((u) => u.id === bettor.userId);
+      return {
+        userId: bettor.userId,
+        username: user?.username ?? 'Unknown',
+        totalBets: total,
+        winRate: total > 0 ? Math.round((wins / total) * 100) : 0,
+      };
+    });
 
     const statusMap = betsByStatus.reduce(
       (acc, s) => {
