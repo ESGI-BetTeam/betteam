@@ -37,3 +37,6 @@ export * from './api/wallet';
 
 // API Types - Admin
 export * from './api/admin';
+
+// API Types - Stats
+export * from './api/stats';
