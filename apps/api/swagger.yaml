@@ -11,12 +11,24 @@ info:
     - Synchronisation des matchs via TheSportsDB
     - Récupération des cotes via The Odds API
     - Suivi des résultats et classements
+    - **Plans d'abonnement** (Free, Champion, MVP)
+    - **Cagnotte partagée** par ligue avec contributions des membres
+
+    ## Plans d'abonnement
+    | Plan | Prix/mois | Membres | Compétitions | Changements/semaine |
+    |------|-----------|---------|--------------|---------------------|
+    | Free | 0€ | 4 | 1 | 1 |
+    | Champion | 5.99€ | 10 | Illimité | Illimité |
+    | MVP | 11.99€ | 30 | Illimité | Illimité |
 
     ## APIs externes
     - **TheSportsDB** - Matchs, équipes, compétitions
     - **The Odds API** - Cotes des bookmakers (Top 5 ligues européennes)
 
-  version: 1.4.0
+    ## Administration
+    Les routes `/api/admin/*`, `/api/sync/*` et `/api/cleanup/*` sont réservées aux utilisateurs avec le rôle `admin`.
+
+  version: 2.0.0
   contact:
     name: BetTeam Support
     email: support@betteam.com
@@ -59,6 +71,14 @@ tags:
     description: Synchronisation des données externes (TheSportsDB, The Odds API)
   - name: Cleanup
     description: Nettoyage des données obsolètes (matchs terminés, cotes, tokens expirés)
+  - name: Plans
+    description: Plans d'abonnement (Free, Champion, MVP)
+  - name: Wallet
+    description: Cagnotte partagée des ligues et contributions
+  - name: Admin
+    description: Administration de la plateforme (réservé aux admins)
+  - name: Stats
+    description: Statistiques et analytics (globales, utilisateur, ligue)
 
 paths:
   /health:
@@ -2789,6 +2809,707 @@ paths:
                   matchesDeleted:
                     type: integer
 
+  # ============================================
+  # PLANS ENDPOINTS
+  # ============================================
+  /plans:
+    get:
+      tags:
+        - Plans
+      summary: Lister tous les plans disponibles
+      description: |
+        Récupère la liste de tous les plans d'abonnement disponibles.
+        Endpoint public, pas d'authentification requise.
+
+        **Plans disponibles:**
+        - **Free** (0€/mois) - 4 membres, 1 compétition, 1 changement/semaine
+        - **Champion** (5.99€/mois) - 10 membres, compétitions illimitées, changements illimités
+        - **MVP** (11.99€/mois) - 30 membres, compétitions illimitées, changements illimités
+      operationId: getPlans
+      responses:
+        '200':
+          description: Liste des plans
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plans:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Plan'
+
+  /plans/{id}:
+    get:
+      tags:
+        - Plans
+      summary: Détails d'un plan
+      description: Récupère les détails d'un plan spécifique par son ID
+      operationId: getPlanById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [free, champion, mvp]
+          description: ID du plan (free, champion, mvp)
+      responses:
+        '200':
+          description: Détails du plan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plan:
+                    $ref: '#/components/schemas/Plan'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================
+  # WALLET ENDPOINTS
+  # ============================================
+  /leagues/{id}/wallet:
+    get:
+      tags:
+        - Wallet
+      summary: Détails de la cagnotte d'une ligue
+      description: |
+        Récupère les détails de la cagnotte d'une ligue, incluant:
+        - Solde actuel
+        - Nombre de mois couverts
+        - Prochaine date de prélèvement
+        - Statut (gelé ou non)
+        - Dernières contributions
+
+        **Authentification requise** - L'utilisateur doit être membre de la ligue.
+      operationId: getLeagueWallet
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      responses:
+        '200':
+          description: Détails de la cagnotte
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wallet:
+                    $ref: '#/components/schemas/WalletDetails'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /leagues/{id}/wallet/contribute:
+    post:
+      tags:
+        - Wallet
+      summary: Contribuer à la cagnotte
+      description: |
+        Permet à un membre de contribuer à la cagnotte de la ligue.
+
+        **Règles:**
+        - Tous les membres peuvent contribuer (pas seulement les admins)
+        - Le montant doit être positif
+        - La contribution est immédiatement créditée au solde
+        - Si la ligue était gelée et a maintenant assez de solde, elle est dégelée
+
+        **Note:** Actuellement en mode mock (pas de paiement réel).
+        TODO: Intégration Stripe.
+      operationId: contributeToWallet
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                  minimum: 0.01
+                  description: Montant de la contribution en euros
+                  example: 5.99
+      responses:
+        '201':
+          description: Contribution effectuée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contribution:
+                    $ref: '#/components/schemas/Contribution'
+                  newBalance:
+                    type: number
+                    example: 17.97
+                  monthsCovered:
+                    type: integer
+                    example: 3
+                  message:
+                    type: string
+                    example: Contribution successful. Thank you!
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /leagues/{id}/wallet/history:
+    get:
+      tags:
+        - Wallet
+      summary: Historique des contributions
+      description: |
+        Récupère l'historique paginé des contributions à la cagnotte.
+        Inclut les détails de chaque contributeur.
+      operationId: getWalletHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Numéro de page
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          description: Nombre de contributions par page
+      responses:
+        '200':
+          description: Historique des contributions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contributions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Contribution'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /leagues/{id}/upgrade:
+    post:
+      tags:
+        - Wallet
+      summary: Passer à un plan supérieur
+      description: |
+        Permet de passer la ligue à un plan supérieur.
+
+        **Conditions:**
+        - Seuls les owners et admins peuvent upgrader
+        - Le nouveau plan doit être plus cher que l'actuel
+        - Le nombre de membres actuel doit être compatible avec le nouveau plan
+        - Pour les plans payants, le solde de la cagnotte doit couvrir au moins 1 mois
+
+        **Exemple:** Free → Champion ou Champion → MVP
+      operationId: upgradeLeaguePlan
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - planId
+              properties:
+                planId:
+                  type: string
+                  enum: [champion, mvp]
+                  description: ID du nouveau plan
+                  example: champion
+      responses:
+        '200':
+          description: Plan mis à jour
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plan:
+                    $ref: '#/components/schemas/Plan'
+                  nextPaymentDate:
+                    type: string
+                    format: date-time
+                    description: Date du prochain prélèvement
+                  message:
+                    type: string
+                    example: Plan upgraded to Champion successfully!
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /leagues/{id}/downgrade:
+    post:
+      tags:
+        - Wallet
+      summary: Revenir à un plan inférieur
+      description: |
+        Permet de rétrograder la ligue vers un plan moins cher.
+
+        **Conditions:**
+        - Seuls les owners et admins peuvent downgrader
+        - Le nouveau plan doit être moins cher que l'actuel
+        - Le nombre de membres actuel doit être compatible avec le nouveau plan
+          (ex: impossible de downgrader vers Free si >4 membres)
+
+        **Exemple:** MVP → Champion ou Champion → Free
+      operationId: downgradeLeaguePlan
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LeagueId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - planId
+              properties:
+                planId:
+                  type: string
+                  enum: [free, champion]
+                  description: ID du nouveau plan
+                  example: free
+      responses:
+        '200':
+          description: Plan mis à jour
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plan:
+                    $ref: '#/components/schemas/Plan'
+                  message:
+                    type: string
+                    example: Plan downgraded to Free successfully.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ============================================
+  # ADMIN - Administration de la plateforme
+  # ============================================
+
+  /admin/dashboard:
+    get:
+      tags:
+        - Admin
+      summary: Statistiques du dashboard admin
+      description: |
+        Retourne les statistiques globales de la plateforme.
+        **Réservé aux administrateurs.**
+      operationId: getAdminDashboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Statistiques du dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDashboardStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: Liste des utilisateurs (admin)
+      description: |
+        Liste tous les utilisateurs avec leurs statistiques.
+        Supporte la pagination, la recherche et les filtres.
+        **Réservé aux administrateurs.**
+      operationId: getAdminUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Numéro de page
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Nombre d'éléments par page
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Recherche par username, email, nom
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [user, admin]
+          description: Filtrer par rôle
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+          description: Filtrer par statut actif/inactif
+      responses:
+        '200':
+          description: Liste des utilisateurs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUsersResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/users/{id}:
+    patch:
+      tags:
+        - Admin
+      summary: Modifier un utilisateur (admin)
+      description: |
+        Permet de modifier le rôle ou le statut d'un utilisateur.
+        Utilisé pour promouvoir/rétrograder un admin ou bannir un utilisateur.
+        **Réservé aux administrateurs.**
+      operationId: updateAdminUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [user, admin]
+                  description: Nouveau rôle de l'utilisateur
+                isActive:
+                  type: boolean
+                  description: Statut actif (false = banni)
+      responses:
+        '200':
+          description: Utilisateur modifié
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AdminUserWithStats'
+                  message:
+                    type: string
+                    example: User updated successfully.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Admin
+      summary: Supprimer définitivement un utilisateur
+      description: |
+        Supprime définitivement un utilisateur et toutes ses données associées.
+        **Attention : action irréversible.**
+        **Réservé aux administrateurs.**
+      operationId: deleteAdminUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'utilisateur
+      responses:
+        '200':
+          description: Utilisateur supprimé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User permanently deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/leagues:
+    get:
+      tags:
+        - Admin
+      summary: Liste des ligues (admin)
+      description: |
+        Liste toutes les ligues avec leurs statistiques.
+        Supporte la pagination, la recherche et les filtres.
+        **Réservé aux administrateurs.**
+      operationId: getAdminLeagues
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Numéro de page
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Nombre d'éléments par page
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Recherche par nom ou code d'invitation
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+          description: Filtrer par statut actif/inactif
+        - name: isFrozen
+          in: query
+          schema:
+            type: boolean
+          description: Filtrer par statut gelé
+      responses:
+        '200':
+          description: Liste des ligues
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLeaguesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/bets:
+    get:
+      tags:
+        - Admin
+      summary: Statistiques globales des paris
+      description: |
+        Retourne les statistiques globales des paris sur la plateforme.
+        **Réservé aux administrateurs.**
+      operationId: getAdminBetsStats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Statistiques des paris
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBetsStatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/sync/force:
+    post:
+      tags:
+        - Admin
+      summary: Forcer une synchronisation
+      description: |
+        Déclenche manuellement une synchronisation des données externes.
+        Types disponibles : `competitions`, `teams`, `matches`, `odds`, `all`.
+        **Réservé aux administrateurs.**
+      operationId: forceAdminSync
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  enum: [competitions, teams, matches, odds, all]
+                  description: Type de synchronisation à effectuer
+                  example: all
+      responses:
+        '200':
+          description: Synchronisation réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSyncResponse'
+        '207':
+          description: Synchronisation partielle (certaines erreurs)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSyncResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ============================================
+  # STATS & ANALYTICS
+  # ============================================
+
+  /stats/global:
+    get:
+      tags:
+        - Stats
+      summary: Statistiques globales de la plateforme
+      description: Retourne les statistiques globales (nombre de paris, taux de réussite, top parieurs, etc.)
+      operationId: getGlobalStats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Statistiques globales
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GlobalStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /stats/user/{id}:
+    get:
+      tags:
+        - Stats
+      summary: Statistiques d'un utilisateur
+      description: Retourne les statistiques détaillées d'un utilisateur (paris, séries, points, sport favori, etc.)
+      operationId: getUserStats
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de l'utilisateur
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Statistiques utilisateur
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /stats/league/{id}:
+    get:
+      tags:
+        - Stats
+      summary: Statistiques d'une ligue
+      description: Retourne les statistiques détaillées d'une ligue (paris, membres, activité récente). L'utilisateur doit être membre de la ligue.
+      operationId: getLeagueStats
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la ligue
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Statistiques de la ligue
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LeagueStatsDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2823,6 +3544,220 @@ components:
       description: ID de l'utilisateur membre
 
   schemas:
+    # ============================================
+    # STATS & ANALYTICS SCHEMAS
+    # ============================================
+
+    BetsByStatus:
+      type: object
+      properties:
+        pending:
+          type: integer
+        won:
+          type: integer
+        lost:
+          type: integer
+        void:
+          type: integer
+
+    TopBettor:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        totalBets:
+          type: integer
+        winRate:
+          type: integer
+          description: Pourcentage de victoires (0-100)
+        totalPointsWon:
+          type: integer
+        netPoints:
+          type: integer
+          description: Points gagnés - points perdus
+
+    GlobalStats:
+      type: object
+      properties:
+        totalBets:
+          type: integer
+        totalUsers:
+          type: integer
+        totalLeagues:
+          type: integer
+        totalMatches:
+          type: integer
+        betsByStatus:
+          $ref: '#/components/schemas/BetsByStatus'
+        totalPointsWagered:
+          type: integer
+        totalPointsWon:
+          type: integer
+        averageBetAmount:
+          type: integer
+        globalWinRate:
+          type: integer
+          description: Pourcentage de victoires global (0-100)
+        topBettors:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopBettor'
+
+    Streak:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [win, loss, none]
+        count:
+          type: integer
+
+    RecentBet:
+      type: object
+      properties:
+        id:
+          type: string
+        matchId:
+          type: string
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        predictionType:
+          type: string
+        predictionValue:
+          type: string
+        amount:
+          type: integer
+        status:
+          type: string
+        potentialWin:
+          type: integer
+          nullable: true
+        actualWin:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        settledAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    UserStats:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        totalBets:
+          type: integer
+        betsByStatus:
+          $ref: '#/components/schemas/BetsByStatus'
+        winRate:
+          type: integer
+        totalPointsWagered:
+          type: integer
+        totalPointsWon:
+          type: integer
+        totalPointsLost:
+          type: integer
+        netPoints:
+          type: integer
+        averageBetAmount:
+          type: integer
+        currentStreak:
+          $ref: '#/components/schemas/Streak'
+        bestWinStreak:
+          type: integer
+        worstLossStreak:
+          type: integer
+        leaguesCount:
+          type: integer
+        favoriteSport:
+          type: string
+          nullable: true
+        recentBets:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecentBet'
+
+    LeagueMemberStats:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        points:
+          type: integer
+        totalBets:
+          type: integer
+        winRate:
+          type: integer
+        totalPointsWagered:
+          type: integer
+        totalPointsWon:
+          type: integer
+        currentStreak:
+          $ref: '#/components/schemas/Streak'
+
+    LeagueActivity:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [bet_placed, bet_won, bet_lost, challenge_created]
+        userId:
+          type: string
+        username:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    LeagueStatsDetail:
+      type: object
+      properties:
+        leagueId:
+          type: string
+        leagueName:
+          type: string
+        totalMembers:
+          type: integer
+        totalBets:
+          type: integer
+        totalChallenges:
+          type: integer
+        betsByStatus:
+          $ref: '#/components/schemas/BetsByStatus'
+        totalPointsWagered:
+          type: integer
+        totalPointsWon:
+          type: integer
+        averageBetAmount:
+          type: integer
+        leagueWinRate:
+          type: integer
+        topMembers:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueMemberStats'
+        recentActivity:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueActivity'
+
+    # ============================================
+    # EXISTING SCHEMAS
+    # ============================================
+
     User:
       type: object
       properties:
@@ -2849,6 +3784,11 @@ components:
           format: uri
           nullable: true
           example: https://api.betteam.com/avatars/user123.jpg
+        role:
+          type: string
+          enum: [user, admin]
+          description: Rôle global de l'utilisateur sur la plateforme
+          example: user
         isActive:
           type: boolean
           example: true
@@ -3489,6 +4429,402 @@ components:
         totalPages:
           type: integer
           example: 5
+
+    Plan:
+      type: object
+      description: Plan d'abonnement pour les ligues
+      properties:
+        id:
+          type: string
+          enum: [free, champion, mvp]
+          example: champion
+        name:
+          type: string
+          example: Champion
+        maxMembers:
+          type: integer
+          description: Nombre maximum de membres autorisés
+          example: 10
+        maxCompetitions:
+          type: integer
+          description: Nombre de compétitions autorisées (-1 = illimité)
+          example: -1
+        maxChangesWeek:
+          type: integer
+          description: Nombre de changements de compétition par semaine (-1 = illimité)
+          example: -1
+        monthlyPrice:
+          type: number
+          format: float
+          description: Prix mensuel en euros
+          example: 5.99
+        features:
+          type: object
+          description: Fonctionnalités incluses dans le plan
+          additionalProperties:
+            type: boolean
+          example:
+            unlimitedCompetitions: true
+            unlimitedChanges: true
+
+    WalletDetails:
+      type: object
+      description: Détails de la cagnotte d'une ligue
+      properties:
+        id:
+          type: string
+          example: clx1234567890
+        balance:
+          type: number
+          format: float
+          description: Solde actuel en euros
+          example: 17.97
+        monthsCovered:
+          type: integer
+          description: Nombre de mois couverts par le solde actuel
+          example: 3
+        nextPaymentDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date du prochain prélèvement
+          example: '2026-02-01T00:00:00Z'
+        isFrozen:
+          type: boolean
+          description: Indique si la ligue est gelée (solde insuffisant)
+          example: false
+        plan:
+          type: object
+          properties:
+            id:
+              type: string
+              example: champion
+            name:
+              type: string
+              example: Champion
+            monthlyPrice:
+              type: number
+              example: 5.99
+        recentContributions:
+          type: array
+          description: 5 dernières contributions
+          items:
+            $ref: '#/components/schemas/Contribution'
+
+    Contribution:
+      type: object
+      description: Contribution à la cagnotte d'une ligue
+      properties:
+        id:
+          type: string
+          example: clx1234567890
+        walletId:
+          type: string
+          example: clx0987654321
+        userId:
+          type: string
+          example: clx1111111111
+        amount:
+          type: number
+          format: float
+          description: Montant de la contribution en euros
+          example: 5.99
+        paymentMethod:
+          type: string
+          enum: [mock, stripe]
+          description: Méthode de paiement utilisée
+          example: mock
+        paymentId:
+          type: string
+          nullable: true
+          description: ID de paiement externe (Stripe)
+          example: mock_1706284800000_abc123
+        status:
+          type: string
+          enum: [pending, completed, failed]
+          description: Statut du paiement
+          example: completed
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-01-26T12:00:00Z'
+        user:
+          type: object
+          description: Utilisateur ayant effectué la contribution
+          properties:
+            id:
+              type: string
+              example: clx1111111111
+            username:
+              type: string
+              example: johndoe
+            avatar:
+              type: string
+              format: uri
+              nullable: true
+              example: https://example.com/avatar.jpg
+
+    # ============================================
+    # ADMIN SCHEMAS
+    # ============================================
+
+    AdminDashboardStats:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            users:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 150
+                active:
+                  type: integer
+                  example: 142
+                admins:
+                  type: integer
+                  example: 3
+                newThisWeek:
+                  type: integer
+                  example: 12
+            leagues:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 45
+                active:
+                  type: integer
+                  example: 40
+                frozen:
+                  type: integer
+                  example: 2
+            bets:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 1250
+                pending:
+                  type: integer
+                  example: 87
+                totalPointsWagered:
+                  type: integer
+                  example: 125000
+            sync:
+              type: object
+              properties:
+                lastCompetitionsSync:
+                  type: string
+                  format: date-time
+                  nullable: true
+                lastTeamsSync:
+                  type: string
+                  format: date-time
+                  nullable: true
+                lastMatchesSync:
+                  type: string
+                  format: date-time
+                  nullable: true
+                lastOddsSync:
+                  type: string
+                  format: date-time
+                  nullable: true
+
+    AdminUserWithStats:
+      type: object
+      properties:
+        id:
+          type: string
+          example: clx1234567890
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        username:
+          type: string
+          example: johndoe
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [user, admin]
+          example: user
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        stats:
+          type: object
+          properties:
+            totalBets:
+              type: integer
+              example: 25
+            leaguesOwned:
+              type: integer
+              example: 2
+            leaguesMember:
+              type: integer
+              example: 5
+
+    AdminUsersResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUserWithStats'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    AdminLeagueWithStats:
+      type: object
+      properties:
+        id:
+          type: string
+          example: clx1234567890
+        name:
+          type: string
+          example: Ligue des Champions
+        description:
+          type: string
+          nullable: true
+        isPrivate:
+          type: boolean
+          example: true
+        isActive:
+          type: boolean
+          example: true
+        inviteCode:
+          type: string
+          example: ABC12345
+        planId:
+          type: string
+          example: champion
+        createdAt:
+          type: string
+          format: date-time
+        owner:
+          type: object
+          properties:
+            id:
+              type: string
+            username:
+              type: string
+            email:
+              type: string
+        stats:
+          type: object
+          properties:
+            totalMembers:
+              type: integer
+              example: 8
+            totalBets:
+              type: integer
+              example: 156
+            totalChallenges:
+              type: integer
+              example: 42
+        wallet:
+          type: object
+          nullable: true
+          properties:
+            balance:
+              type: number
+              example: 23.50
+            isFrozen:
+              type: boolean
+              example: false
+
+    AdminLeaguesResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminLeagueWithStats'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    AdminBetsStatsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            totalBets:
+              type: integer
+              example: 1250
+            betsByStatus:
+              type: object
+              properties:
+                pending:
+                  type: integer
+                  example: 87
+                won:
+                  type: integer
+                  example: 542
+                lost:
+                  type: integer
+                  example: 608
+                void:
+                  type: integer
+                  example: 13
+            totalPointsWagered:
+              type: integer
+              example: 125000
+            totalPointsWon:
+              type: integer
+              example: 89500
+            averageBetAmount:
+              type: integer
+              example: 100
+            topBettors:
+              type: array
+              items:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                  username:
+                    type: string
+                  totalBets:
+                    type: integer
+                  winRate:
+                    type: integer
+                    description: Pourcentage de paris gagnés
+
+    AdminSyncResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Sync completed successfully.
+        results:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              success:
+                type: boolean
+              message:
+                type: string
+              itemsSynced:
+                type: integer
 
     Error:
       type: object

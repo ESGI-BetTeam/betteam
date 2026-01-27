@@ -147,6 +147,7 @@ model User {
   firstName     String?  @map("first_name")
   lastName      String?  @map("last_name")
   avatar        String?
+  role          String   @default("user") // "user", "admin"
   isActive      Boolean  @default(true) @map("is_active")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -159,6 +160,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   createdGroupBets    GroupBet[]           @relation("GroupBetCreator")
   favoriteTeams       UserFavoriteTeam[]
+  contributions       Contribution[]
 
   @@map("users")
   @@index([email])
@@ -229,21 +231,25 @@ model League {
   isActive              Boolean   @default(true) @map("is_active")
   currentCompetitionId  String?   @map("current_competition_id")
   competitionChangedAt  DateTime? @map("competition_changed_at")
+  planId                String    @default("free") @map("plan_id")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
   // Relations
   owner              User          @relation("LeagueOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   currentCompetition Competition?  @relation("LeagueCompetition", fields: [currentCompetitionId], references: [id], onDelete: SetNull)
+  plan               Plan          @relation(fields: [planId], references: [id])
   members            LeagueMember[]
   bets               Bet[]
   groupBets          GroupBet[]
+  wallet             LeagueWallet?
 
   @@map("leagues")
   @@index([ownerId])
   @@index([inviteCode])
   @@index([isActive])
   @@index([currentCompetitionId])
+  @@index([planId])
 }
 
 model LeagueMember {
@@ -349,4 +355,63 @@ model MatchOdds {
   @@map("match_odds")
   @@index([matchId])
   @@index([syncedAt])
+}
+
+// ============================================
+// SUBSCRIPTION & WALLET MODELS
+// ============================================
+
+model Plan {
+  id              String   @id // "free", "champion", "mvp"
+  name            String   // "Free", "Champion", "MVP"
+  maxMembers      Int      @map("max_members")
+  maxCompetitions Int      @map("max_competitions") // -1 = unlimited
+  maxChangesWeek  Int      @map("max_changes_week") // -1 = unlimited
+  monthlyPrice    Float    @map("monthly_price")
+  features        Json     @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  leagues         League[]
+
+  @@map("plans")
+}
+
+model LeagueWallet {
+  id                String         @id @default(cuid())
+  leagueId          String         @unique @map("league_id")
+  balance           Float          @default(0)
+  nextPaymentDate   DateTime?      @map("next_payment_date")
+  isFrozen          Boolean        @default(false) @map("is_frozen")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  league            League         @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  contributions     Contribution[]
+
+  @@map("league_wallets")
+  @@index([leagueId])
+  @@index([nextPaymentDate])
+}
+
+model Contribution {
+  id              String       @id @default(cuid())
+  walletId        String       @map("wallet_id")
+  userId          String       @map("user_id")
+  amount          Float
+  paymentMethod   String       @default("mock") @map("payment_method") // "mock", "stripe"
+  paymentId       String?      @map("payment_id") // Stripe payment ID
+  status          String       @default("completed") // "pending", "completed", "failed"
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  wallet          LeagueWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("contributions")
+  @@index([walletId])
+  @@index([userId])
+  @@index([createdAt])
 }

@@ -23,6 +23,9 @@ import teamsRouter from './routes/teams';
 import syncRouter from './routes/sync';
 import usersRouter from './routes/users';
 import cleanupRouter from './routes/cleanup';
+import plansRouter from './routes/plans';
+import adminRouter from './routes/admin';
+import statsRouter from './routes/stats';
 
 // Import CRON service
 import { cronService } from './services/cron';
@@ -34,7 +37,26 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 console.log(`🔧 [4/8] Express app created, PORT=${PORT}`);
 
 // Middlewares
-app.use(cors());
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
+  : [];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      // In development, allow all origins
+      if (process.env.NODE_ENV !== 'production') return callback(null, true);
+      // In production, restrict to allowed origins
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -97,6 +119,9 @@ app.use('/api/teams', teamsRouter);
 app.use('/api/sync', syncRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/cleanup', cleanupRouter);
+app.use('/api/plans', plansRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/stats', statsRouter);
 console.log('🔧 [7/8] Routes registered');
 
 // Root endpoint
