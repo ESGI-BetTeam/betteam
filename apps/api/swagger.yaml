@@ -77,6 +77,8 @@ tags:
     description: Cagnotte partagée des ligues et contributions
   - name: Admin
     description: Administration de la plateforme (réservé aux admins)
+  - name: Stats
+    description: Statistiques et analytics (globales, utilisateur, ligue)
 
 paths:
   /health:
@@ -3418,6 +3420,96 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  # ============================================
+  # STATS & ANALYTICS
+  # ============================================
+
+  /stats/global:
+    get:
+      tags:
+        - Stats
+      summary: Statistiques globales de la plateforme
+      description: Retourne les statistiques globales (nombre de paris, taux de réussite, top parieurs, etc.)
+      operationId: getGlobalStats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Statistiques globales
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GlobalStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /stats/user/{id}:
+    get:
+      tags:
+        - Stats
+      summary: Statistiques d'un utilisateur
+      description: Retourne les statistiques détaillées d'un utilisateur (paris, séries, points, sport favori, etc.)
+      operationId: getUserStats
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de l'utilisateur
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Statistiques utilisateur
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /stats/league/{id}:
+    get:
+      tags:
+        - Stats
+      summary: Statistiques d'une ligue
+      description: Retourne les statistiques détaillées d'une ligue (paris, membres, activité récente). L'utilisateur doit être membre de la ligue.
+      operationId: getLeagueStats
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la ligue
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Statistiques de la ligue
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LeagueStatsDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -3452,6 +3544,220 @@ components:
       description: ID de l'utilisateur membre
 
   schemas:
+    # ============================================
+    # STATS & ANALYTICS SCHEMAS
+    # ============================================
+
+    BetsByStatus:
+      type: object
+      properties:
+        pending:
+          type: integer
+        won:
+          type: integer
+        lost:
+          type: integer
+        void:
+          type: integer
+
+    TopBettor:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        totalBets:
+          type: integer
+        winRate:
+          type: integer
+          description: Pourcentage de victoires (0-100)
+        totalPointsWon:
+          type: integer
+        netPoints:
+          type: integer
+          description: Points gagnés - points perdus
+
+    GlobalStats:
+      type: object
+      properties:
+        totalBets:
+          type: integer
+        totalUsers:
+          type: integer
+        totalLeagues:
+          type: integer
+        totalMatches:
+          type: integer
+        betsByStatus:
+          $ref: '#/components/schemas/BetsByStatus'
+        totalPointsWagered:
+          type: integer
+        totalPointsWon:
+          type: integer
+        averageBetAmount:
+          type: integer
+        globalWinRate:
+          type: integer
+          description: Pourcentage de victoires global (0-100)
+        topBettors:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopBettor'
+
+    Streak:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [win, loss, none]
+        count:
+          type: integer
+
+    RecentBet:
+      type: object
+      properties:
+        id:
+          type: string
+        matchId:
+          type: string
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        predictionType:
+          type: string
+        predictionValue:
+          type: string
+        amount:
+          type: integer
+        status:
+          type: string
+        potentialWin:
+          type: integer
+          nullable: true
+        actualWin:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        settledAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    UserStats:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        totalBets:
+          type: integer
+        betsByStatus:
+          $ref: '#/components/schemas/BetsByStatus'
+        winRate:
+          type: integer
+        totalPointsWagered:
+          type: integer
+        totalPointsWon:
+          type: integer
+        totalPointsLost:
+          type: integer
+        netPoints:
+          type: integer
+        averageBetAmount:
+          type: integer
+        currentStreak:
+          $ref: '#/components/schemas/Streak'
+        bestWinStreak:
+          type: integer
+        worstLossStreak:
+          type: integer
+        leaguesCount:
+          type: integer
+        favoriteSport:
+          type: string
+          nullable: true
+        recentBets:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecentBet'
+
+    LeagueMemberStats:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        points:
+          type: integer
+        totalBets:
+          type: integer
+        winRate:
+          type: integer
+        totalPointsWagered:
+          type: integer
+        totalPointsWon:
+          type: integer
+        currentStreak:
+          $ref: '#/components/schemas/Streak'
+
+    LeagueActivity:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [bet_placed, bet_won, bet_lost, challenge_created]
+        userId:
+          type: string
+        username:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    LeagueStatsDetail:
+      type: object
+      properties:
+        leagueId:
+          type: string
+        leagueName:
+          type: string
+        totalMembers:
+          type: integer
+        totalBets:
+          type: integer
+        totalChallenges:
+          type: integer
+        betsByStatus:
+          $ref: '#/components/schemas/BetsByStatus'
+        totalPointsWagered:
+          type: integer
+        totalPointsWon:
+          type: integer
+        averageBetAmount:
+          type: integer
+        leagueWinRate:
+          type: integer
+        topMembers:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueMemberStats'
+        recentActivity:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeagueActivity'
+
+    # ============================================
+    # EXISTING SCHEMAS
+    # ============================================
+
     User:
       type: object
       properties:
