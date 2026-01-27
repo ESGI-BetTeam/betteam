@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma';
-import { User, PrivateUser } from '@betteam/shared/interfaces/User';
+import { User, PrivateUser, UserRole } from '@betteam/shared/interfaces/User';
 import {
   GetUserResponse,
   GetUsersResponse,
@@ -17,9 +17,12 @@ import { favoritesService } from '../services/favorites.service';
 
 const router = Router();
 
-const transformPrivateUserToUser = (privateUser: PrivateUser): User => {
+// Type for Prisma user that returns role as string
+type PrismaUser = Omit<PrivateUser, 'role'> & { role: string };
+
+const transformPrivateUserToUser = (privateUser: PrismaUser): User => {
   const { passwordHash, ...user } = privateUser;
-  return user;
+  return { ...user, role: user.role as UserRole };
 };
 
 // GET /api/users/me/favorite-teams - Get current user's favorite teams

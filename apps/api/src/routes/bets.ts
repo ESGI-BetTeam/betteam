@@ -40,6 +40,7 @@ const transformBet = (bet: any): Bet => {
           firstName: bet.user.firstName,
           lastName: bet.user.lastName,
           avatar: bet.user.avatar,
+          role: bet.user.role as 'user' | 'admin',
           isActive: bet.user.isActive,
           createdAt: bet.user.createdAt,
           updatedAt: bet.user.updatedAt,

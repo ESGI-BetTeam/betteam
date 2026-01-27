@@ -1,10 +1,10 @@
 import { prisma } from '../lib/prisma';
 
 // Constants
-const FREE_PLAN_WEEKLY_BET_LIMIT = 3;
-const FREE_PLAN_COMPETITION_CHANGE_DAYS = 7;
 const MATCH_BETTING_WINDOW_DAYS = 7; // J-7
 const MATCH_CLOSE_BEFORE_MINUTES = 10; // M-10
+const DEFAULT_FREE_WEEKLY_BET_LIMIT = 3;
+const DEFAULT_FREE_COMPETITION_CHANGE_DAYS = 7;
 
 export interface BetValidationResult {
   valid: boolean;
@@ -45,12 +45,18 @@ class BetsService {
   }
 
   /**
-   * Check if a user has reached their weekly bet limit (Free plan only)
-   * For now, we assume all users are on Free plan since Plans are not implemented yet
+   * Check if a user has reached their weekly bet limit
+   * Limit depends on the league's plan
    */
   async getWeeklyBetStatus(userId: string, leagueId: string): Promise<WeeklyBetStatus> {
     const weekStart = this.getWeekStart();
     const weekEnd = this.getWeekEnd();
+
+    // Get league plan
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+      include: { plan: true },
+    });
 
     // Count bets this week
     const betsThisWeek = await prisma.bet.count({
@@ -64,15 +70,16 @@ class BetsService {
       },
     });
 
-    // TODO: Check user's plan when Plans are implemented
-    // For now, assume Free plan (3 bets/week limit)
-    const isUnlimited = false; // Will be true for Premium/Premium+
-    const limit = FREE_PLAN_WEEKLY_BET_LIMIT;
+    // Check league's plan for limits
+    // -1 means unlimited (Champion and MVP plans)
+    const maxChangesWeek = league?.plan?.maxChangesWeek ?? DEFAULT_FREE_WEEKLY_BET_LIMIT;
+    const isUnlimited = maxChangesWeek === -1;
+    const limit = isUnlimited ? Infinity : maxChangesWeek;
 
     return {
       used: betsThisWeek,
-      limit,
-      remaining: Math.max(0, limit - betsThisWeek),
+      limit: isUnlimited ? -1 : limit,
+      remaining: isUnlimited ? -1 : Math.max(0, limit - betsThisWeek),
       isUnlimited,
       resetsAt: weekEnd,
     };
@@ -139,16 +146,27 @@ class BetsService {
   }
 
   /**
-   * Check if a league can change competition (Free plan: 1x/week)
+   * Check if a league can change competition
+   * Free plan: 1x/week, paid plans: unlimited
    */
   async canChangeCompetition(leagueId: string): Promise<BetValidationResult> {
     const league = await prisma.league.findUnique({
       where: { id: leagueId },
-      select: { competitionChangedAt: true },
+      include: { plan: true },
     });
 
     if (!league) {
       return { valid: false, error: 'Ligue non trouvée.' };
+    }
+
+    // Check if league is frozen
+    const wallet = await prisma.leagueWallet.findUnique({
+      where: { leagueId },
+      select: { isFrozen: true },
+    });
+
+    if (wallet?.isFrozen) {
+      return { valid: false, error: 'Cette ligue est gelée. Ajoutez des fonds à la cagnotte pour la débloquer.' };
     }
 
     // If never changed, allow
@@ -156,9 +174,9 @@ class BetsService {
       return { valid: true };
     }
 
-    // TODO: Check league's plan when Plans are implemented
-    // For now, assume Free plan (1 change/week)
-    const isUnlimited = false;
+    // Check plan limits (-1 = unlimited)
+    const maxChangesWeek = league.plan?.maxChangesWeek ?? 1;
+    const isUnlimited = maxChangesWeek === -1;
 
     if (isUnlimited) {
       return { valid: true };
@@ -168,11 +186,11 @@ class BetsService {
       (Date.now() - league.competitionChangedAt.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    if (daysSinceChange < FREE_PLAN_COMPETITION_CHANGE_DAYS) {
-      const daysRemaining = FREE_PLAN_COMPETITION_CHANGE_DAYS - daysSinceChange;
+    if (daysSinceChange < DEFAULT_FREE_COMPETITION_CHANGE_DAYS) {
+      const daysRemaining = DEFAULT_FREE_COMPETITION_CHANGE_DAYS - daysSinceChange;
       return {
         valid: false,
-        error: `Vous pourrez changer de compétition dans ${daysRemaining} jour(s).`,
+        error: `Vous pourrez changer de compétition dans ${daysRemaining} jour(s). Passez à un plan supérieur pour des changements illimités.`,
       };
     }
 
@@ -185,15 +203,17 @@ class BetsService {
   async getDaysUntilCompetitionChange(leagueId: string): Promise<number | null> {
     const league = await prisma.league.findUnique({
       where: { id: leagueId },
-      select: { competitionChangedAt: true },
+      include: { plan: true },
     });
 
     if (!league || !league.competitionChangedAt) {
       return null; // Can change now
     }
 
-    // TODO: Check league's plan when Plans are implemented
-    const isUnlimited = false;
+    // Check plan limits (-1 = unlimited)
+    const maxChangesWeek = league.plan?.maxChangesWeek ?? 1;
+    const isUnlimited = maxChangesWeek === -1;
+
     if (isUnlimited) {
       return null;
     }
@@ -202,11 +222,11 @@ class BetsService {
       (Date.now() - league.competitionChangedAt.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    if (daysSinceChange >= FREE_PLAN_COMPETITION_CHANGE_DAYS) {
+    if (daysSinceChange >= DEFAULT_FREE_COMPETITION_CHANGE_DAYS) {
       return null; // Can change now
     }
 
-    return FREE_PLAN_COMPETITION_CHANGE_DAYS - daysSinceChange;
+    return DEFAULT_FREE_COMPETITION_CHANGE_DAYS - daysSinceChange;
   }
 
   /**

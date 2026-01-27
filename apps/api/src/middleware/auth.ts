@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
-import { User, PrivateUser } from '@betteam/shared/interfaces/User';
+import { User, PrivateUser, UserRole } from '@betteam/shared/interfaces/User';
 
 // Extend Express Request to include authenticated user
 export interface AuthenticatedRequest extends Request {
@@ -9,9 +9,12 @@ export interface AuthenticatedRequest extends Request {
   userId?: string;
 }
 
-const transformPrivateUserToUser = (privateUser: PrivateUser): User => {
+// Type for Prisma user that returns role as string
+type PrismaUser = Omit<PrivateUser, 'role'> & { role: string };
+
+const transformPrivateUserToUser = (privateUser: PrismaUser): User => {
   const { passwordHash, ...user } = privateUser;
-  return user;
+  return { ...user, role: user.role as UserRole };
 };
 
 /**
@@ -92,4 +95,26 @@ export const requireSelf = (paramName: string = 'id') => {
 
     next();
   };
+};
+
+/**
+ * Middleware that requires admin role.
+ * Must be used after requireAuth middleware.
+ */
+export const requireAdmin = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required.' });
+    return;
+  }
+
+  if (req.user.role !== 'admin') {
+    res.status(403).json({ error: 'Admin access required.' });
+    return;
+  }
+
+  next();
 };
