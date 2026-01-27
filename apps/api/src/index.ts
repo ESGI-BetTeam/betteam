@@ -36,7 +36,26 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 console.log(`🔧 [4/8] Express app created, PORT=${PORT}`);
 
 // Middlewares
-app.use(cors());
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
+  : [];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      // In development, allow all origins
+      if (process.env.NODE_ENV !== 'production') return callback(null, true);
+      // In production, restrict to allowed origins
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
