@@ -287,16 +287,18 @@ class WalletService {
    * Upgrade a league to a higher plan
    */
   async upgradePlan(leagueId: string, newPlanId: string): Promise<{ success: boolean; error?: string }> {
-    const league = await prisma.league.findUnique({
-      where: { id: leagueId },
-      include: { plan: true, wallet: true, _count: { select: { members: true } } },
-    });
+    // Parallelize independent queries
+    const [league, newPlan] = await Promise.all([
+      prisma.league.findUnique({
+        where: { id: leagueId },
+        include: { plan: true, wallet: true, _count: { select: { members: true } } },
+      }),
+      prisma.plan.findUnique({ where: { id: newPlanId } }),
+    ]);
 
     if (!league) {
       return { success: false, error: 'Ligue non trouvée.' };
     }
-
-    const newPlan = await prisma.plan.findUnique({ where: { id: newPlanId } });
 
     if (!newPlan) {
       return { success: false, error: 'Plan non trouvé.' };
@@ -355,16 +357,18 @@ class WalletService {
    * Downgrade a league to a lower plan
    */
   async downgradePlan(leagueId: string, newPlanId: string): Promise<{ success: boolean; error?: string }> {
-    const league = await prisma.league.findUnique({
-      where: { id: leagueId },
-      include: { plan: true, _count: { select: { members: true } } },
-    });
+    // Parallelize independent queries
+    const [league, newPlan] = await Promise.all([
+      prisma.league.findUnique({
+        where: { id: leagueId },
+        include: { plan: true, _count: { select: { members: true } } },
+      }),
+      prisma.plan.findUnique({ where: { id: newPlanId } }),
+    ]);
 
     if (!league) {
       return { success: false, error: 'Ligue non trouvée.' };
     }
-
-    const newPlan = await prisma.plan.findUnique({ where: { id: newPlanId } });
 
     if (!newPlan) {
       return { success: false, error: 'Plan non trouvé.' };
