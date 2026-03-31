@@ -17,6 +17,8 @@ COPY packages/shared/package*.json ./packages/shared/
 # Installer toutes les dépendances depuis la racine (pour le monorepo)
 RUN npm ci
 
+# Bust cache for shared package updates
+ARG CACHEBUST=1
 # Copier le package shared
 COPY packages/shared ./packages/shared/
 
@@ -58,4 +60,4 @@ RUN npx prisma generate
 EXPOSE 3000
 
 # Exécuter les migrations et démarrer l'application
-CMD sh -c "npx prisma migrate deploy && node dist/apps/api/src/index.js"
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/apps/api/src/index.js"]
