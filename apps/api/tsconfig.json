@@ -5,6 +5,7 @@
     "lib": ["ES2020"],
     "outDir": "./dist",
     "strict": true,
+    "noEmitOnError": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
