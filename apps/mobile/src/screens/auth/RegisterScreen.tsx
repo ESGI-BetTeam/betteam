@@ -1,0 +1,195 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
+import { useAuthStore } from '../../stores/authStore';
+import { colors, spacing, fontSize, radius } from '../../theme';
+import { AuthStackParamList } from '../../types/navigation';
+import { AxiosError } from 'axios';
+
+type RegisterNav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
+
+export function RegisterScreen() {
+  const navigation = useNavigation<RegisterNav>();
+  const { register, isLoading } = useAuthStore();
+
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!email.trim()) newErrors.email = 'L\'email est requis';
+    if (!username.trim()) newErrors.username = 'Le pseudo est requis';
+    if (username.trim().length < 3) newErrors.username = '3 caractères minimum';
+    if (!password) newErrors.password = 'Le mot de passe est requis';
+    if (password.length < 6) newErrors.password = '6 caractères minimum';
+    if (password !== confirmPassword) newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleRegister = async () => {
+    if (!validate()) return;
+
+    try {
+      await register(email.trim().toLowerCase(), username.trim(), password);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ error: string }>;
+      const message =
+        axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.';
+      Alert.alert('Erreur', message);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.flex}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.header}>
+            <View style={styles.logoContainer}>
+              <Text style={styles.logoIcon}>⚽</Text>
+            </View>
+            <Text style={styles.title}>Créer un compte</Text>
+            <Text style={styles.subtitle}>Rejoignez BetTeam</Text>
+          </View>
+
+          <View style={styles.form}>
+            <Input
+              label="Pseudo"
+              placeholder="Votre pseudo"
+              value={username}
+              onChangeText={setUsername}
+              error={errors.username}
+              autoCapitalize="none"
+            />
+
+            <Input
+              label="Email"
+              placeholder="votre@email.com"
+              value={email}
+              onChangeText={setEmail}
+              error={errors.email}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+            />
+
+            <Input
+              label="Mot de passe"
+              placeholder="6 caractères minimum"
+              value={password}
+              onChangeText={setPassword}
+              error={errors.password}
+              isPassword
+            />
+
+            <Input
+              label="Confirmer le mot de passe"
+              placeholder="Confirmez votre mot de passe"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              error={errors.confirmPassword}
+              isPassword
+            />
+
+            <Button
+              title="Créer mon compte"
+              onPress={handleRegister}
+              loading={isLoading}
+              style={styles.registerButton}
+            />
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Déjà un compte ? </Text>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={styles.footerLink}>Se connecter</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  flex: {
+    flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.lg,
+    justifyContent: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  logoContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.xl,
+    backgroundColor: colors.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  logoIcon: {
+    fontSize: 36,
+  },
+  title: {
+    fontSize: fontSize.xxl,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  subtitle: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  form: {
+    marginBottom: spacing.lg,
+  },
+  registerButton: {
+    marginTop: spacing.md,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingBottom: spacing.lg,
+  },
+  footerText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+  },
+  footerLink: {
+    color: colors.accent,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+  },
+});
