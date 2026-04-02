@@ -8,4 +8,5 @@ export type AppTabParamList = {
   Leagues: undefined;
   Pronostics: undefined;
   Profile: undefined;
+  Components: undefined;
 };

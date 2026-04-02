@@ -5,6 +5,7 @@ import { HomeScreen } from '../screens/home/HomeScreen';
 import { LeaguesScreen } from '../screens/leagues/LeaguesScreen';
 import { PronosticsScreen } from '../screens/pronostics/PronosticsScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { ComponentScreen } from '../screens/components/ComponentScreen';
 import { AppTabParamList } from '../types/navigation';
 import { colors, fontSize } from '../theme';
 
@@ -42,6 +43,7 @@ export function AppNavigator() {
       <Tab.Screen name="Leagues" component={LeaguesScreen} options={{ tabBarLabel: 'Leagues' }} />
       <Tab.Screen name="Pronostics" component={PronosticsScreen} options={{ tabBarLabel: 'Pronostiques' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Profil' }} />
+      <Tab.Screen name="Components" component={ComponentScreen} options={{ tabBarLabel: 'Component' }} />
     </Tab.Navigator>
   );
 }
