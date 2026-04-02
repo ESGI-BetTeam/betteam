@@ -25,7 +25,7 @@ export const fontSize = {
 } as const;
 
 export const borderWidth = {
-  sx: 0.5,
+  xs: 0.5,
   sm: 1,
   md: 1.5,
 }
