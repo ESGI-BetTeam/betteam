@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { colors, spacing, radius, fontSize } from '../../theme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost';
 
 interface ButtonProps {
   title: string;
@@ -75,8 +75,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 52,
-    borderRadius: radius.md,
+    height: 42,
+    borderRadius: radius.full,
     paddingHorizontal: spacing.lg,
   },
   disabled: {
@@ -95,10 +95,15 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
   secondary: {
     backgroundColor: colors.secondary,
   },
-  outline: {
-    backgroundColor: colors.transparent,
+  danger: {
+    backgroundColor: colors.errorDark,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.error,
+  },
+  outline: {
+    backgroundColor: colors.backgroundGlass,
+    borderWidth: 1,
+    borderColor: colors.borderActive,
   },
   ghost: {
     backgroundColor: colors.transparent,
@@ -112,10 +117,14 @@ const variantTextStyles: Record<ButtonVariant, TextStyle> = {
   secondary: {
     color: colors.white,
   },
+  danger: {
+    color: colors.error,
+  },
   outline: {
     color: colors.textPrimary,
   },
   ghost: {
     color: colors.accent,
+    textDecorationLine: 'underline',
   },
 };

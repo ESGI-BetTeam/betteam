@@ -43,11 +43,15 @@ export const authService = {
     email: string,
     username: string,
     password: string,
+    firstName: string,
+    lastName: string,
   ): Promise<RegisterResponse> {
     const { data } = await api.post<RegisterResponse>('/auth/register', {
       email,
       username,
       password,
+      firstName,
+      lastName,
     });
     return data;
   },
