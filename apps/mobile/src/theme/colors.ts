@@ -1,7 +1,7 @@
 export const colors = {
   // Backgrounds
   background: '#0B0F1A',
-  backgroundCard: '#FFF1EB',
+  backgroundCard: 'rgba(255, 255, 255, 0.07)',
   backgroundGlass: 'rgba(16, 185, 129, 0.08)',
   backgroundElevated: '#141925',
   backgroundInput: '#1A1F2E',
