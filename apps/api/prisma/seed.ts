@@ -29,9 +29,33 @@ async function main() {
   // Create plans
   console.log('💎 Creating plans...');
   const plans = [
-    { id: 'free', name: 'Free', maxMembers: 4, maxCompetitions: 1, maxChangesWeek: 1, monthlyPrice: 0, features: {} },
-    { id: 'champion', name: 'Champion', maxMembers: 10, maxCompetitions: -1, maxChangesWeek: -1, monthlyPrice: 5.99, features: { unlimitedCompetitions: true, unlimitedChanges: true } },
-    { id: 'mvp', name: 'MVP', maxMembers: 30, maxCompetitions: -1, maxChangesWeek: -1, monthlyPrice: 11.99, features: { unlimitedCompetitions: true, unlimitedChanges: true, prioritySupport: true } },
+    {
+      id: 'free',
+      name: 'Free',
+      maxMembers: 4,
+      maxCompetitions: 1,
+      maxChangesWeek: 1,
+      monthlyPrice: 0,
+      features: {},
+    },
+    {
+      id: 'champion',
+      name: 'Champion',
+      maxMembers: 10,
+      maxCompetitions: -1,
+      maxChangesWeek: -1,
+      monthlyPrice: 5.99,
+      features: { unlimitedCompetitions: true, unlimitedChanges: true },
+    },
+    {
+      id: 'mvp',
+      name: 'MVP',
+      maxMembers: 30,
+      maxCompetitions: -1,
+      maxChangesWeek: -1,
+      monthlyPrice: 11.99,
+      features: { unlimitedCompetitions: true, unlimitedChanges: true, prioritySupport: true },
+    },
   ];
 
   for (const plan of plans) {

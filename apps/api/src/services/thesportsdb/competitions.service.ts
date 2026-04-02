@@ -1,9 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { theSportsDBClient } from './client';
-import {
-  TheSportsDBLeagueResponse,
-  TheSportsDBLeague,
-} from '../../types/thesportsdb';
+import { TheSportsDBLeagueResponse, TheSportsDBLeague } from '../../types/thesportsdb';
 
 /**
  * IDs des compétitions à synchroniser selon la roadmap
@@ -55,7 +52,7 @@ class CompetitionsService {
       const response = await theSportsDBClient.get<TheSportsDBLeagueResponse>(
         `/lookup/league/${leagueId}`,
         cacheKey,
-        cacheTTL
+        cacheTTL,
       );
 
       if (!response.lookup || response.lookup.length === 0) {
@@ -118,9 +115,7 @@ class CompetitionsService {
     }
 
     const duration = Date.now() - startTime;
-    console.log(
-      `✅ Sync completed: ${successCount} success, ${errorCount} errors (${duration}ms)`
-    );
+    console.log(`✅ Sync completed: ${successCount} success, ${errorCount} errors (${duration}ms)`);
   }
 
   /**

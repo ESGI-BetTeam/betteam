@@ -1,5 +1,5 @@
 export namespace ForgotPasswordRequest {
-    export interface Body {
-        email: string;
-    }
+  export interface Body {
+    email: string;
+  }
 }

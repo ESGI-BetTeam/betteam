@@ -52,7 +52,10 @@ class OddsService {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
       .replace(/[^a-z0-9\s]/g, '') // Garder lettres, chiffres, espaces
-      .replace(/\b(fc|afc|sc|cf|club|city|united|town|athletic|wanderers|rovers|albion|hotspur|county)\b/g, '')
+      .replace(
+        /\b(fc|afc|sc|cf|club|city|united|town|athletic|wanderers|rovers|albion|hotspur|county)\b/g,
+        '',
+      )
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -68,12 +71,12 @@ class OddsService {
     if (norm1 === norm2) return 1;
 
     // Calculer la similarité basée sur les mots communs
-    const words1 = new Set(norm1.split(' ').filter(w => w.length > 2));
-    const words2 = new Set(norm2.split(' ').filter(w => w.length > 2));
+    const words1 = new Set(norm1.split(' ').filter((w) => w.length > 2));
+    const words2 = new Set(norm2.split(' ').filter((w) => w.length > 2));
 
     if (words1.size === 0 || words2.size === 0) return 0;
 
-    const intersection = [...words1].filter(w => words2.has(w)).length;
+    const intersection = [...words1].filter((w) => words2.has(w)).length;
     const union = new Set([...words1, ...words2]).size;
 
     return intersection / union;
@@ -86,7 +89,7 @@ class OddsService {
    */
   matchesCorrespond(
     dbMatch: { startTime: Date; homeTeam: { name: string }; awayTeam: { name: string } },
-    oddsEvent: OddsEvent
+    oddsEvent: OddsEvent,
   ): boolean {
     // Vérifier que c'est le même jour
     const dbDate = new Date(dbMatch.startTime).toISOString().split('T')[0];
@@ -119,12 +122,12 @@ class OddsService {
     let count = 0;
 
     for (const bookmaker of oddsEvent.bookmakers) {
-      const h2hMarket = bookmaker.markets.find(m => m.key === 'h2h');
+      const h2hMarket = bookmaker.markets.find((m) => m.key === 'h2h');
       if (!h2hMarket) continue;
 
-      const homeOutcome = h2hMarket.outcomes.find(o => o.name === oddsEvent.home_team);
-      const awayOutcome = h2hMarket.outcomes.find(o => o.name === oddsEvent.away_team);
-      const drawOutcome = h2hMarket.outcomes.find(o => o.name === 'Draw');
+      const homeOutcome = h2hMarket.outcomes.find((o) => o.name === oddsEvent.home_team);
+      const awayOutcome = h2hMarket.outcomes.find((o) => o.name === oddsEvent.away_team);
+      const drawOutcome = h2hMarket.outcomes.find((o) => o.name === 'Draw');
 
       if (homeOutcome && awayOutcome && drawOutcome) {
         homeTotal += homeOutcome.price;
@@ -216,7 +219,7 @@ class OddsService {
     // Matcher et mettre à jour les cotes
     for (const dbMatch of upcomingMatches) {
       // Trouver l'événement correspondant
-      const matchingEvent = oddsEvents.find(event => this.matchesCorrespond(dbMatch, event));
+      const matchingEvent = oddsEvents.find((event) => this.matchesCorrespond(dbMatch, event));
 
       if (matchingEvent) {
         matchesMatched++;
@@ -256,10 +259,14 @@ class OddsService {
           });
 
           matchesUpdated++;
-          console.log(`   📊 Odds: Home ${avgOdds.homeWinOdds} | Draw ${avgOdds.drawOdds} | Away ${avgOdds.awayWinOdds} (${avgOdds.bookmakerCount} bookmakers)`);
+          console.log(
+            `   📊 Odds: Home ${avgOdds.homeWinOdds} | Draw ${avgOdds.drawOdds} | Away ${avgOdds.awayWinOdds} (${avgOdds.bookmakerCount} bookmakers)`,
+          );
         }
       } else {
-        console.log(`⚠️ No match found for: ${dbMatch.homeTeam.name} vs ${dbMatch.awayTeam.name} (${dbMatch.startTime.toISOString()})`);
+        console.log(
+          `⚠️ No match found for: ${dbMatch.homeTeam.name} vs ${dbMatch.awayTeam.name} (${dbMatch.startTime.toISOString()})`,
+        );
       }
     }
 
@@ -348,11 +355,13 @@ class OddsService {
   /**
    * Récupérer les matchs avec leurs cotes
    */
-  async getMatchesWithOdds(options: {
-    competitionId?: string;
-    limit?: number;
-    onlyWithOdds?: boolean;
-  } = {}) {
+  async getMatchesWithOdds(
+    options: {
+      competitionId?: string;
+      limit?: number;
+      onlyWithOdds?: boolean;
+    } = {},
+  ) {
     const { competitionId, limit = 50, onlyWithOdds = false } = options;
 
     const where: any = {

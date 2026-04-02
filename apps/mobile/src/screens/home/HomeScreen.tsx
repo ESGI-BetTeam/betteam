@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../stores/authStore';
-import { colors, spacing, fontSize } from '../../theme';
+import { colors, spacing, fontSize, fonts } from '../../theme';
 
 export function HomeScreen() {
   const { user, logout } = useAuthStore();
@@ -29,12 +29,14 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   title: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.heading,
+    fontSize: fontSize.xxl + 8,
     color: colors.textPrimary,
     marginBottom: spacing.sm,
+    textTransform: 'uppercase',
   },
   welcome: {
+    fontFamily: fonts.body,
     fontSize: fontSize.lg,
     color: colors.textSecondary,
     marginBottom: spacing.xl,

@@ -7,7 +7,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { colors, spacing, radius, fontSize } from '../../theme';
+import { colors, spacing, radius, fontSize, fonts } from '../../theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost';
 
@@ -39,12 +39,7 @@ export function Button({
       onPress={onPress}
       disabled={isDisabled}
       activeOpacity={0.8}
-      style={[
-        styles.base,
-        variantStyles[variant],
-        isDisabled && styles.disabled,
-        style,
-      ]}
+      style={[styles.base, variantStyles[variant], isDisabled && styles.disabled, style]}
     >
       {loading ? (
         <ActivityIndicator
@@ -83,8 +78,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   text: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: fontSize.md,
-    fontWeight: '600',
   },
 });
 

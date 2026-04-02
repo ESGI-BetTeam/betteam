@@ -55,7 +55,7 @@ app.use(
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
-  })
+  }),
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -79,10 +79,10 @@ console.log('🔧 [5/8] Middlewares configured');
 // Essayer plusieurs chemins possibles pour trouver swagger.yaml
 let swaggerPath = '';
 const possiblePaths = [
-  path.join(__dirname, '../swagger.yaml'),           // Développement
-  path.join(__dirname, '../../../../swagger.yaml'),  // Production (dist/apps/api/src -> racine)
-  path.join(__dirname, '../../../swagger.yaml'),     // Alternative
-  '/app/swagger.yaml',                               // Absolu Railway
+  path.join(__dirname, '../swagger.yaml'), // Développement
+  path.join(__dirname, '../../../../swagger.yaml'), // Production (dist/apps/api/src -> racine)
+  path.join(__dirname, '../../../swagger.yaml'), // Alternative
+  '/app/swagger.yaml', // Absolu Railway
 ];
 
 for (const tryPath of possiblePaths) {
@@ -101,10 +101,14 @@ console.log('📄 Swagger loaded from:', swaggerPath);
 const swaggerDocument = YAML.load(swaggerPath);
 
 // Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'BetTeam API Documentation',
-}));
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'BetTeam API Documentation',
+  }),
+);
 console.log('🔧 [6/8] Swagger UI configured');
 
 // Routes
