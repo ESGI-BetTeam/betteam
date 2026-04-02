@@ -109,19 +109,13 @@ class CleanupService {
 
     const refreshResult = await prisma.refreshToken.deleteMany({
       where: {
-        OR: [
-          { expiresAt: { lt: now } },
-          { revokedAt: { not: null } },
-        ],
+        OR: [{ expiresAt: { lt: now } }, { revokedAt: { not: null } }],
       },
     });
 
     const passwordResetResult = await prisma.passwordResetToken.deleteMany({
       where: {
-        OR: [
-          { expiresAt: { lt: now } },
-          { usedAt: { not: null } },
-        ],
+        OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }],
       },
     });
 
@@ -206,36 +200,41 @@ class CleanupService {
     cutoffDate.setDate(cutoffDate.getDate() - 30);
     const now = new Date();
 
-    const [finishedMatchOdds, finishedMatchesWithoutBets, oldSyncLogs, expiredRefreshTokens, expiredPasswordTokens] =
-      await Promise.all([
-        prisma.matchOdds.count({
-          where: {
-            match: {
-              status: { in: ['finished', 'cancelled', 'postponed'] },
-            },
-          },
-        }),
-        prisma.match.count({
-          where: {
+    const [
+      finishedMatchOdds,
+      finishedMatchesWithoutBets,
+      oldSyncLogs,
+      expiredRefreshTokens,
+      expiredPasswordTokens,
+    ] = await Promise.all([
+      prisma.matchOdds.count({
+        where: {
+          match: {
             status: { in: ['finished', 'cancelled', 'postponed'] },
-            bets: { none: {} },
-            groupBets: { none: {} },
           },
-        }),
-        prisma.syncLog.count({
-          where: { createdAt: { lt: cutoffDate } },
-        }),
-        prisma.refreshToken.count({
-          where: {
-            OR: [{ expiresAt: { lt: now } }, { revokedAt: { not: null } }],
-          },
-        }),
-        prisma.passwordResetToken.count({
-          where: {
-            OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }],
-          },
-        }),
-      ]);
+        },
+      }),
+      prisma.match.count({
+        where: {
+          status: { in: ['finished', 'cancelled', 'postponed'] },
+          bets: { none: {} },
+          groupBets: { none: {} },
+        },
+      }),
+      prisma.syncLog.count({
+        where: { createdAt: { lt: cutoffDate } },
+      }),
+      prisma.refreshToken.count({
+        where: {
+          OR: [{ expiresAt: { lt: now } }, { revokedAt: { not: null } }],
+        },
+      }),
+      prisma.passwordResetToken.count({
+        where: {
+          OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }],
+        },
+      }),
+    ]);
 
     return {
       finishedMatchOdds,

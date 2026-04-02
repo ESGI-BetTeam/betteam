@@ -108,7 +108,7 @@ router.post(
   requireAuth,
   async (
     req: AuthenticatedRequest & { body: CreateChallengeRequest.Body; params: { leagueId: string } },
-    res: Response<CreateChallengeResponse | { error: string }>
+    res: Response<CreateChallengeResponse | { error: string }>,
   ) => {
     try {
       const { leagueId } = req.params;
@@ -116,7 +116,7 @@ router.post(
       const userId = req.userId!;
 
       if (!matchId) {
-        return res.status(400).json({ error: 'L\'ID du match est requis.' });
+        return res.status(400).json({ error: "L'ID du match est requis." });
       }
 
       // Check if league exists and is active
@@ -152,7 +152,7 @@ router.post(
       // Check if match belongs to the league's current competition
       if (league.currentCompetitionId && match.competitionId !== league.currentCompetitionId) {
         return res.status(400).json({
-          error: 'Ce match n\'appartient pas à la compétition de la ligue.',
+          error: "Ce match n'appartient pas à la compétition de la ligue.",
         });
       }
 
@@ -165,7 +165,9 @@ router.post(
       // Check if challenge already exists for this match
       const challengeExists = await betsService.challengeExists(leagueId, matchId);
       if (challengeExists) {
-        return res.status(409).json({ error: 'Un challenge existe déjà pour ce match dans cette ligue.' });
+        return res
+          .status(409)
+          .json({ error: 'Un challenge existe déjà pour ce match dans cette ligue.' });
       }
 
       // Calculate closes_at (M-10)
@@ -215,7 +217,7 @@ router.post(
       console.error('Create challenge error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
-  }
+  },
 );
 
 // GET /api/leagues/:leagueId/challenges - List challenges
@@ -224,7 +226,7 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { query: GetChallengesRequest.Query; params: { leagueId: string } },
-    res: Response<GetChallengesResponse | { error: string }>
+    res: Response<GetChallengesResponse | { error: string }>,
   ) => {
     try {
       const { leagueId } = req.params;
@@ -247,7 +249,7 @@ router.get(
       // Check membership for private leagues
       const isMember = await betsService.isLeagueMember(userId, leagueId);
       if (league.isPrivate && !isMember) {
-        return res.status(403).json({ error: 'Vous n\'avez pas accès à cette ligue.' });
+        return res.status(403).json({ error: "Vous n'avez pas accès à cette ligue." });
       }
 
       // Build where clause
@@ -309,7 +311,7 @@ router.get(
       console.error('List challenges error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
-  }
+  },
 );
 
 // GET /api/leagues/:leagueId/challenges/active - Get active (open) challenges
@@ -318,7 +320,7 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { params: { leagueId: string } },
-    res: Response<GetActiveChallengesResponse | { error: string }>
+    res: Response<GetActiveChallengesResponse | { error: string }>,
   ) => {
     try {
       const { leagueId } = req.params;
@@ -337,7 +339,7 @@ router.get(
       // Check membership for private leagues
       const isMember = await betsService.isLeagueMember(userId, leagueId);
       if (league.isPrivate && !isMember) {
-        return res.status(403).json({ error: 'Vous n\'avez pas accès à cette ligue.' });
+        return res.status(403).json({ error: "Vous n'avez pas accès à cette ligue." });
       }
 
       const challenges = await prisma.groupBet.findMany({
@@ -387,7 +389,7 @@ router.get(
       console.error('Get active challenges error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
-  }
+  },
 );
 
 // GET /api/leagues/:leagueId/challenges/:id - Get challenge details
@@ -396,7 +398,7 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { params: { leagueId: string; id: string } },
-    res: Response<GetChallengeResponse | { error: string }>
+    res: Response<GetChallengeResponse | { error: string }>,
   ) => {
     try {
       const { leagueId, id } = req.params;
@@ -415,7 +417,7 @@ router.get(
       // Check membership for private leagues
       const isMember = await betsService.isLeagueMember(userId, leagueId);
       if (league.isPrivate && !isMember) {
-        return res.status(403).json({ error: 'Vous n\'avez pas accès à cette ligue.' });
+        return res.status(403).json({ error: "Vous n'avez pas accès à cette ligue." });
       }
 
       const challenge = await prisma.groupBet.findFirst({
@@ -464,7 +466,7 @@ router.get(
       console.error('Get challenge error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
-  }
+  },
 );
 
 // ============================================
@@ -480,7 +482,7 @@ router.post(
       body: PlaceBetRequest.Body;
       params: { leagueId: string; challengeId: string };
     },
-    res: Response<PlaceBetResponse | { error: string }>
+    res: Response<PlaceBetResponse | { error: string }>,
   ) => {
     try {
       const { leagueId, challengeId } = req.params;
@@ -535,12 +537,14 @@ router.post(
 
       // Check if challenge is still open
       if (challenge.status !== 'open') {
-        return res.status(400).json({ error: 'Ce challenge n\'est plus ouvert aux paris.' });
+        return res.status(400).json({ error: "Ce challenge n'est plus ouvert aux paris." });
       }
 
       // Check if betting deadline has passed (M-10)
       if (new Date() > challenge.closesAt) {
-        return res.status(400).json({ error: 'La période de paris est terminée pour ce challenge.' });
+        return res
+          .status(400)
+          .json({ error: 'La période de paris est terminée pour ce challenge.' });
       }
 
       // Check if user has already bet on this challenge
@@ -566,7 +570,7 @@ router.post(
       });
 
       if (!membership || membership.points < amount) {
-        return res.status(400).json({ error: 'Vous n\'avez pas assez de points.' });
+        return res.status(400).json({ error: "Vous n'avez pas assez de points." });
       }
 
       // Create bet in a transaction (deduct points + create bet)
@@ -657,7 +661,7 @@ router.post(
       console.error('Place bet error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
-  }
+  },
 );
 
 // GET /api/leagues/:leagueId/challenges/:challengeId/bets - Get challenge bets
@@ -669,7 +673,7 @@ router.get(
       query: GetChallengeBetsRequest.Query;
       params: { leagueId: string; challengeId: string };
     },
-    res: Response<GetChallengeBetsResponse | { error: string }>
+    res: Response<GetChallengeBetsResponse | { error: string }>,
   ) => {
     try {
       const { leagueId, challengeId } = req.params;
@@ -691,7 +695,7 @@ router.get(
       // Check membership for private leagues
       const isMember = await betsService.isLeagueMember(userId, leagueId);
       if (league.isPrivate && !isMember) {
-        return res.status(403).json({ error: 'Vous n\'avez pas accès à cette ligue.' });
+        return res.status(403).json({ error: "Vous n'avez pas accès à cette ligue." });
       }
 
       // Check if challenge exists
@@ -750,7 +754,7 @@ router.get(
       console.error('Get challenge bets error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
-  }
+  },
 );
 
 // ============================================
@@ -766,7 +770,7 @@ router.get(
       query: GetAvailableMatchesRequest.Query;
       params: { leagueId: string };
     },
-    res: Response<GetAvailableMatchesResponse | { error: string }>
+    res: Response<GetAvailableMatchesResponse | { error: string }>,
   ) => {
     try {
       const { leagueId } = req.params;
@@ -788,12 +792,12 @@ router.get(
       // Check membership for private leagues
       const isMember = await betsService.isLeagueMember(userId, leagueId);
       if (league.isPrivate && !isMember) {
-        return res.status(403).json({ error: 'Vous n\'avez pas accès à cette ligue.' });
+        return res.status(403).json({ error: "Vous n'avez pas accès à cette ligue." });
       }
 
       if (!league.currentCompetitionId) {
         return res.status(400).json({
-          error: 'Aucune compétition n\'est sélectionnée pour cette ligue.',
+          error: "Aucune compétition n'est sélectionnée pour cette ligue.",
         });
       }
 
@@ -864,7 +868,7 @@ router.get(
       console.error('Get available matches error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
-  }
+  },
 );
 
 export default router;

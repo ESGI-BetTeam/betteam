@@ -12,7 +12,13 @@ interface AuthState {
   initialize: () => Promise<void>;
   refreshSession: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  register: (
+    email: string,
+    username: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
 }
 

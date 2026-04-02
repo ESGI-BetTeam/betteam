@@ -145,8 +145,9 @@ class StatsService {
     const totalPointsLost = lossesAggregate._sum.amount ?? 0;
 
     // Calculate streaks
-    const { currentStreak, bestWinStreak, worstLossStreak } =
-      this.calculateStreaks(allSettledBets.map((b) => b.status));
+    const { currentStreak, bestWinStreak, worstLossStreak } = this.calculateStreaks(
+      allSettledBets.map((b) => b.status),
+    );
 
     // Find favorite sport
     const sportCounts = new Map<string, number>();
@@ -245,35 +246,40 @@ class StatsService {
     // Get per-member stats in batch
     const memberIds = members.map((m) => m.userId);
 
-    const [memberBetCounts, memberWinCounts, memberWagerTotals, memberWinTotals, memberSettledBets] =
-      await Promise.all([
-        prisma.bet.groupBy({
-          by: ['userId'],
-          where: { leagueId, userId: { in: memberIds } },
-          _count: true,
-        }),
-        prisma.bet.groupBy({
-          by: ['userId'],
-          where: { leagueId, userId: { in: memberIds }, status: 'won' },
-          _count: true,
-        }),
-        prisma.bet.groupBy({
-          by: ['userId'],
-          where: { leagueId, userId: { in: memberIds } },
-          _sum: { amount: true },
-        }),
-        prisma.bet.groupBy({
-          by: ['userId'],
-          where: { leagueId, userId: { in: memberIds }, status: 'won' },
-          _sum: { actualWin: true },
-        }),
-        // Fetch settled bets per member for streak calculation
-        prisma.bet.findMany({
-          where: { leagueId, userId: { in: memberIds }, status: { in: ['won', 'lost'] } },
-          orderBy: { createdAt: 'desc' },
-          select: { userId: true, status: true },
-        }),
-      ]);
+    const [
+      memberBetCounts,
+      memberWinCounts,
+      memberWagerTotals,
+      memberWinTotals,
+      memberSettledBets,
+    ] = await Promise.all([
+      prisma.bet.groupBy({
+        by: ['userId'],
+        where: { leagueId, userId: { in: memberIds } },
+        _count: true,
+      }),
+      prisma.bet.groupBy({
+        by: ['userId'],
+        where: { leagueId, userId: { in: memberIds }, status: 'won' },
+        _count: true,
+      }),
+      prisma.bet.groupBy({
+        by: ['userId'],
+        where: { leagueId, userId: { in: memberIds } },
+        _sum: { amount: true },
+      }),
+      prisma.bet.groupBy({
+        by: ['userId'],
+        where: { leagueId, userId: { in: memberIds }, status: 'won' },
+        _sum: { actualWin: true },
+      }),
+      // Fetch settled bets per member for streak calculation
+      prisma.bet.findMany({
+        where: { leagueId, userId: { in: memberIds }, status: { in: ['won', 'lost'] } },
+        orderBy: { createdAt: 'desc' },
+        select: { userId: true, status: true },
+      }),
+    ]);
 
     const betCountMap = new Map(memberBetCounts.map((b) => [b.userId, b._count]));
     const winCountMap = new Map(memberWinCounts.map((b) => [b.userId, b._count]));
@@ -291,9 +297,10 @@ class StatsService {
     const topMembers: LeagueMemberStats[] = members.map((member) => {
       const totalMemberBets = betCountMap.get(member.userId) ?? 0;
       const wins = winCountMap.get(member.userId) ?? 0;
-      const settled = totalMemberBets > 0
-        ? wins + ((betCountMap.get(member.userId) ?? 0) - wins - 0) // approximate
-        : 0;
+      const settled =
+        totalMemberBets > 0
+          ? wins + ((betCountMap.get(member.userId) ?? 0) - wins - 0) // approximate
+          : 0;
       const statuses = memberSettledMap.get(member.userId) ?? [];
       const { currentStreak } = this.calculateStreaks(statuses);
 
@@ -338,14 +345,14 @@ class StatsService {
   // ========================================
 
   private buildStatusMap(
-    betsByStatus: { status: string; _count: number }[]
+    betsByStatus: { status: string; _count: number }[],
   ): Record<string, number> {
     return betsByStatus.reduce(
       (acc, s) => {
         acc[s.status] = s._count;
         return acc;
       },
-      { pending: 0, won: 0, lost: 0, void: 0 } as Record<string, number>
+      { pending: 0, won: 0, lost: 0, void: 0 } as Record<string, number>,
     );
   }
 
@@ -363,10 +370,13 @@ class StatsService {
     }
 
     // Current streak (most recent first)
-    let currentType: 'win' | 'loss' = statuses[0] === 'won' ? 'win' : 'loss';
+    const currentType: 'win' | 'loss' = statuses[0] === 'won' ? 'win' : 'loss';
     let currentCount = 0;
     for (const status of statuses) {
-      if ((status === 'won' && currentType === 'win') || (status === 'lost' && currentType === 'loss')) {
+      if (
+        (status === 'won' && currentType === 'win') ||
+        (status === 'lost' && currentType === 'loss')
+      ) {
         currentCount++;
       } else {
         break;
@@ -399,7 +409,7 @@ class StatsService {
   }
 
   private async enrichTopBettors(
-    topBettorsRaw: { userId: string; _count: number }[]
+    topBettorsRaw: { userId: string; _count: number }[],
   ): Promise<TopBettor[]> {
     if (topBettorsRaw.length === 0) return [];
 

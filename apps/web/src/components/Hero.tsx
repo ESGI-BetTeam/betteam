@@ -1,7 +1,7 @@
-import { Sparkles, Check } from 'lucide-react'
-import Button from './Button'
-import PhoneMockup from './PhoneMockup'
-import AppStoreButtons from './AppStoreButtons'
+import { Sparkles, Check } from 'lucide-react';
+import Button from './Button';
+import PhoneMockup from './PhoneMockup';
+import AppStoreButtons from './AppStoreButtons';
 
 export default function Hero() {
   return (
@@ -11,7 +11,9 @@ export default function Hero() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-full px-4 py-2 mb-8">
             <Sparkles className="text-accent" size={16} />
-            <span className="text-sm font-medium text-accent">Nouveau : Pronostics esport disponibles</span>
+            <span className="text-sm font-medium text-accent">
+              Nouveau : Pronostics esport disponibles
+            </span>
           </div>
 
           {/* Heading */}
@@ -77,5 +79,5 @@ export default function Hero() {
         </div>
       </div>
     </section>
-  )
+  );
 }

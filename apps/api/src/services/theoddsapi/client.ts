@@ -39,22 +39,25 @@ export interface OddsEvent {
  */
 export const ODDS_API_COMPETITION_MAPPING: Record<string, string> = {
   // Football - Top 5 leagues européennes
-  'soccer_epl': '4328',                   // Premier League England
-  'soccer_france_ligue_one': '4334',      // Ligue 1 France
-  'soccer_germany_bundesliga': '4331',    // Bundesliga Germany
-  'soccer_italy_serie_a': '4332',         // Serie A Italy
-  'soccer_spain_la_liga': '4335',         // La Liga Spain
+  soccer_epl: '4328', // Premier League England
+  soccer_france_ligue_one: '4334', // Ligue 1 France
+  soccer_germany_bundesliga: '4331', // Bundesliga Germany
+  soccer_italy_serie_a: '4332', // Serie A Italy
+  soccer_spain_la_liga: '4335', // La Liga Spain
 };
 
 /**
  * Mapping inverse: TheSportsDB league ID -> The Odds API sport_key
  */
 export const THESPORTSDB_TO_ODDS_API: Record<string, string> = Object.entries(
-  ODDS_API_COMPETITION_MAPPING
-).reduce((acc, [oddsKey, sportsDbId]) => {
-  acc[sportsDbId] = oddsKey;
-  return acc;
-}, {} as Record<string, string>);
+  ODDS_API_COMPETITION_MAPPING,
+).reduce(
+  (acc, [oddsKey, sportsDbId]) => {
+    acc[sportsDbId] = oddsKey;
+    return acc;
+  },
+  {} as Record<string, string>,
+);
 
 /**
  * Client HTTP pour The Odds API
@@ -94,7 +97,7 @@ class TheOddsAPIClient {
         console.log(`🎰 TheOddsAPI Request: ${config.method?.toUpperCase()} ${config.url}`);
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => Promise.reject(error),
     );
 
     // Intercepteur pour gérer les erreurs et suivre le quota
@@ -117,10 +120,12 @@ class TheOddsAPIClient {
           console.error('❌ TheOddsAPI: Invalid parameters', error.response.data);
         }
         return Promise.reject(error);
-      }
+      },
     );
 
-    console.log(`✅ TheOddsAPI Client initialized (Key: ${this.apiKey ? 'configured' : 'NOT SET'})`);
+    console.log(
+      `✅ TheOddsAPI Client initialized (Key: ${this.apiKey ? 'configured' : 'NOT SET'})`,
+    );
   }
 
   /**
@@ -133,7 +138,12 @@ class TheOddsAPIClient {
   /**
    * Effectuer une requête GET avec gestion du cache
    */
-  async get<T>(endpoint: string, params: Record<string, string> = {}, cacheKey?: string, cacheTTL?: number): Promise<T> {
+  async get<T>(
+    endpoint: string,
+    params: Record<string, string> = {},
+    cacheKey?: string,
+    cacheTTL?: number,
+  ): Promise<T> {
     if (!this.isConfigured()) {
       throw new Error('TheOddsAPI: API key not configured');
     }
@@ -173,7 +183,7 @@ class TheOddsAPIClient {
   async getOdds(
     sportKey: string,
     regions: string = 'eu',
-    markets: string = 'h2h'
+    markets: string = 'h2h',
   ): Promise<OddsEvent[]> {
     const cacheKey = `odds_${sportKey}_${regions}_${markets}`;
     // Cache de 2h pour économiser les requêtes
@@ -183,7 +193,7 @@ class TheOddsAPIClient {
       `/sports/${sportKey}/odds`,
       { regions, markets },
       cacheKey,
-      cacheTTL
+      cacheTTL,
     );
   }
 

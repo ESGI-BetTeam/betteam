@@ -53,101 +53,79 @@ class CronService {
     console.log(`⏰ [CRON] Timezone: ${CRON_CONFIG.timezone}`);
 
     // CRON 0: Wallet payments (1x/jour à 1h)
-    this.scheduleTask(
-      'wallet-payments',
-      CRON_CONFIG.jobs.walletPayments,
-      async () => {
-        console.log('⏰ [CRON] Démarrage traitement paiements cagnotte...');
-        const startTime = Date.now();
-        try {
-          const result = await walletService.processAllDuePayments();
-          console.log(`💰 [CRON] Paiements traités: ${result.processed} succès, ${result.failed} échecs`);
-          await this.logCronExecution('cron-wallet-payments', 'success', Date.now() - startTime);
-        } catch (error) {
-          await this.logCronExecution('cron-wallet-payments', 'error', Date.now() - startTime, error);
-        }
+    this.scheduleTask('wallet-payments', CRON_CONFIG.jobs.walletPayments, async () => {
+      console.log('⏰ [CRON] Démarrage traitement paiements cagnotte...');
+      const startTime = Date.now();
+      try {
+        const result = await walletService.processAllDuePayments();
+        console.log(
+          `💰 [CRON] Paiements traités: ${result.processed} succès, ${result.failed} échecs`,
+        );
+        await this.logCronExecution('cron-wallet-payments', 'success', Date.now() - startTime);
+      } catch (error) {
+        await this.logCronExecution('cron-wallet-payments', 'error', Date.now() - startTime, error);
       }
-    );
+    });
 
     // CRON 1: Cleanup données obsolètes (1x/jour à 2h)
-    this.scheduleTask(
-      'cleanup',
-      CRON_CONFIG.jobs.cleanup,
-      async () => {
-        console.log('⏰ [CRON] Démarrage cleanup...');
-        const startTime = Date.now();
-        try {
-          await cleanupService.runFullCleanup();
-          await this.logCronExecution('cron-cleanup', 'success', Date.now() - startTime);
-        } catch (error) {
-          await this.logCronExecution('cron-cleanup', 'error', Date.now() - startTime, error);
-        }
+    this.scheduleTask('cleanup', CRON_CONFIG.jobs.cleanup, async () => {
+      console.log('⏰ [CRON] Démarrage cleanup...');
+      const startTime = Date.now();
+      try {
+        await cleanupService.runFullCleanup();
+        await this.logCronExecution('cron-cleanup', 'success', Date.now() - startTime);
+      } catch (error) {
+        await this.logCronExecution('cron-cleanup', 'error', Date.now() - startTime, error);
       }
-    );
+    });
 
     // CRON 1: Sync compétitions (1x/jour à 3h)
-    this.scheduleTask(
-      'sync-competitions',
-      CRON_CONFIG.jobs.syncCompetitions,
-      async () => {
-        console.log('⏰ [CRON] Démarrage sync compétitions...');
-        const startTime = Date.now();
-        try {
-          await competitionsService.syncAllCompetitions();
-          await this.logCronExecution('cron-competitions', 'success', Date.now() - startTime);
-        } catch (error) {
-          await this.logCronExecution('cron-competitions', 'error', Date.now() - startTime, error);
-        }
+    this.scheduleTask('sync-competitions', CRON_CONFIG.jobs.syncCompetitions, async () => {
+      console.log('⏰ [CRON] Démarrage sync compétitions...');
+      const startTime = Date.now();
+      try {
+        await competitionsService.syncAllCompetitions();
+        await this.logCronExecution('cron-competitions', 'success', Date.now() - startTime);
+      } catch (error) {
+        await this.logCronExecution('cron-competitions', 'error', Date.now() - startTime, error);
       }
-    );
+    });
 
     // CRON 2: Sync équipes (1x/jour à 4h)
-    this.scheduleTask(
-      'sync-teams',
-      CRON_CONFIG.jobs.syncTeams,
-      async () => {
-        console.log('⏰ [CRON] Démarrage sync équipes...');
-        const startTime = Date.now();
-        try {
-          await teamsService.syncAllTeams();
-          await this.logCronExecution('cron-teams', 'success', Date.now() - startTime);
-        } catch (error) {
-          await this.logCronExecution('cron-teams', 'error', Date.now() - startTime, error);
-        }
+    this.scheduleTask('sync-teams', CRON_CONFIG.jobs.syncTeams, async () => {
+      console.log('⏰ [CRON] Démarrage sync équipes...');
+      const startTime = Date.now();
+      try {
+        await teamsService.syncAllTeams();
+        await this.logCronExecution('cron-teams', 'success', Date.now() - startTime);
+      } catch (error) {
+        await this.logCronExecution('cron-teams', 'error', Date.now() - startTime, error);
       }
-    );
+    });
 
     // CRON 3: Sync matchs (toutes les 6h)
-    this.scheduleTask(
-      'sync-matches',
-      CRON_CONFIG.jobs.syncMatches,
-      async () => {
-        console.log('⏰ [CRON] Démarrage sync matchs...');
-        const startTime = Date.now();
-        try {
-          await matchesService.syncAllMatches();
-          await this.logCronExecution('cron-matches', 'success', Date.now() - startTime);
-        } catch (error) {
-          await this.logCronExecution('cron-matches', 'error', Date.now() - startTime, error);
-        }
+    this.scheduleTask('sync-matches', CRON_CONFIG.jobs.syncMatches, async () => {
+      console.log('⏰ [CRON] Démarrage sync matchs...');
+      const startTime = Date.now();
+      try {
+        await matchesService.syncAllMatches();
+        await this.logCronExecution('cron-matches', 'success', Date.now() - startTime);
+      } catch (error) {
+        await this.logCronExecution('cron-matches', 'error', Date.now() - startTime, error);
       }
-    );
+    });
 
     // CRON 4: Sync cotes (2x/jour à 9h et 18h)
-    this.scheduleTask(
-      'sync-odds',
-      CRON_CONFIG.jobs.syncOdds,
-      async () => {
-        console.log('⏰ [CRON] Démarrage sync cotes (The Odds API)...');
-        const startTime = Date.now();
-        try {
-          await oddsService.syncAllOdds();
-          await this.logCronExecution('cron-odds', 'success', Date.now() - startTime);
-        } catch (error) {
-          await this.logCronExecution('cron-odds', 'error', Date.now() - startTime, error);
-        }
+    this.scheduleTask('sync-odds', CRON_CONFIG.jobs.syncOdds, async () => {
+      console.log('⏰ [CRON] Démarrage sync cotes (The Odds API)...');
+      const startTime = Date.now();
+      try {
+        await oddsService.syncAllOdds();
+        await this.logCronExecution('cron-odds', 'success', Date.now() - startTime);
+      } catch (error) {
+        await this.logCronExecution('cron-odds', 'error', Date.now() - startTime, error);
       }
-    );
+    });
 
     this.printSchedule();
     console.log('✅ [CRON] Toutes les tâches sont planifiées');
@@ -156,11 +134,7 @@ class CronService {
   /**
    * Planifie une tâche CRON
    */
-  private scheduleTask(
-    name: string,
-    cronExpression: string,
-    task: () => Promise<void>
-  ): void {
+  private scheduleTask(name: string, cronExpression: string, task: () => Promise<void>): void {
     const scheduledTask = cron.schedule(
       cronExpression,
       async () => {
@@ -174,7 +148,7 @@ class CronService {
       },
       {
         timezone: CRON_CONFIG.timezone,
-      }
+      },
     );
 
     this.scheduledTasks.push(scheduledTask);
@@ -188,7 +162,7 @@ class CronService {
     type: string,
     status: 'success' | 'error',
     durationMs: number,
-    error?: unknown
+    error?: unknown,
   ): Promise<void> {
     try {
       await prisma.syncLog.create({
@@ -239,7 +213,9 @@ class CronService {
   /**
    * Exécute manuellement une tâche CRON (pour tests/debug)
    */
-  async runManually(taskName: 'cleanup' | 'competitions' | 'teams' | 'matches' | 'odds' | 'wallet'): Promise<void> {
+  async runManually(
+    taskName: 'cleanup' | 'competitions' | 'teams' | 'matches' | 'odds' | 'wallet',
+  ): Promise<void> {
     console.log(`⏰ [CRON] Exécution manuelle: ${taskName}`);
     const startTime = Date.now();
 
@@ -264,7 +240,9 @@ class CronService {
           await oddsService.syncAllOdds();
           break;
       }
-      console.log(`✅ [CRON] Exécution manuelle terminée: ${taskName} (${Date.now() - startTime}ms)`);
+      console.log(
+        `✅ [CRON] Exécution manuelle terminée: ${taskName} (${Date.now() - startTime}ms)`,
+      );
     } catch (error) {
       console.error(`❌ [CRON] Échec exécution manuelle: ${taskName}`, error);
       throw error;

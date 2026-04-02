@@ -1,5 +1,5 @@
 export namespace RefreshTokenRequest {
-    export interface Body {
-        refreshToken: string;
-    }
+  export interface Body {
+    refreshToken: string;
+  }
 }

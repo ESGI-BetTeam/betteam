@@ -42,13 +42,7 @@ export function Button({
       onPress={onPress}
       disabled={isDisabled}
       activeOpacity={0.8}
-      style={[
-        styles.base,
-        variantStyles[variant],
-        variantSize[size],
-        isDisabled && styles.disabled,
-        style,
-      ]}
+      style={[styles.base, variantStyles[variant], isDisabled && styles.disabled, style]}
     >
       <>
         {loading ? (
@@ -87,8 +81,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   text: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: fontSize.md,
-    fontWeight: '600',
   },
 });
 

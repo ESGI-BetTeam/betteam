@@ -25,11 +25,9 @@ export default function Footer() {
           </div>
 
           {/* Copyright */}
-          <div className="text-sm text-white/60">
-            &copy; 2026 BetTeam. Tous droits réservés.
-          </div>
+          <div className="text-sm text-white/60">&copy; 2026 BetTeam. Tous droits réservés.</div>
         </div>
       </div>
     </footer>
-  )
+  );
 }

@@ -43,7 +43,7 @@ router.get('/', async (req: Request, res: Response) => {
     // Filtrer par sport si nécessaire
     if (sport) {
       matches = matches.filter(
-        (match) => match.competition.sport.toLowerCase() === (sport as string).toLowerCase()
+        (match) => match.competition.sport.toLowerCase() === (sport as string).toLowerCase(),
       );
     }
 

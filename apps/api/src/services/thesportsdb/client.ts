@@ -42,7 +42,7 @@ class TheSportsDBClient {
       },
       (error) => {
         return Promise.reject(error);
-      }
+      },
     );
 
     // Intercepteur pour gérer les erreurs
@@ -55,10 +55,12 @@ class TheSportsDBClient {
           return this.axiosInstance.request(error.config!);
         }
         return Promise.reject(error);
-      }
+      },
     );
 
-    console.log(`✅ TheSportsDB Client initialized (${isPremium ? 'Premium Key' : 'Free Key'} - V2 API)`);
+    console.log(
+      `✅ TheSportsDB Client initialized (${isPremium ? 'Premium Key' : 'Free Key'} - V2 API)`,
+    );
   }
 
   /**
@@ -73,9 +75,7 @@ class TheSportsDBClient {
 
     // Ajouter à la queue et attendre l'exécution
     // Note: La clé API est passée dans le header X-API-Key, pas dans l'URL
-    const result = await this.addToQueue<T>(() =>
-      this.axiosInstance.get<T>(endpoint)
-    );
+    const result = await this.addToQueue<T>(() => this.axiosInstance.get<T>(endpoint));
 
     // Mettre en cache si une clé est fournie
     if (cacheKey && result) {

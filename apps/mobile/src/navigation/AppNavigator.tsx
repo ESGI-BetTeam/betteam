@@ -18,11 +18,7 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
     Pronostiques: '⚽',
     Profil: '👤',
   };
-  return (
-    <Text style={[styles.icon, focused && styles.iconFocused]}>
-      {icons[label] ?? '•'}
-    </Text>
-  );
+  return <Text style={[styles.icon, focused && styles.iconFocused]}>{icons[label] ?? '•'}</Text>;
 }
 
 export function AppNavigator() {
@@ -34,14 +30,16 @@ export function AppNavigator() {
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: styles.tabLabel,
-        tabBarIcon: ({ focused }) => (
-          <TabIcon label={route.name} focused={focused} />
-        ),
+        tabBarIcon: ({ focused }) => <TabIcon label={route.name} focused={focused} />,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Accueil' }} />
       <Tab.Screen name="Leagues" component={LeaguesScreen} options={{ tabBarLabel: 'Leagues' }} />
-      <Tab.Screen name="Pronostics" component={PronosticsScreen} options={{ tabBarLabel: 'Pronostiques' }} />
+      <Tab.Screen
+        name="Pronostics"
+        component={PronosticsScreen}
+        options={{ tabBarLabel: 'Pronostiques' }}
+      />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Profil' }} />
       <Tab.Screen name="Components" component={ComponentScreen} options={{ tabBarLabel: 'Component' }} />
     </Tab.Navigator>

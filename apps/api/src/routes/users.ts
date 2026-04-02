@@ -26,26 +26,22 @@ const transformPrivateUserToUser = (privateUser: PrismaUser): User => {
 };
 
 // GET /api/users/me/favorite-teams - Get current user's favorite teams
-router.get(
-  '/me/favorite-teams',
-  requireAuth,
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const userId = req.userId!;
-      const { page, limit } = req.query;
+router.get('/me/favorite-teams', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { page, limit } = req.query;
 
-      const result = await favoritesService.getUserFavoriteTeams(userId, {
-        page: page ? parseInt(page as string) : undefined,
-        limit: limit ? parseInt(limit as string) : undefined,
-      });
+    const result = await favoritesService.getUserFavoriteTeams(userId, {
+      page: page ? parseInt(page as string) : undefined,
+      limit: limit ? parseInt(limit as string) : undefined,
+    });
 
-      return res.status(200).json(result);
-    } catch (error) {
-      console.error('Get favorite teams error:', error);
-      return res.status(500).json({ error: 'Failed to fetch favorite teams.' });
-    }
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Get favorite teams error:', error);
+    return res.status(500).json({ error: 'Failed to fetch favorite teams.' });
   }
-);
+});
 
 // GET /api/users/:id - Get user by ID
 router.get(
@@ -74,7 +70,7 @@ router.get(
       console.error('Get user error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // GET /api/users - List users with pagination and search
@@ -83,11 +79,14 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { query: GetUsersRequest.Query },
-    res: Response<GetUsersResponse | { error: string }>
+    res: Response<GetUsersResponse | { error: string }>,
   ) => {
     try {
       const page = Math.max(1, parseInt(req.query.page as unknown as string) || 1);
-      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as unknown as string) || 20));
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt(req.query.limit as unknown as string) || 20),
+      );
       const search = req.query.search as string | undefined;
       const skip = (page - 1) * limit;
 
@@ -129,7 +128,7 @@ router.get(
       console.error('List users error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // PATCH /api/users/:id - Update user profile
@@ -139,7 +138,7 @@ router.patch(
   requireSelf('id'),
   async (
     req: AuthenticatedRequest & { body: UpdateUserRequest.Body },
-    res: Response<UpdateUserResponse | { error: string }>
+    res: Response<UpdateUserResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
@@ -172,10 +171,7 @@ router.patch(
             AND: [
               { id: { not: id } },
               {
-                OR: [
-                  ...(email ? [{ email }] : []),
-                  ...(username ? [{ username }] : []),
-                ],
+                OR: [...(email ? [{ email }] : []), ...(username ? [{ username }] : [])],
               },
             ],
           },
@@ -201,7 +197,7 @@ router.patch(
       console.error('Update user error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // POST /api/users/:id/password - Change password
@@ -211,7 +207,7 @@ router.post(
   requireSelf('id'),
   async (
     req: AuthenticatedRequest & { body: UpdatePasswordRequest.Body },
-    res: Response<UpdatePasswordResponse | { error: string }>
+    res: Response<UpdatePasswordResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
@@ -258,7 +254,7 @@ router.post(
       console.error('Update password error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // DELETE /api/users/:id - Soft delete (deactivate account)
@@ -294,7 +290,7 @@ router.delete(
       console.error('Delete user error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 export default router;

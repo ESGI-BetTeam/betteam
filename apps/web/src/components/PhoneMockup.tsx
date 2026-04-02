@@ -1,6 +1,6 @@
 interface PhoneMockupProps {
-  type: 'iphone' | 'android'
-  className?: string
+  type: 'iphone' | 'android';
+  className?: string;
 }
 
 export default function PhoneMockup({ type, className = '' }: PhoneMockupProps) {
@@ -46,5 +46,5 @@ export default function PhoneMockup({ type, className = '' }: PhoneMockupProps) 
         </div>
       </div>
     </div>
-  )
+  );
 }

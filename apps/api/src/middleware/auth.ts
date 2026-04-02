@@ -24,7 +24,7 @@ const transformPrivateUserToUser = (privateUser: PrismaUser): User => {
 export const requireAuth = async (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
@@ -104,7 +104,7 @@ export const requireSelf = (paramName: string = 'id') => {
 export const requireAdmin = (
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   if (!req.user) {
     res.status(401).json({ error: 'Authentication required.' });

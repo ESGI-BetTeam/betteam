@@ -1,25 +1,25 @@
-import { useState, useEffect } from 'react'
-import Button from './Button'
-import DownloadModal from './DownloadModal'
+import { useState, useEffect } from 'react';
+import Button from './Button';
+import DownloadModal from './DownloadModal';
 
 export default function Header() {
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+      setIsScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const scrollToSection = (id: string) => {
-    const element = document.getElementById(id)
+    const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
+      element.scrollIntoView({ behavior: 'smooth' });
     }
-  }
+  };
 
   return (
     <header
@@ -30,7 +30,10 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <div
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
             <img src="/logo-icon.svg" alt="BetTeam" className="h-10" />
             <span className="text-2xl font-bold">BetTeam</span>
           </div>
@@ -59,11 +62,7 @@ export default function Header() {
 
           {/* CTA Button */}
           <div className="flex items-center gap-4">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setIsDownloadModalOpen(true)}
-            >
+            <Button variant="primary" size="sm" onClick={() => setIsDownloadModalOpen(true)}>
               Télécharger
             </Button>
           </div>
@@ -71,10 +70,7 @@ export default function Header() {
       </div>
 
       {/* Download Modal */}
-      <DownloadModal
-        isOpen={isDownloadModalOpen}
-        onClose={() => setIsDownloadModalOpen(false)}
-      />
+      <DownloadModal isOpen={isDownloadModalOpen} onClose={() => setIsDownloadModalOpen(false)} />
     </header>
-  )
+  );
 }
