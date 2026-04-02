@@ -209,11 +209,11 @@ router.get('/me', async (req: Request, res: Response<AuthMeResponse | { error: s
     try {
       payload = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
     } catch (err) {
-      return res.status(403).json({ error: 'Invalid or expired token.' });
+      return res.status(401).json({ error: 'Invalid or expired token.' });
     }
 
     if (!payload || typeof payload.userId !== 'string') {
-        return res.status(403).json({ error: 'Invalid token payload.' });
+        return res.status(401).json({ error: 'Invalid token payload.' });
     }
 
     const user = await prisma.user.findUnique({
