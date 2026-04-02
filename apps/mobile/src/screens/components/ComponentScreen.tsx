@@ -9,14 +9,19 @@ export function ComponentScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <Text style={styles.title}>Components</Text>
-        <State variant="active"/>
+        <Text style={styles.subTitle}>States :</Text>
+        <State variant="active" label='En Cours'/>
+        <State variant="live" isAnimated/>
+        <State variant="soon"/>
+        <State variant="finished"/>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  safe: { flex: 1, backgroundColor: colors.background},
   container: { flex: 1, padding: spacing.lg },
   title: { fontSize: fontSize.xxl, fontWeight: '700', color: colors.textPrimary },
+  subTitle: { fontSize: fontSize.xl, fontWeight: '700', color: colors.textSecondary },
 });
