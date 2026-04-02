@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../stores/authStore';
-import { colors, spacing, fontSize, radius, fonts } from '../../theme';
+import { colors, spacing, radius, typo } from '../../theme';
 import { AuthStackParamList } from '../../types/navigation';
 import { AxiosError } from 'axios';
 
@@ -82,8 +82,8 @@ export function RegisterScreen() {
             <View style={styles.logoContainer}>
               <Text style={styles.logoIcon}>⚽</Text>
             </View>
-            <Text style={styles.title}>Créer un compte</Text>
-            <Text style={styles.subtitle}>Rejoignez BetTeam</Text>
+            <Text style={typo.h1}>Créer un compte</Text>
+            <Text style={typo.pSecondary}>Rejoignez BetTeam</Text>
           </View>
 
           <View style={styles.form}>
@@ -152,9 +152,9 @@ export function RegisterScreen() {
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Déjà un compte ? </Text>
+            <Text style={typo.smallSecondary}>Déjà un compte ? </Text>
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.footerLink}>Se connecter</Text>
+              <Text style={[typo.small, styles.footerLink]}>Se connecter</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -192,18 +192,6 @@ const styles = StyleSheet.create({
   logoIcon: {
     fontSize: 36,
   },
-  title: {
-    fontFamily: fonts.heading,
-    fontSize: fontSize.xxl + 8,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-    textTransform: 'uppercase',
-  },
-  subtitle: {
-    fontFamily: fonts.body,
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-  },
   form: {
     marginBottom: spacing.lg,
   },
@@ -215,14 +203,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingBottom: spacing.lg,
   },
-  footerText: {
-    fontFamily: fonts.body,
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-  },
   footerLink: {
-    fontFamily: fonts.bodySemiBold,
     color: colors.accent,
-    fontSize: fontSize.sm,
   },
 });

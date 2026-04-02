@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, StyleSheet, TextInputProps } from 'react-native';
-import { colors, spacing, radius, fontSize, fonts } from '../../theme';
+import { colors, spacing, radius, fontSize, typo } from '../../theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -15,7 +15,7 @@ export function Input({ label, error, icon, isPassword, style, ...props }: Input
 
   return (
     <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={typo.pSecondary}>{label}</Text>}
       <View
         style={[
           styles.inputWrapper,
@@ -25,7 +25,7 @@ export function Input({ label, error, icon, isPassword, style, ...props }: Input
       >
         {icon && <View style={styles.icon}>{icon}</View>}
         <TextInput
-          style={[styles.input, style]}
+          style={[typo.p, styles.input, style]}
           placeholderTextColor={colors.textMuted}
           selectionColor={colors.accent}
           secureTextEntry={isPassword && !showPassword}
@@ -35,11 +35,11 @@ export function Input({ label, error, icon, isPassword, style, ...props }: Input
         />
         {isPassword && (
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.toggle}>
-            <Text style={styles.toggleText}>{showPassword ? 'Masquer' : 'Voir'}</Text>
+            <Text style={[typo.small, styles.toggleText]}>{showPassword ? 'Masquer' : 'Voir'}</Text>
           </TouchableOpacity>
         )}
       </View>
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && <Text style={[typo.small, styles.error]}>{error}</Text>}
     </View>
   );
 }
@@ -49,9 +49,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   label: {
-    fontFamily: fonts.bodyMedium,
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
     marginBottom: spacing.sm,
   },
   inputWrapper: {
@@ -75,22 +72,16 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontFamily: fonts.body,
     color: colors.textPrimary,
-    fontSize: fontSize.md,
   },
   toggle: {
     paddingLeft: spacing.sm,
   },
   toggleText: {
-    fontFamily: fonts.bodyMedium,
     color: colors.accent,
-    fontSize: fontSize.sm,
   },
   error: {
-    fontFamily: fonts.body,
     color: colors.error,
-    fontSize: fontSize.xs,
     marginTop: spacing.xs,
   },
 });
