@@ -5,6 +5,7 @@ import { colors, spacing, typo } from '@/theme';
 import { Button } from '@/components/ui/Button';
 import { State } from '@/components/ui/State';
 import { Segment } from '@/components/ui/Segment';
+import { Tag } from '@/components/ui/Tag';
 
 export function ComponentScreen() {
   return (
@@ -20,6 +21,7 @@ export function ComponentScreen() {
           <Text style={typo.h4}>Heading 4</Text>
           <Text style={typo.p}>Paragraph</Text>
           <Text style={typo.pBold}>Paragraph bold</Text>
+          <Text style={typo.pSecondary}>Paragraph secondary</Text>
           <Text style={typo.pMuted}>Paragraph muted</Text>
           <Text style={typo.small}>Small paragraph</Text>
         </View>
@@ -54,6 +56,12 @@ export function ComponentScreen() {
             value='test1'
             onChange={(value: string) => console.log(value)}
           />
+        <Text style={typo.h2}>Tag :</Text>
+        <View style={styles.componentsContainer}>
+          <Tag title='Primary tag' variant='primary' />
+          <Tag title='Secondary tag' variant='secondary' />
+          <Tag title='Danger tag' variant='danger' />
+          <Tag title='Outline tag' variant='outline' />
         </View>
       </View>
     </ScrollView>
