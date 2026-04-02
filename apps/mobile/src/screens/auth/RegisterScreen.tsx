@@ -25,6 +25,8 @@ export function RegisterScreen() {
   const navigation = useNavigation<RegisterNav>();
   const { register, isLoading } = useAuthStore();
 
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -33,6 +35,8 @@ export function RegisterScreen() {
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
+    if (!firstName.trim()) newErrors.firstName = 'Le prénom est requis';
+    if (!lastName.trim()) newErrors.lastName = 'Le nom est requis';
     if (!email.trim()) newErrors.email = 'L\'email est requis';
     if (!username.trim()) newErrors.username = 'Le pseudo est requis';
     if (username.trim().length < 3) newErrors.username = '3 caractères minimum';
@@ -47,7 +51,12 @@ export function RegisterScreen() {
     if (!validate()) return;
 
     try {
-      await register(email.trim().toLowerCase(), username.trim(), password);
+      await register(email.trim().toLowerCase(), username.trim(), password, firstName.trim(), lastName.trim());
+      Alert.alert(
+        'Compte créé',
+        'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }],
+      );
     } catch (error) {
       const axiosError = error as AxiosError<{ error: string }>;
       const message =
@@ -75,6 +84,24 @@ export function RegisterScreen() {
           </View>
 
           <View style={styles.form}>
+            <Input
+              label="Prénom"
+              placeholder="Votre prénom"
+              value={firstName}
+              onChangeText={setFirstName}
+              error={errors.firstName}
+              autoCapitalize="words"
+            />
+
+            <Input
+              label="Nom"
+              placeholder="Votre nom"
+              value={lastName}
+              onChangeText={setLastName}
+              error={errors.lastName}
+              autoCapitalize="words"
+            />
+
             <Input
               label="Pseudo"
               placeholder="Votre pseudo"
