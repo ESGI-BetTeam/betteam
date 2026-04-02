@@ -7,14 +7,16 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { colors, spacing, radius, fontSize } from '../../theme';
+import { colors, spacing, radius, fontSize, borderWidth } from '@/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost';
+type ButtonSize = 'default' | 'large';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
   variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
   icon?: React.ReactNode;
@@ -26,6 +28,7 @@ export function Button({
   title,
   onPress,
   variant = 'primary',
+  size = 'default',
   loading = false,
   disabled = false,
   icon,
@@ -42,30 +45,31 @@ export function Button({
       style={[
         styles.base,
         variantStyles[variant],
+        variantSize[size],
         isDisabled && styles.disabled,
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator
-          color={variant === 'outline' || variant === 'ghost' ? colors.accent : colors.white}
-          size="small"
-        />
-      ) : (
-        <>
-          {icon}
-          <Text
-            style={[
-              styles.text,
-              variantTextStyles[variant],
-              icon ? { marginLeft: spacing.sm } : undefined,
-              textStyle,
-            ]}
-          >
-            {title}
-          </Text>
-        </>
-      )}
+      <>
+        {loading ? (
+          <ActivityIndicator
+            color={variant === 'outline' || variant === 'ghost' ? colors.accent : colors.white}
+            size="small"
+          />
+        ) : (
+          icon
+        )}
+        <Text
+          style={[
+            styles.text,
+            variantTextStyles[variant],
+            icon ? { marginLeft: spacing.sm } : undefined,
+            textStyle,
+          ]}
+        >
+          {title}
+        </Text>
+      </>
     </TouchableOpacity>
   );
 }
@@ -75,11 +79,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 42,
-    borderRadius: radius.full,
     paddingHorizontal: spacing.lg,
   },
   disabled: {
+    display: 'flex',
+    gap: spacing.sm,
     opacity: 0.5,
   },
   text: {
@@ -97,12 +101,12 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
   },
   danger: {
     backgroundColor: colors.errorDark,
-    borderWidth: 1,
+    borderWidth: borderWidth.md,
     borderColor: colors.error,
   },
   outline: {
     backgroundColor: colors.backgroundGlass,
-    borderWidth: 1,
+    borderWidth: borderWidth.md,
     borderColor: colors.borderActive,
   },
   ghost: {
@@ -128,3 +132,14 @@ const variantTextStyles: Record<ButtonVariant, TextStyle> = {
     textDecorationLine: 'underline',
   },
 };
+
+const variantSize: Record<ButtonSize, ViewStyle> = {
+  default: {
+    height: 42,
+    borderRadius: radius.full,
+  },
+  large: {
+    height: 54,
+    borderRadius: radius.lg,
+  }
+}
