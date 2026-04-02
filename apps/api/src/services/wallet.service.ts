@@ -1,6 +1,10 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { WalletDetails, ContributionWithUser, PaymentResult } from '@betteam/shared/interfaces/Wallet';
+import {
+  WalletDetails,
+  ContributionWithUser,
+  PaymentResult,
+} from '@betteam/shared/interfaces/Wallet';
 
 class WalletService {
   /**
@@ -133,7 +137,7 @@ class WalletService {
   async contribute(
     leagueId: string,
     userId: string,
-    amount: number
+    amount: number,
   ): Promise<{ contribution: ContributionWithUser; newBalance: number; monthsCovered: number }> {
     if (amount <= 0) {
       throw new Error('Le montant doit être supérieur à 0.');
@@ -182,7 +186,11 @@ class WalletService {
       });
 
       // If wallet was frozen and now has enough balance, set next payment date
-      if (wallet.isFrozen === false && !wallet.nextPaymentDate && wallet.balance >= wallet.league.plan.monthlyPrice) {
+      if (
+        wallet.isFrozen === false &&
+        !wallet.nextPaymentDate &&
+        wallet.balance >= wallet.league.plan.monthlyPrice
+      ) {
         const nextMonth = new Date();
         nextMonth.setMonth(nextMonth.getMonth() + 1);
         nextMonth.setDate(1);
@@ -194,7 +202,10 @@ class WalletService {
         });
       }
 
-      const monthsCovered = this.calculateMonthsCovered(wallet.balance, wallet.league.plan.monthlyPrice);
+      const monthsCovered = this.calculateMonthsCovered(
+        wallet.balance,
+        wallet.league.plan.monthlyPrice,
+      );
 
       return {
         contribution: {
@@ -222,7 +233,7 @@ class WalletService {
   async getContributionHistory(
     leagueId: string,
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
   ): Promise<{ contributions: ContributionWithUser[]; total: number }> {
     const wallet = await prisma.leagueWallet.findUnique({
       where: { leagueId },
@@ -286,7 +297,10 @@ class WalletService {
   /**
    * Upgrade a league to a higher plan
    */
-  async upgradePlan(leagueId: string, newPlanId: string): Promise<{ success: boolean; error?: string }> {
+  async upgradePlan(
+    leagueId: string,
+    newPlanId: string,
+  ): Promise<{ success: boolean; error?: string }> {
     // Parallelize independent queries
     const [league, newPlan] = await Promise.all([
       prisma.league.findUnique({
@@ -306,12 +320,18 @@ class WalletService {
 
     // Check if this is actually an upgrade
     if (newPlan.monthlyPrice <= league.plan.monthlyPrice) {
-      return { success: false, error: 'Ce plan n\'est pas un upgrade. Utilisez downgrade à la place.' };
+      return {
+        success: false,
+        error: "Ce plan n'est pas un upgrade. Utilisez downgrade à la place.",
+      };
     }
 
     // Check if member count is within new plan limits
     if (league._count.members > newPlan.maxMembers) {
-      return { success: false, error: `Ce plan autorise maximum ${newPlan.maxMembers} membres. Votre ligue en a ${league._count.members}.` };
+      return {
+        success: false,
+        error: `Ce plan autorise maximum ${newPlan.maxMembers} membres. Votre ligue en a ${league._count.members}.`,
+      };
     }
 
     // For paid plans, check wallet balance
@@ -356,7 +376,10 @@ class WalletService {
   /**
    * Downgrade a league to a lower plan
    */
-  async downgradePlan(leagueId: string, newPlanId: string): Promise<{ success: boolean; error?: string }> {
+  async downgradePlan(
+    leagueId: string,
+    newPlanId: string,
+  ): Promise<{ success: boolean; error?: string }> {
     // Parallelize independent queries
     const [league, newPlan] = await Promise.all([
       prisma.league.findUnique({
@@ -376,7 +399,10 @@ class WalletService {
 
     // Check if this is actually a downgrade
     if (newPlan.monthlyPrice >= league.plan.monthlyPrice) {
-      return { success: false, error: 'Ce plan n\'est pas un downgrade. Utilisez upgrade à la place.' };
+      return {
+        success: false,
+        error: "Ce plan n'est pas un downgrade. Utilisez upgrade à la place.",
+      };
     }
 
     // Check if member count is within new plan limits
@@ -414,7 +440,13 @@ class WalletService {
     });
 
     if (!league || !league.wallet) {
-      return { success: false, amountDeducted: 0, newBalance: 0, nextPaymentDate: null, error: 'Ligue ou cagnotte non trouvée.' };
+      return {
+        success: false,
+        amountDeducted: 0,
+        newBalance: 0,
+        nextPaymentDate: null,
+        error: 'Ligue ou cagnotte non trouvée.',
+      };
     }
 
     const plan = league.plan;
@@ -422,7 +454,12 @@ class WalletService {
 
     // Free plan doesn't need payment
     if (plan.monthlyPrice === 0) {
-      return { success: true, amountDeducted: 0, newBalance: wallet.balance, nextPaymentDate: null };
+      return {
+        success: true,
+        amountDeducted: 0,
+        newBalance: wallet.balance,
+        nextPaymentDate: null,
+      };
     }
 
     // Check if balance is sufficient
@@ -444,7 +481,9 @@ class WalletService {
           });
         });
 
-        console.log(`⚠️ [WALLET] League ${leagueId} auto-downgraded to Free (insufficient balance, ${memberCount} members)`);
+        console.log(
+          `⚠️ [WALLET] League ${leagueId} auto-downgraded to Free (insufficient balance, ${memberCount} members)`,
+        );
         return {
           success: false,
           amountDeducted: 0,
@@ -459,7 +498,9 @@ class WalletService {
           data: { isFrozen: true },
         });
 
-        console.log(`🧊 [WALLET] League ${leagueId} frozen (insufficient balance, ${memberCount} members)`);
+        console.log(
+          `🧊 [WALLET] League ${leagueId} frozen (insufficient balance, ${memberCount} members)`,
+        );
         return {
           success: false,
           amountDeducted: 0,
@@ -484,7 +525,9 @@ class WalletService {
       },
     });
 
-    console.log(`✅ [WALLET] League ${leagueId} payment processed: -${plan.monthlyPrice}€, new balance: ${updatedWallet.balance}€`);
+    console.log(
+      `✅ [WALLET] League ${leagueId} payment processed: -${plan.monthlyPrice}€, new balance: ${updatedWallet.balance}€`,
+    );
 
     return {
       success: true,

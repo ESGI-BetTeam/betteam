@@ -1,9 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { theSportsDBClient } from './client';
-import {
-  TheSportsDBEventsResponse,
-  TheSportsDBEvent,
-} from '../../types/thesportsdb';
+import { TheSportsDBEventsResponse, TheSportsDBEvent } from '../../types/thesportsdb';
 
 /**
  * Service de synchronisation des matchs depuis TheSportsDB
@@ -31,7 +28,7 @@ class MatchesService {
       const response = await theSportsDBClient.get<TheSportsDBEventsResponse>(
         `/schedule/next/league/${leagueId}`,
         cacheKey,
-        cacheTTL
+        cacheTTL,
       );
 
       if (!response.schedule || response.schedule.length === 0) {
@@ -46,7 +43,9 @@ class MatchesService {
       }
 
       const duration = Date.now() - startTime;
-      console.log(`✅ ${syncCount} upcoming matches synced for ${competition.name} in ${duration}ms`);
+      console.log(
+        `✅ ${syncCount} upcoming matches synced for ${competition.name} in ${duration}ms`,
+      );
 
       await prisma.syncLog.create({
         data: {
@@ -97,7 +96,7 @@ class MatchesService {
       const response = await theSportsDBClient.get<TheSportsDBEventsResponse>(
         `/schedule/previous/league/${leagueId}`,
         cacheKey,
-        cacheTTL
+        cacheTTL,
       );
 
       if (!response.schedule || response.schedule.length === 0) {
@@ -176,7 +175,7 @@ class MatchesService {
 
     const duration = Date.now() - startTime;
     console.log(
-      `✅ Matches sync completed: ${successCount} competitions success, ${errorCount} errors (${duration}ms)`
+      `✅ Matches sync completed: ${successCount} competitions success, ${errorCount} errors (${duration}ms)`,
     );
   }
 
@@ -186,7 +185,7 @@ class MatchesService {
   private async upsertMatch(
     event: TheSportsDBEvent,
     competitionId: string,
-    defaultStatus: string
+    defaultStatus: string,
   ): Promise<void> {
     // Trouver les équipes par leur externalId
     const homeTeam = await prisma.team.findUnique({

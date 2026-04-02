@@ -1,25 +1,27 @@
-import { Rocket, UserPlus, Target } from 'lucide-react'
+import { Rocket, UserPlus, Target } from 'lucide-react';
 
 const steps = [
   {
     icon: Rocket,
     number: '01',
     title: 'Créez votre espace',
-    description: 'En quelques clics, créez votre espace BetTeam personnalisé pour votre entreprise.'
+    description:
+      'En quelques clics, créez votre espace BetTeam personnalisé pour votre entreprise.',
   },
   {
     icon: UserPlus,
     number: '02',
     title: 'Invitez vos collègues',
-    description: 'Partagez le lien d\'invitation et constituez vos leagues entre équipes ou départements.'
+    description:
+      "Partagez le lien d'invitation et constituez vos leagues entre équipes ou départements.",
   },
   {
     icon: Target,
     number: '03',
     title: 'Pronostiquez !',
-    description: 'Pariez sur vos matchs préférés et suivez le classement en temps réel.'
-  }
-]
+    description: 'Pariez sur vos matchs préférés et suivez le classement en temps réel.',
+  },
+];
 
 export default function HowItWorks() {
   return (
@@ -27,9 +29,7 @@ export default function HowItWorks() {
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-            Comment ça marche ?
-          </h2>
+          <h2 className="text-4xl sm:text-5xl font-bold mb-4">Comment ça marche ?</h2>
           <p className="text-xl text-white/60 max-w-2xl mx-auto">
             Lancez-vous en moins de 5 minutes
           </p>
@@ -38,7 +38,7 @@ export default function HowItWorks() {
         {/* Steps */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6">
           {steps.map((step, index) => {
-            const Icon = step.icon
+            const Icon = step.icon;
             return (
               <div key={index} className="relative">
                 {/* Connector Line - hidden on mobile */}
@@ -63,10 +63,10 @@ export default function HowItWorks() {
                   <p className="text-white/60 leading-relaxed">{step.description}</p>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       </div>
     </section>
-  )
+  );
 }

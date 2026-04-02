@@ -1,24 +1,24 @@
-import { useState } from 'react'
-import { Check, X, Zap, Users, Trophy, Crown } from 'lucide-react'
-import Card from './Card'
-import Button from './Button'
+import { useState } from 'react';
+import { Check, X, Zap, Users, Trophy, Crown } from 'lucide-react';
+import Card from './Card';
+import Button from './Button';
 
 interface Feature {
-  label: string
-  available: boolean
+  label: string;
+  available: boolean;
 }
 
 interface Plan {
-  name: string
-  icon: React.ReactNode
-  priceMonthly: string
-  priceYearly: string
-  period: string
-  description: string
-  features: Feature[]
-  cta: string
-  highlighted: boolean
-  badge?: string
+  name: string;
+  icon: React.ReactNode;
+  priceMonthly: string;
+  priceYearly: string;
+  period: string;
+  description: string;
+  features: Feature[];
+  cta: string;
+  highlighted: boolean;
+  badge?: string;
 }
 
 const plans: Plan[] = [
@@ -39,10 +39,10 @@ const plans: Plan[] = [
       { label: 'Tous types de paris', available: false },
       { label: 'Toutes les compétitions', available: false },
       { label: 'Stats avancées', available: false },
-      { label: 'Custom events', available: false }
+      { label: 'Custom events', available: false },
     ],
     cta: 'Commencer gratuitement',
-    highlighted: false
+    highlighted: false,
   },
   {
     name: 'Champion',
@@ -59,11 +59,11 @@ const plans: Plan[] = [
       { label: 'Historique 6 mois', available: true },
       { label: 'Badges & Trophées', available: true },
       { label: 'Stats avancées', available: false },
-      { label: 'Custom events', available: false }
+      { label: 'Custom events', available: false },
     ],
     cta: 'Choisir Champion',
     highlighted: true,
-    badge: 'Populaire'
+    badge: 'Populaire',
   },
   {
     name: 'MVP',
@@ -79,31 +79,31 @@ const plans: Plan[] = [
       { label: 'Tous types de paris + custom', available: true },
       { label: 'Historique illimité', available: true },
       { label: 'Badges & Trophées', available: true },
-      { label: 'Stats avancées', available: true }
+      { label: 'Stats avancées', available: true },
     ],
     cta: 'Choisir MVP',
-    highlighted: false
-  }
-]
+    highlighted: false,
+  },
+];
 
 export default function Pricing() {
-  const [isYearly, setIsYearly] = useState(false)
+  const [isYearly, setIsYearly] = useState(false);
 
   return (
     <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-12">
-          <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-            Un tarif pour chaque groupe
-          </h2>
+          <h2 className="text-4xl sm:text-5xl font-bold mb-4">Un tarif pour chaque groupe</h2>
           <p className="text-xl text-white/60 max-w-2xl mx-auto mb-8">
             L'abonnement est par ligue, pas par utilisateur. Partagez les frais avec votre groupe !
           </p>
 
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-4">
-            <span className={`text-sm font-medium transition-colors ${!isYearly ? 'text-white' : 'text-white/50'}`}>
+            <span
+              className={`text-sm font-medium transition-colors ${!isYearly ? 'text-white' : 'text-white/50'}`}
+            >
               Mensuel
             </span>
             <button
@@ -118,7 +118,9 @@ export default function Pricing() {
                 }`}
               />
             </button>
-            <span className={`text-sm font-medium transition-colors ${isYearly ? 'text-white' : 'text-white/50'}`}>
+            <span
+              className={`text-sm font-medium transition-colors ${isYearly ? 'text-white' : 'text-white/50'}`}
+            >
               Annuel
             </span>
             {isYearly && (
@@ -143,12 +145,16 @@ export default function Pricing() {
                 </div>
               )}
 
-              <Card className={`h-full ${plan.highlighted ? 'border-accent/50 shadow-lg shadow-accent/10 scale-105' : ''}`}>
+              <Card
+                className={`h-full ${plan.highlighted ? 'border-accent/50 shadow-lg shadow-accent/10 scale-105' : ''}`}
+              >
                 <div className="flex flex-col h-full">
                   {/* Header */}
                   <div className="mb-6">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className={`p-2 rounded-lg ${plan.highlighted ? 'bg-accent/20 text-accent' : 'bg-white/10 text-white/70'}`}>
+                      <div
+                        className={`p-2 rounded-lg ${plan.highlighted ? 'bg-accent/20 text-accent' : 'bg-white/10 text-white/70'}`}
+                      >
                         {plan.icon}
                       </div>
                       <h3 className="text-2xl font-bold">{plan.name}</h3>
@@ -158,9 +164,7 @@ export default function Pricing() {
                       <span className="text-4xl font-bold">
                         {isYearly ? plan.priceYearly : plan.priceMonthly}
                       </span>
-                      {plan.period && (
-                        <span className="text-white/60">{plan.period}</span>
-                      )}
+                      {plan.period && <span className="text-white/60">{plan.period}</span>}
                       {isYearly && plan.priceMonthly !== '0€' && (
                         <span className="text-sm text-white/40">
                           (Total {plan.name === 'Champion' ? '59.90€' : '119,90€'}/an)
@@ -173,32 +177,33 @@ export default function Pricing() {
                   <div className="mb-8 flex-grow">
                     {/* Available Features */}
                     <ul className="space-y-3 mb-4">
-                      {plan.features.filter(f => f.available).map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-3">
-                          <Check className="text-accent flex-shrink-0 mt-0.5" size={20} />
-                          <span className="text-white/80">{feature.label}</span>
-                        </li>
-                      ))}
+                      {plan.features
+                        .filter((f) => f.available)
+                        .map((feature, idx) => (
+                          <li key={idx} className="flex items-start gap-3">
+                            <Check className="text-accent flex-shrink-0 mt-0.5" size={20} />
+                            <span className="text-white/80">{feature.label}</span>
+                          </li>
+                        ))}
                     </ul>
 
                     {/* Unavailable Features */}
-                    {plan.features.some(f => !f.available) && (
+                    {plan.features.some((f) => !f.available) && (
                       <ul className="space-y-3">
-                        {plan.features.filter(f => !f.available).map((feature, idx) => (
-                          <li key={idx} className="flex items-start gap-3">
-                            <X className="text-white/20 flex-shrink-0 mt-0.5" size={20} />
-                            <span className="text-white/30">{feature.label}</span>
-                          </li>
-                        ))}
+                        {plan.features
+                          .filter((f) => !f.available)
+                          .map((feature, idx) => (
+                            <li key={idx} className="flex items-start gap-3">
+                              <X className="text-white/20 flex-shrink-0 mt-0.5" size={20} />
+                              <span className="text-white/30">{feature.label}</span>
+                            </li>
+                          ))}
                       </ul>
                     )}
                   </div>
 
                   {/* CTA */}
-                  <Button
-                    variant={plan.highlighted ? 'primary' : 'outline'}
-                    className="w-full"
-                  >
+                  <Button variant={plan.highlighted ? 'primary' : 'outline'} className="w-full">
                     {plan.cta}
                   </Button>
                 </div>
@@ -218,14 +223,19 @@ export default function Pricing() {
             <div className="flex-grow text-center md:text-left">
               <h3 className="text-xl font-bold mb-2">Pot commun transparent</h3>
               <p className="text-white/70">
-                Chaque membre contribue librement au pot de la ligue. Vous voyez en temps réel
-                le solde, les mois couverts et l'historique des contributions.
-                <span className="text-white/50"> Contribution minimum : montant de l'abonnement choisi.</span>
+                Chaque membre contribue librement au pot de la ligue. Vous voyez en temps réel le
+                solde, les mois couverts et l'historique des contributions.
+                <span className="text-white/50">
+                  {' '}
+                  Contribution minimum : montant de l'abonnement choisi.
+                </span>
               </p>
             </div>
             <div className="flex-shrink-0 text-center">
               <div className="text-sm text-white/50 mb-1">Exemple pour 5 amis</div>
-              <div className="text-2xl font-bold text-accent">~1€<span className="text-sm font-normal text-white/50">/mois/pers</span></div>
+              <div className="text-2xl font-bold text-accent">
+                ~1€<span className="text-sm font-normal text-white/50">/mois/pers</span>
+              </div>
               <div className="text-xs text-white/40">avec Champion</div>
             </div>
           </div>
@@ -239,5 +249,5 @@ export default function Pricing() {
         </div>
       </div>
     </section>
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import { User } from "../interfaces/User";
+import { User } from '../interfaces/User';
 
-export interface AuthMeResponse{
-    user : User;
+export interface AuthMeResponse {
+  user: User;
 }

@@ -1,13 +1,13 @@
-import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 interface AccordionItemProps {
-  question: string
-  answer: string
+  question: string;
+  answer: string;
 }
 
 export default function Accordion({ question, answer }: AccordionItemProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="border-b border-white/10">
@@ -29,5 +29,5 @@ export default function Accordion({ question, answer }: AccordionItemProps) {
         <p className="text-white/60 leading-relaxed">{answer}</p>
       </div>
     </div>
-  )
+  );
 }

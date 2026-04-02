@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  TextInput,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  TextInputProps,
-} from 'react-native';
-import { colors, spacing, radius, fontSize } from '../../theme';
+import { View, TextInput, Text, TouchableOpacity, StyleSheet, TextInputProps } from 'react-native';
+import { colors, spacing, radius, fontSize, fonts } from '../../theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -41,10 +34,7 @@ export function Input({ label, error, icon, isPassword, style, ...props }: Input
           {...props}
         />
         {isPassword && (
-          <TouchableOpacity
-            onPress={() => setShowPassword(!showPassword)}
-            style={styles.toggle}
-          >
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.toggle}>
             <Text style={styles.toggleText}>{showPassword ? 'Masquer' : 'Voir'}</Text>
           </TouchableOpacity>
         )}
@@ -59,6 +49,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   label: {
+    fontFamily: fonts.bodyMedium,
     color: colors.textSecondary,
     fontSize: fontSize.sm,
     marginBottom: spacing.sm,
@@ -84,6 +75,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    fontFamily: fonts.body,
     color: colors.textPrimary,
     fontSize: fontSize.md,
   },
@@ -91,10 +83,12 @@ const styles = StyleSheet.create({
     paddingLeft: spacing.sm,
   },
   toggleText: {
+    fontFamily: fonts.bodyMedium,
     color: colors.accent,
     fontSize: fontSize.sm,
   },
   error: {
+    fontFamily: fonts.body,
     color: colors.error,
     fontSize: fontSize.xs,
     marginTop: spacing.xs,

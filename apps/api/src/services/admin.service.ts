@@ -237,7 +237,7 @@ class AdminService {
    */
   async updateUser(
     userId: string,
-    data: { role?: UserRole; isActive?: boolean }
+    data: { role?: UserRole; isActive?: boolean },
   ): Promise<AdminUserWithStats | null> {
     const user = await prisma.user.update({
       where: { id: userId },
@@ -455,7 +455,7 @@ class AdminService {
         acc[s.status] = s._count;
         return acc;
       },
-      { pending: 0, won: 0, lost: 0, void: 0 } as Record<string, number>
+      { pending: 0, won: 0, lost: 0, void: 0 } as Record<string, number>,
     );
 
     return {
