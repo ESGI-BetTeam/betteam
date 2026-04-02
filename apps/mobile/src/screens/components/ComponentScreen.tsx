@@ -4,6 +4,7 @@ import { colors, spacing, typo } from '@/theme';
 // Components
 import { Button } from '@/components/ui/Button';
 import { State } from '@/components/ui/State';
+import { Segment } from '@/components/ui/Segment';
 
 export function ComponentScreen() {
   return (
@@ -41,6 +42,19 @@ export function ComponentScreen() {
           <State variant="soon"/>
           <State variant="finished"/>
         </View>
+
+        <Text style={typo.h2}>Segment :</Text>
+        <View style={styles.componentsContainer}>
+          <Segment
+            options={[
+              {label: "Test 1 blablablabla", value: "test1"},
+              {label: "Test 2", value: "test2"},
+              {label: "Test 3", value: "test3"},
+            ]}
+            value='test1'
+            onChange={(value: string) => console.log(value)}
+          />
+        </View>
       </View>
     </ScrollView>
   );
@@ -59,8 +73,8 @@ const styles = StyleSheet.create({
     display: 'flex',
     flexDirection: 'column',
     gap: '10',
-    marginLeft: 40,
-    marginRight: 40,
+    marginLeft: 30,
+    marginRight: 30,
     marginBottom : 30
   },
 });
