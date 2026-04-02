@@ -7,7 +7,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { colors, spacing, radius, fontSize, borderWidth } from '@/theme';
+import { colors, spacing, radius, fontSize, borderWidth, fonts } from '@/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost';
 type ButtonSize = 'default' | 'large';
