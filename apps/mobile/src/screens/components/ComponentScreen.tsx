@@ -2,13 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, fontSize } from '../../theme';
+import { State } from '@/components/ui/State';
 
 export function ComponentScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <Text style={styles.title}>Components</Text>
-
+        <State variant="active"/>
       </View>
     </SafeAreaView>
   );
