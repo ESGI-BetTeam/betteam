@@ -12,11 +12,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { Input } from '../../components/ui/Input';
-import { Button } from '../../components/ui/Button';
-import { useAuthStore } from '../../stores/authStore';
-import { colors, spacing, fontSize, radius, fonts } from '../../theme';
-import { AuthStackParamList } from '../../types/navigation';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { useAuthStore } from '@/stores/authStore';
+import { colors, spacing, fontSize, radius, typo } from '@/theme';
+import { AuthStackParamList } from '@/types/navigation';
 import { AxiosError } from 'axios';
 
 type LoginNav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
@@ -65,8 +65,8 @@ export function LoginScreen() {
             <View style={styles.logoContainer}>
               <Text style={styles.logoIcon}>⚽</Text>
             </View>
-            <Text style={styles.title}>BetTeam</Text>
-            <Text style={styles.subtitle}>Connectez-vous à votre compte</Text>
+            <Text style={typo.h1}>BetTeam</Text>
+            <Text style={[styles.subtitle, typo.p]}>Connectez-vous à votre compte</Text>
           </View>
 
           {/* Form */}
@@ -96,7 +96,7 @@ export function LoginScreen() {
               style={styles.forgotPassword}
               onPress={() => Alert.alert('Info', 'Fonctionnalité à venir.')}
             >
-              <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
+              <Text style={[typo.p, styles.forgotPasswordText]}>Mot de passe oublié ?</Text>
             </TouchableOpacity>
 
             <Button
@@ -110,7 +110,7 @@ export function LoginScreen() {
           {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>ou continuer avec</Text>
+            <Text style={[styles.dividerText, typo.pMuted]}>ou continuer avec</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -134,9 +134,9 @@ export function LoginScreen() {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Pas encore de compte ? </Text>
+            <Text style={typo.smallSecondary}>Pas encore de compte ? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.footerLink}>S'inscrire</Text>
+              <Text style={[typo.small, styles.footerLink]}>S'inscrire</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -174,16 +174,7 @@ const styles = StyleSheet.create({
   logoIcon: {
     fontSize: 36,
   },
-  title: {
-    fontFamily: fonts.heading,
-    fontSize: fontSize.xxl + 8,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-    textTransform: 'uppercase',
-  },
   subtitle: {
-    fontFamily: fonts.body,
-    fontSize: fontSize.md,
     color: colors.textSecondary,
   },
   form: {
@@ -195,9 +186,8 @@ const styles = StyleSheet.create({
     marginTop: -spacing.sm,
   },
   forgotPasswordText: {
-    fontFamily: fonts.bodyMedium,
     color: colors.accent,
-    fontSize: fontSize.sm,
+    textDecorationLine: 'underline',
   },
   loginButton: {
     marginTop: spacing.sm,
@@ -213,9 +203,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   dividerText: {
-    fontFamily: fonts.body,
-    color: colors.textMuted,
-    fontSize: fontSize.sm,
     marginHorizontal: spacing.md,
   },
   socialRow: {
@@ -227,7 +214,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   socialIcon: {
-    fontFamily: fonts.bodyBold,
     fontSize: fontSize.lg,
     color: colors.textPrimary,
   },
@@ -236,14 +222,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingBottom: spacing.lg,
   },
-  footerText: {
-    fontFamily: fonts.body,
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-  },
   footerLink: {
-    fontFamily: fonts.bodySemiBold,
     color: colors.accent,
-    fontSize: fontSize.sm,
+    textDecorationLine: 'underline',
   },
 });
