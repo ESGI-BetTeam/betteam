@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../stores/authStore';
-import { colors, spacing, fontSize, fonts } from '../../theme';
+import { colors, spacing, typo } from '../../theme';
 
 export function ProfileScreen() {
   const { user, logout } = useAuthStore();
@@ -11,9 +11,9 @@ export function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <Text style={styles.title}>Profil</Text>
-        <Text style={styles.info}>{user?.username}</Text>
-        <Text style={styles.infoSub}>{user?.email}</Text>
+        <Text style={typo.h1}>Profil</Text>
+        <Text style={typo.p}>{user?.username}</Text>
+        <Text style={typo.pSecondary}>{user?.email}</Text>
         <Button
           title="Se déconnecter"
           variant="danger"
@@ -28,18 +28,4 @@ export function ProfileScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1, padding: spacing.lg },
-  title: {
-    fontFamily: fonts.heading,
-    fontSize: fontSize.xxl + 8,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-    textTransform: 'uppercase',
-  },
-  info: { fontFamily: fonts.bodySemiBold, fontSize: fontSize.lg, color: colors.textPrimary },
-  infoSub: {
-    fontFamily: fonts.body,
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
 });
