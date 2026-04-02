@@ -10,11 +10,13 @@ import {
 import { colors, spacing, radius, fontSize, borderWidth } from '@/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost';
+type ButtonSize = 'default' | 'large';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
   variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
   icon?: React.ReactNode;
@@ -26,6 +28,7 @@ export function Button({
   title,
   onPress,
   variant = 'primary',
+  size = 'default',
   loading = false,
   disabled = false,
   icon,
@@ -42,6 +45,7 @@ export function Button({
       style={[
         styles.base,
         variantStyles[variant],
+        variantSize[size],
         isDisabled && styles.disabled,
         style,
       ]}
@@ -75,8 +79,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 42,
-    borderRadius: radius.full,
     paddingHorizontal: spacing.lg,
   },
   disabled: {
@@ -130,3 +132,14 @@ const variantTextStyles: Record<ButtonVariant, TextStyle> = {
     textDecorationLine: 'underline',
   },
 };
+
+const variantSize: Record<ButtonSize, ViewStyle> = {
+  default: {
+    height: 42,
+    borderRadius: radius.full,
+  },
+  large: {
+    height: 54,
+    borderRadius: radius.lg,
+  }
+}
