@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { AppState, AppStateStatus } from 'react-native';
 import { authService, User } from '../services/auth.service';
 import { storage } from '../utils/storage';
 
@@ -9,12 +10,13 @@ interface AuthState {
   isInitialized: boolean;
 
   initialize: () => Promise<void>;
+  refreshSession: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
@@ -28,11 +30,23 @@ export const useAuthStore = create<AuthState>((set) => ({
         return;
       }
 
+      // The interceptor will auto-refresh the token if it's expired
       const { user } = await authService.me();
       set({ user, isAuthenticated: true, isInitialized: true });
     } catch {
       await storage.clearTokens();
-      set({ isInitialized: true });
+      set({ user: null, isAuthenticated: false, isInitialized: true });
+    }
+  },
+
+  refreshSession: async () => {
+    if (!get().isAuthenticated) return;
+    try {
+      const { user } = await authService.me();
+      set({ user });
+    } catch {
+      await storage.clearTokens();
+      set({ user: null, isAuthenticated: false });
     }
   },
 
