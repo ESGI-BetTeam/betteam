@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { colors, spacing, fontSize } from '@/theme';
+import { colors, radius,spacing, fontSize } from '@/theme';
 
 type StateVariant = 'active' | 'live' | 'soon' | 'finished';
 
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    borderRadius: spacing.xs,
+    borderRadius: radius.sm,
   },
   label: {
     fontSize: fontSize.md,
