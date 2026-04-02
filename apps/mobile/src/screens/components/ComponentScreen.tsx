@@ -1,11 +1,13 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { colors, spacing, typo } from '@/theme';
+
+// Components
+import { Button } from '@/components/ui/Button';
 import { State } from '@/components/ui/State';
 
 export function ComponentScreen() {
   return (
-    <SafeAreaView style={styles.safe}>
+    <ScrollView style={styles.safe}>
       <View style={styles.container}>
         <Text style={typo.h1}>Components</Text>
 
@@ -21,6 +23,17 @@ export function ComponentScreen() {
           <Text style={typo.small}>Small paragraph</Text>
         </View>
 
+        <Text style={typo.h2}>Button :</Text>
+        <View style={styles.componentsContainer}>
+          <Button title="Primary" variant="primary" onPress={() => console.log("clicked")} />
+          <Button title="Secondary" variant="secondary" onPress={() => console.log("clicked")} />
+          <Button title="Danger" variant="danger" onPress={() => console.log("clicked")} />
+          <Button title="Outline" variant="outline" onPress={() => console.log("clicked")} />
+          <Button title="Ghost" variant="ghost" onPress={() => console.log("clicked")} />
+          <Button title="Primary loading" variant="primary" loading={true} onPress={() => console.log("clicked")} />
+          <Button title="Primary large" variant="primary" size='large' onPress={() => console.log("clicked")} />
+        </View>
+
         <Text style={typo.h2}>States :</Text>
         <View style={styles.componentsContainer}>
           <State variant="active" label='En Cours'/>
@@ -29,12 +42,25 @@ export function ComponentScreen() {
           <State variant="finished"/>
         </View>
       </View>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background},
-  container: { flex: 1, padding: spacing.lg },
-  componentsContainer: { marginLeft: 40, marginRight: 40, marginBottom : 30 },
+  safe: {
+    flex: 1,
+    backgroundColor: colors.background
+  },
+  container: {
+    flex: 1,
+    padding: spacing.lg
+  },
+  componentsContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10',
+    marginLeft: 40,
+    marginRight: 40,
+    marginBottom : 30
+  },
 });
