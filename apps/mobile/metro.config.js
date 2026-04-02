@@ -4,10 +4,11 @@ const path = require('path');
 const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, '../..');
 
-const config = getDefaultConfig(projectRoot);
+const config = getDefaultConfig(projectRoot, { isCSSEnabled: true });
 
-// Watch the monorepo root for changes in shared packages
-config.watchFolders = [monorepoRoot];
+// Include monorepo root so Metro can resolve shared packages
+const defaultWatchFolders = config.watchFolders || [];
+config.watchFolders = [...defaultWatchFolders, monorepoRoot];
 
 // Resolve modules from both the project and monorepo root
 config.resolver.nodeModulesPaths = [
