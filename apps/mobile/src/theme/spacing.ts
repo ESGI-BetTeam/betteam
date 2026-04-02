@@ -23,3 +23,9 @@ export const fontSize = {
   xl: 24,
   xxl: 32,
 } as const;
+
+export const borderWidth = {
+  sx: 0.5,
+  sm: 1,
+  md: 1.5,
+}
