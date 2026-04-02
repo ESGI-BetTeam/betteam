@@ -7,7 +7,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { colors, spacing, radius, fontSize, borderWidth, fonts } from '@/theme';
+import { colors, spacing, radius, fontSize, borderWidth, typo } from '@/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost';
 type ButtonSize = 'default' | 'large';
@@ -55,7 +55,7 @@ export function Button({
         )}
         <Text
           style={[
-            styles.text,
+            typo.pBold,
             variantTextStyles[variant],
             icon ? { marginLeft: spacing.sm } : undefined,
             textStyle,
@@ -79,10 +79,6 @@ const styles = StyleSheet.create({
     display: 'flex',
     gap: spacing.sm,
     opacity: 0.5,
-  },
-  text: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: fontSize.md,
   },
 });
 
