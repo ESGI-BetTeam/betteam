@@ -42,7 +42,7 @@ export function Button({
       onPress={onPress}
       disabled={isDisabled}
       activeOpacity={0.8}
-      style={[styles.base, variantStyles[variant], isDisabled && styles.disabled, style]}
+      style={[styles.base, variantStyles[variant], variantSize[size], isDisabled && styles.disabled, style]}
     >
       <>
         {loading ? (
