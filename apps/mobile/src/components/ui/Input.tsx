@@ -7,7 +7,7 @@ import {
   StyleSheet,
   TextInputProps,
 } from 'react-native';
-import { colors, spacing, radius, fontSize } from '../../theme';
+import { colors, spacing, radius, fontSize } from '@/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
