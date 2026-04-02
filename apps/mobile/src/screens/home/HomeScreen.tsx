@@ -29,12 +29,14 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   title: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.heading,
+    fontSize: fontSize.xxl + 8,
     color: colors.textPrimary,
     marginBottom: spacing.sm,
+    textTransform: 'uppercase',
   },
   welcome: {
+    fontFamily: fonts.body,
     fontSize: fontSize.lg,
     color: colors.textSecondary,
     marginBottom: spacing.xl,

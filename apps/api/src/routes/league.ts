@@ -91,7 +91,7 @@ router.post(
   requireAuth,
   async (
     req: AuthenticatedRequest & { body: CreateLeagueRequest.Body },
-    res: Response<CreateLeagueResponse | { error: string }>
+    res: Response<CreateLeagueResponse | { error: string }>,
   ) => {
     try {
       const { name, description, isPrivate = true } = req.body;
@@ -196,7 +196,7 @@ router.post(
       console.error('Create league error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // GET /api/leagues - List leagues the user is a member of
@@ -205,7 +205,7 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { query: GetLeaguesRequest.Query },
-    res: Response<GetLeaguesResponse | { error: string }>
+    res: Response<GetLeaguesResponse | { error: string }>,
   ) => {
     try {
       const userId = req.userId!;
@@ -274,7 +274,7 @@ router.get(
       console.error('List leagues error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // GET /api/leagues/:id - Get league details
@@ -341,7 +341,9 @@ router.get(
       }
 
       // Hide invite code if user is not admin/owner
-      const userMembership = league.members.find((m: { userId: string; role: string }) => m.userId === userId);
+      const userMembership = league.members.find(
+        (m: { userId: string; role: string }) => m.userId === userId,
+      );
       const canSeeInviteCode = userMembership && ['owner', 'admin'].includes(userMembership.role);
 
       const responseLeague = transformLeague(league);
@@ -356,7 +358,7 @@ router.get(
       console.error('Get league error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // PATCH /api/leagues/:id - Update league
@@ -365,7 +367,7 @@ router.patch(
   requireAuth,
   async (
     req: AuthenticatedRequest & { body: UpdateLeagueRequest.Body },
-    res: Response<UpdateLeagueResponse | { error: string }>
+    res: Response<UpdateLeagueResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
@@ -393,7 +395,9 @@ router.patch(
       // Check if user is owner or admin
       const userMembership = league.members[0];
       if (!userMembership || !['owner', 'admin'].includes(userMembership.role)) {
-        return res.status(403).json({ error: 'Only league owners and admins can update the league.' });
+        return res
+          .status(403)
+          .json({ error: 'Only league owners and admins can update the league.' });
       }
 
       // Build update data
@@ -452,7 +456,7 @@ router.patch(
       console.error('Update league error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // DELETE /api/leagues/:id - Delete league (soft delete)
@@ -493,14 +497,17 @@ router.delete(
       console.error('Delete league error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // POST /api/leagues/:id/regenerate-code - Regenerate invite code
 router.post(
   '/:id/regenerate-code',
   requireAuth,
-  async (req: AuthenticatedRequest, res: Response<RegenerateInviteCodeResponse | { error: string }>) => {
+  async (
+    req: AuthenticatedRequest,
+    res: Response<RegenerateInviteCodeResponse | { error: string }>,
+  ) => {
     try {
       const { id } = req.params;
       const userId = req.userId!;
@@ -525,7 +532,9 @@ router.post(
       // Check if user is owner or admin
       const userMembership = league.members[0];
       if (!userMembership || !['owner', 'admin'].includes(userMembership.role)) {
-        return res.status(403).json({ error: 'Only league owners and admins can regenerate the invite code.' });
+        return res
+          .status(403)
+          .json({ error: 'Only league owners and admins can regenerate the invite code.' });
       }
 
       // Generate new unique invite code
@@ -550,7 +559,7 @@ router.post(
       console.error('Regenerate invite code error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // ============================================
@@ -586,7 +595,7 @@ router.post(
   requireAuth,
   async (
     req: AuthenticatedRequest & { body: JoinLeagueRequest.Body },
-    res: Response<JoinLeagueResponse | { error: string }>
+    res: Response<JoinLeagueResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
@@ -621,7 +630,9 @@ router.post(
 
       // Check if league is frozen
       if (league.wallet?.isFrozen) {
-        return res.status(400).json({ error: 'Cette ligue est gelée. Contactez un administrateur pour ajouter des fonds.' });
+        return res.status(400).json({
+          error: 'Cette ligue est gelée. Contactez un administrateur pour ajouter des fonds.',
+        });
       }
 
       // Check invite code
@@ -675,7 +686,7 @@ router.post(
       console.error('Join league error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // POST /api/leagues/:id/leave - Leave a league
@@ -712,7 +723,8 @@ router.post(
       // Owner cannot leave, they must delete the league or transfer ownership
       if (membership.role === 'owner') {
         return res.status(400).json({
-          error: 'As the owner, you cannot leave the league. Transfer ownership or delete the league instead.',
+          error:
+            'As the owner, you cannot leave the league. Transfer ownership or delete the league instead.',
         });
       }
 
@@ -727,7 +739,7 @@ router.post(
       console.error('Leave league error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // GET /api/leagues/:id/members - List league members
@@ -736,7 +748,7 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { query: GetLeagueMembersRequest.Query },
-    res: Response<GetLeagueMembersResponse | { error: string }>
+    res: Response<GetLeagueMembersResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
@@ -822,7 +834,7 @@ router.get(
       console.error('List league members error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // PATCH /api/leagues/:id/members/:userId - Update member role
@@ -831,7 +843,7 @@ router.patch(
   requireAuth,
   async (
     req: AuthenticatedRequest & { body: UpdateMemberRoleRequest.Body },
-    res: Response<UpdateMemberRoleResponse | { error: string }>
+    res: Response<UpdateMemberRoleResponse | { error: string }>,
   ) => {
     try {
       const { id, userId: targetUserId } = req.params;
@@ -876,7 +888,7 @@ router.patch(
 
       // Cannot change owner's role
       if (targetMembership.role === 'owner') {
-        return res.status(400).json({ error: 'Cannot change the owner\'s role.' });
+        return res.status(400).json({ error: "Cannot change the owner's role." });
       }
 
       // Update the role
@@ -908,7 +920,7 @@ router.patch(
       console.error('Update member role error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // DELETE /api/leagues/:id/members/:userId - Kick member from league
@@ -973,7 +985,7 @@ router.delete(
       console.error('Kick member error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // ============================================
@@ -986,12 +998,15 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { query: GetLeaderboardRequest.Query },
-    res: Response<GetLeaderboardResponse | { error: string }>
+    res: Response<GetLeaderboardResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
       const userId = req.userId!;
-      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as unknown as string) || 50));
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt(req.query.limit as unknown as string) || 50),
+      );
 
       const league = await prisma.league.findUnique({
         where: { id },
@@ -1077,7 +1092,7 @@ router.get(
       console.error('Get leaderboard error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // GET /api/leagues/:id/stats - Get league statistics
@@ -1113,37 +1128,38 @@ router.get(
       }
 
       // Run all independent queries in parallel
-      const [totalMembers, betStats, mostActiveBets, userBetStatsByStatus, lastBet] = await Promise.all([
-        // Total members
-        prisma.leagueMember.count({ where: { leagueId: id } }),
-        // Bet statistics by status
-        prisma.bet.groupBy({
-          by: ['status'],
-          where: { leagueId: id },
-          _count: true,
-          _sum: { amount: true, actualWin: true },
-        }),
-        // Most active user (top 1 by bet count)
-        prisma.bet.groupBy({
-          by: ['userId'],
-          where: { leagueId: id },
-          _count: true,
-          orderBy: { _count: { userId: 'desc' } },
-          take: 1,
-        }),
-        // All bets grouped by userId + status (eliminates N+1 for best performer)
-        prisma.bet.groupBy({
-          by: ['userId', 'status'],
-          where: { leagueId: id },
-          _count: true,
-        }),
-        // Last activity
-        prisma.bet.findFirst({
-          where: { leagueId: id },
-          orderBy: { createdAt: 'desc' },
-          select: { createdAt: true },
-        }),
-      ]);
+      const [totalMembers, betStats, mostActiveBets, userBetStatsByStatus, lastBet] =
+        await Promise.all([
+          // Total members
+          prisma.leagueMember.count({ where: { leagueId: id } }),
+          // Bet statistics by status
+          prisma.bet.groupBy({
+            by: ['status'],
+            where: { leagueId: id },
+            _count: true,
+            _sum: { amount: true, actualWin: true },
+          }),
+          // Most active user (top 1 by bet count)
+          prisma.bet.groupBy({
+            by: ['userId'],
+            where: { leagueId: id },
+            _count: true,
+            orderBy: { _count: { userId: 'desc' } },
+            take: 1,
+          }),
+          // All bets grouped by userId + status (eliminates N+1 for best performer)
+          prisma.bet.groupBy({
+            by: ['userId', 'status'],
+            where: { leagueId: id },
+            _count: true,
+          }),
+          // Last activity
+          prisma.bet.findFirst({
+            where: { leagueId: id },
+            orderBy: { createdAt: 'desc' },
+            select: { createdAt: true },
+          }),
+        ]);
 
       const totalBets = betStats.reduce((acc, stat) => acc + stat._count, 0);
       const totalBetsWon = betStats.find((s) => s.status === 'won')?._count || 0;
@@ -1246,7 +1262,7 @@ router.get(
       console.error('Get league stats error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // GET /api/leagues/:id/history - Get league bet history
@@ -1255,7 +1271,7 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { query: GetLeagueHistoryRequest.Query },
-    res: Response<GetLeagueHistoryResponse | { error: string }>
+    res: Response<GetLeagueHistoryResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
@@ -1364,7 +1380,7 @@ router.get(
       console.error('Get league history error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // ============================================
@@ -1395,7 +1411,10 @@ import {
 router.get(
   '/:id/competition',
   requireAuth,
-  async (req: AuthenticatedRequest, res: Response<GetLeagueCompetitionResponse | { error: string }>) => {
+  async (
+    req: AuthenticatedRequest,
+    res: Response<GetLeagueCompetitionResponse | { error: string }>,
+  ) => {
     try {
       const { id } = req.params;
       const userId = req.userId!;
@@ -1444,7 +1463,7 @@ router.get(
       console.error('Get league competition error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // PATCH /api/leagues/:id/competition - Update league's competition
@@ -1453,7 +1472,7 @@ router.patch(
   requireAuth,
   async (
     req: AuthenticatedRequest & { body: UpdateLeagueCompetitionRequest.Body },
-    res: Response<UpdateLeagueCompetitionResponse | { error: string }>
+    res: Response<UpdateLeagueCompetitionResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
@@ -1484,7 +1503,9 @@ router.patch(
       // Check if user is admin or owner
       const userMembership = league.members[0];
       if (!userMembership || !['owner', 'admin'].includes(userMembership.role)) {
-        return res.status(403).json({ error: 'Only league owners and admins can change the competition.' });
+        return res
+          .status(403)
+          .json({ error: 'Only league owners and admins can change the competition.' });
       }
 
       // Check if competition exists
@@ -1531,7 +1552,7 @@ router.patch(
       console.error('Update league competition error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // ============================================
@@ -1569,7 +1590,7 @@ router.get(
       console.error('Get wallet error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // POST /api/leagues/:id/wallet/contribute - Contribute to wallet
@@ -1578,7 +1599,7 @@ router.post(
   requireAuth,
   async (
     req: AuthenticatedRequest & { body: ContributeRequest.Body },
-    res: Response<ContributeResponse | { error: string }>
+    res: Response<ContributeResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
@@ -1615,7 +1636,7 @@ router.post(
       }
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // GET /api/leagues/:id/wallet/history - Get contribution history
@@ -1624,7 +1645,7 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { query: GetWalletHistoryRequest.Query },
-    res: Response<GetWalletHistoryResponse | { error: string }>
+    res: Response<GetWalletHistoryResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
@@ -1659,7 +1680,7 @@ router.get(
       console.error('Get contribution history error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // POST /api/leagues/:id/upgrade - Upgrade league plan
@@ -1668,7 +1689,7 @@ router.post(
   requireAuth,
   async (
     req: AuthenticatedRequest & { body: UpgradeLeagueRequest.Body },
-    res: Response<UpgradeLeagueResponse | { error: string }>
+    res: Response<UpgradeLeagueResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
@@ -1687,7 +1708,9 @@ router.post(
       });
 
       if (!membership || !['owner', 'admin'].includes(membership.role)) {
-        return res.status(403).json({ error: 'Only league owners and admins can upgrade the plan.' });
+        return res
+          .status(403)
+          .json({ error: 'Only league owners and admins can upgrade the plan.' });
       }
 
       const result = await walletService.upgradePlan(id, planId);
@@ -1715,7 +1738,7 @@ router.post(
       console.error('Upgrade plan error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 // POST /api/leagues/:id/downgrade - Downgrade league plan
@@ -1724,7 +1747,7 @@ router.post(
   requireAuth,
   async (
     req: AuthenticatedRequest & { body: DowngradeLeagueRequest.Body },
-    res: Response<DowngradeLeagueResponse | { error: string }>
+    res: Response<DowngradeLeagueResponse | { error: string }>,
   ) => {
     try {
       const { id } = req.params;
@@ -1743,7 +1766,9 @@ router.post(
       });
 
       if (!membership || !['owner', 'admin'].includes(membership.role)) {
-        return res.status(403).json({ error: 'Only league owners and admins can downgrade the plan.' });
+        return res
+          .status(403)
+          .json({ error: 'Only league owners and admins can downgrade the plan.' });
       }
 
       const result = await walletService.downgradePlan(id, planId);
@@ -1766,7 +1791,7 @@ router.post(
       console.error('Downgrade plan error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
     }
-  }
+  },
 );
 
 export default router;

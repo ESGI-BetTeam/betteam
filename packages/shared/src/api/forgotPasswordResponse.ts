@@ -1,3 +1,3 @@
 export interface ForgotPasswordResponse {
-    message: string;
+  message: string;
 }

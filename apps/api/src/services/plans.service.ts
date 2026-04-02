@@ -127,7 +127,9 @@ class PlansService {
   /**
    * Check if a league can change competition
    */
-  async canChangeCompetition(leagueId: string): Promise<{ allowed: boolean; error?: string; daysUntilChange?: number }> {
+  async canChangeCompetition(
+    leagueId: string,
+  ): Promise<{ allowed: boolean; error?: string; daysUntilChange?: number }> {
     const league = await prisma.league.findUnique({
       where: { id: leagueId },
       include: { plan: true },
@@ -157,7 +159,7 @@ class PlansService {
 
     // Calculate days until can change again
     const daysSinceChange = Math.floor(
-      (Date.now() - league.competitionChangedAt.getTime()) / (1000 * 60 * 60 * 24)
+      (Date.now() - league.competitionChangedAt.getTime()) / (1000 * 60 * 60 * 24),
     );
     const daysUntilChange = 7 - daysSinceChange;
 

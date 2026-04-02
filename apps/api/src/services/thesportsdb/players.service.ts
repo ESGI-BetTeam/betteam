@@ -1,9 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { theSportsDBClient } from './client';
-import {
-  TheSportsDBPlayersResponse,
-  TheSportsDBPlayer,
-} from '../../types/thesportsdb';
+import { TheSportsDBPlayersResponse, TheSportsDBPlayer } from '../../types/thesportsdb';
 
 /**
  * Service de synchronisation des joueurs depuis TheSportsDB
@@ -32,7 +29,7 @@ class PlayersService {
       const response = await theSportsDBClient.get<TheSportsDBPlayersResponse>(
         `/lookup/team/players/${teamExternalId}`,
         cacheKey,
-        cacheTTL
+        cacheTTL,
       );
 
       if (!response.player || response.player.length === 0) {
@@ -100,7 +97,7 @@ class PlayersService {
 
     const duration = Date.now() - startTime;
     console.log(
-      `✅ Players sync completed: ${successCount} teams success, ${errorCount} errors (${duration}ms)`
+      `✅ Players sync completed: ${successCount} teams success, ${errorCount} errors (${duration}ms)`,
     );
   }
 
@@ -155,11 +152,7 @@ class PlayersService {
   async getPlayersByTeamId(teamId: string) {
     return prisma.player.findMany({
       where: { teamId },
-      orderBy: [
-        { position: 'asc' },
-        { number: 'asc' },
-        { name: 'asc' },
-      ],
+      orderBy: [{ position: 'asc' }, { number: 'asc' }, { name: 'asc' }],
     });
   }
 

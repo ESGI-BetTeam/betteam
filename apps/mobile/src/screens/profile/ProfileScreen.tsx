@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../stores/authStore';
-import { colors, spacing, fontSize } from '../../theme';
+import { colors, spacing, fontSize, fonts } from '../../theme';
 
 export function ProfileScreen() {
   const { user, logout } = useAuthStore();
@@ -28,7 +28,18 @@ export function ProfileScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1, padding: spacing.lg },
-  title: { fontSize: fontSize.xxl, fontWeight: '700', color: colors.textPrimary, marginBottom: spacing.md },
-  info: { fontSize: fontSize.lg, color: colors.textPrimary, fontWeight: '600' },
-  infoSub: { fontSize: fontSize.md, color: colors.textSecondary, marginTop: spacing.xs },
+  title: {
+    fontFamily: fonts.heading,
+    fontSize: fontSize.xxl + 8,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+    textTransform: 'uppercase',
+  },
+  info: { fontFamily: fonts.bodySemiBold, fontSize: fontSize.lg, color: colors.textPrimary },
+  infoSub: {
+    fontFamily: fonts.body,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
 });

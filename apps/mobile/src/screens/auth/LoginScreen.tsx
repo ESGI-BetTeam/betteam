@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../stores/authStore';
-import { colors, spacing, fontSize, radius } from '../../theme';
+import { colors, spacing, fontSize, radius, fonts } from '../../theme';
 import { AuthStackParamList } from '../../types/navigation';
 import { AxiosError } from 'axios';
 
@@ -31,7 +31,7 @@ export function LoginScreen() {
 
   const validate = (): boolean => {
     const newErrors: typeof errors = {};
-    if (!email.trim()) newErrors.email = 'L\'email est requis';
+    if (!email.trim()) newErrors.email = "L'email est requis";
     if (!password) newErrors.password = 'Le mot de passe est requis';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -44,8 +44,7 @@ export function LoginScreen() {
       await login(email.trim().toLowerCase(), password);
     } catch (error) {
       const axiosError = error as AxiosError<{ error: string }>;
-      const message =
-        axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.';
+      const message = axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.';
       Alert.alert('Erreur', message);
     }
   };
@@ -60,10 +59,7 @@ export function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
@@ -179,12 +175,14 @@ const styles = StyleSheet.create({
     fontSize: 36,
   },
   title: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.heading,
+    fontSize: fontSize.xxl + 8,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
+    textTransform: 'uppercase',
   },
   subtitle: {
+    fontFamily: fonts.body,
     fontSize: fontSize.md,
     color: colors.textSecondary,
   },
@@ -197,6 +195,7 @@ const styles = StyleSheet.create({
     marginTop: -spacing.sm,
   },
   forgotPasswordText: {
+    fontFamily: fonts.bodyMedium,
     color: colors.accent,
     fontSize: fontSize.sm,
   },
@@ -214,6 +213,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   dividerText: {
+    fontFamily: fonts.body,
     color: colors.textMuted,
     fontSize: fontSize.sm,
     marginHorizontal: spacing.md,
@@ -227,9 +227,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   socialIcon: {
+    fontFamily: fonts.bodyBold,
     fontSize: fontSize.lg,
     color: colors.textPrimary,
-    fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
@@ -237,12 +237,13 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   footerText: {
+    fontFamily: fonts.body,
     color: colors.textSecondary,
     fontSize: fontSize.sm,
   },
   footerLink: {
+    fontFamily: fonts.bodySemiBold,
     color: colors.accent,
     fontSize: fontSize.sm,
-    fontWeight: '600',
   },
 });

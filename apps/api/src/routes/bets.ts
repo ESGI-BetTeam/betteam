@@ -77,7 +77,7 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { query: GetBetsRequest.Query },
-    res: Response<GetBetsResponse | { error: string }>
+    res: Response<GetBetsResponse | { error: string }>,
   ) => {
     try {
       const userId = req.userId!;
@@ -144,7 +144,7 @@ router.get(
       console.error('List bets error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
-  }
+  },
 );
 
 // GET /api/bets/history - Get user's bet history with stats
@@ -153,7 +153,7 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { query: GetBetHistoryRequest.Query },
-    res: Response<GetBetHistoryResponse | { error: string }>
+    res: Response<GetBetHistoryResponse | { error: string }>,
   ) => {
     try {
       const userId = req.userId!;
@@ -234,7 +234,8 @@ router.get(
       const totalPointsWon = stats
         .filter((s) => s.status === 'won')
         .reduce((acc, s) => acc + (s._sum.actualWin || 0), 0);
-      const winRate = totalBets - pendingBets > 0 ? Math.round((wonBets / (totalBets - pendingBets)) * 100) : 0;
+      const winRate =
+        totalBets - pendingBets > 0 ? Math.round((wonBets / (totalBets - pendingBets)) * 100) : 0;
 
       return res.status(200).json({
         bets: bets.map(transformBet),
@@ -258,7 +259,7 @@ router.get(
       console.error('Get bet history error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
-  }
+  },
 );
 
 // GET /api/bets/weekly-limit - Get user's weekly bet limit status
@@ -267,14 +268,14 @@ router.get(
   requireAuth,
   async (
     req: AuthenticatedRequest & { query: { leagueId?: string } },
-    res: Response<WeeklyBetLimitResponse | { error: string }>
+    res: Response<WeeklyBetLimitResponse | { error: string }>,
   ) => {
     try {
       const userId = req.userId!;
       const leagueId = req.query.leagueId as string | undefined;
 
       if (!leagueId) {
-        return res.status(400).json({ error: 'L\'ID de la ligue est requis.' });
+        return res.status(400).json({ error: "L'ID de la ligue est requis." });
       }
 
       // Verify league exists and user is a member
@@ -290,7 +291,7 @@ router.get(
       console.error('Get weekly limit error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
-  }
+  },
 );
 
 // GET /api/bets/:id - Get bet details
@@ -350,7 +351,7 @@ router.get(
       if (bet.userId !== userId) {
         const isMember = await betsService.isLeagueMember(userId, bet.leagueId);
         if (!isMember) {
-          return res.status(403).json({ error: 'Vous n\'avez pas accès à ce pari.' });
+          return res.status(403).json({ error: "Vous n'avez pas accès à ce pari." });
         }
       }
 
@@ -361,7 +362,7 @@ router.get(
       console.error('Get bet error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
-  }
+  },
 );
 
 export default router;

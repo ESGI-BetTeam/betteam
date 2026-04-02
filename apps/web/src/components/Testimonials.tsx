@@ -1,26 +1,29 @@
-import { Quote } from 'lucide-react'
-import Card from './Card'
+import { Quote } from 'lucide-react';
+import Card from './Card';
 
 const testimonials = [
   {
     name: 'Marie Dubois',
     role: 'Directrice RH',
     company: 'TechCorp',
-    quote: 'BetTeam a complètement transformé l\'ambiance au bureau. Les équipes interagissent davantage et l\'engagement est au plus haut.'
+    quote:
+      "BetTeam a complètement transformé l'ambiance au bureau. Les équipes interagissent davantage et l'engagement est au plus haut.",
   },
   {
     name: 'Thomas Martin',
     role: 'CTO',
     company: 'StartupXYZ',
-    quote: 'En tant que CTO, j\'apprécie la simplicité d\'intégration et la sécurité de la plateforme. Nos développeurs adorent pronostiquer sur l\'esport !'
+    quote:
+      "En tant que CTO, j'apprécie la simplicité d'intégration et la sécurité de la plateforme. Nos développeurs adorent pronostiquer sur l'esport !",
   },
   {
     name: 'Sophie Laurent',
     role: 'Office Manager',
     company: 'ConsultingPro',
-    quote: 'Un vrai levier de cohésion. Les leagues créent du lien entre départements qui ne se parlaient jamais. Résultat : +30% d\'interactions.'
-  }
-]
+    quote:
+      "Un vrai levier de cohésion. Les leagues créent du lien entre départements qui ne se parlaient jamais. Résultat : +30% d'interactions.",
+  },
+];
 
 export default function Testimonials() {
   return (
@@ -62,5 +65,5 @@ export default function Testimonials() {
         </div>
       </div>
     </section>
-  )
+  );
 }

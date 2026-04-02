@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../stores/authStore';
-import { colors, spacing, fontSize, radius } from '../../theme';
+import { colors, spacing, fontSize, radius, fonts } from '../../theme';
 import { AuthStackParamList } from '../../types/navigation';
 import { AxiosError } from 'axios';
 
@@ -37,12 +37,13 @@ export function RegisterScreen() {
     const newErrors: Record<string, string> = {};
     if (!firstName.trim()) newErrors.firstName = 'Le prénom est requis';
     if (!lastName.trim()) newErrors.lastName = 'Le nom est requis';
-    if (!email.trim()) newErrors.email = 'L\'email est requis';
+    if (!email.trim()) newErrors.email = "L'email est requis";
     if (!username.trim()) newErrors.username = 'Le pseudo est requis';
     if (username.trim().length < 3) newErrors.username = '3 caractères minimum';
     if (!password) newErrors.password = 'Le mot de passe est requis';
     if (password.length < 6) newErrors.password = '6 caractères minimum';
-    if (password !== confirmPassword) newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+    if (password !== confirmPassword)
+      newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -51,7 +52,13 @@ export function RegisterScreen() {
     if (!validate()) return;
 
     try {
-      await register(email.trim().toLowerCase(), username.trim(), password, firstName.trim(), lastName.trim());
+      await register(
+        email.trim().toLowerCase(),
+        username.trim(),
+        password,
+        firstName.trim(),
+        lastName.trim(),
+      );
       Alert.alert(
         'Compte créé',
         'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.',
@@ -59,8 +66,7 @@ export function RegisterScreen() {
       );
     } catch (error) {
       const axiosError = error as AxiosError<{ error: string }>;
-      const message =
-        axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.';
+      const message = axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.';
       Alert.alert('Erreur', message);
     }
   };
@@ -71,10 +77,7 @@ export function RegisterScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <Text style={styles.logoIcon}>⚽</Text>
@@ -190,12 +193,14 @@ const styles = StyleSheet.create({
     fontSize: 36,
   },
   title: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.heading,
+    fontSize: fontSize.xxl + 8,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
+    textTransform: 'uppercase',
   },
   subtitle: {
+    fontFamily: fonts.body,
     fontSize: fontSize.md,
     color: colors.textSecondary,
   },
@@ -211,12 +216,13 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   footerText: {
+    fontFamily: fonts.body,
     color: colors.textSecondary,
     fontSize: fontSize.sm,
   },
   footerLink: {
+    fontFamily: fonts.bodySemiBold,
     color: colors.accent,
     fontSize: fontSize.sm,
-    fontWeight: '600',
   },
 });

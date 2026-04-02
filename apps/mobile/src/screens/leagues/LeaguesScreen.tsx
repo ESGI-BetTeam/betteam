@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, fontSize } from '../../theme';
+import { colors, spacing, fontSize, fonts } from '../../theme';
 
 export function LeaguesScreen() {
   return (
@@ -16,5 +16,10 @@ export function LeaguesScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1, padding: spacing.lg },
-  title: { fontSize: fontSize.xxl, fontWeight: '700', color: colors.textPrimary },
+  title: {
+    fontFamily: fonts.heading,
+    fontSize: fontSize.xxl + 8,
+    color: colors.textPrimary,
+    textTransform: 'uppercase',
+  },
 });

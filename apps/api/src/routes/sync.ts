@@ -276,7 +276,7 @@ router.get('/odds/status', async (req: Request, res: Response) => {
         ([oddsKey, sportsDbId]) => ({
           oddsApiKey: oddsKey,
           theSportsDbId: sportsDbId,
-        })
+        }),
       ),
       apiStats: stats.apiStats,
       recentSyncs: recentOdds.map((o) => ({
@@ -307,23 +307,24 @@ router.get('/status', async (req: Request, res: Response) => {
   try {
     const { prisma } = await import('../lib/prisma');
 
-    const [competitionsCount, teamsCount, playersCount, matchesCount, recentLogs] = await Promise.all([
-      prisma.competition.count({ where: { isActive: true } }),
-      prisma.team.count(),
-      prisma.player.count(),
-      prisma.match.count(),
-      prisma.syncLog.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-        include: {
-          competition: {
-            select: {
-              name: true,
+    const [competitionsCount, teamsCount, playersCount, matchesCount, recentLogs] =
+      await Promise.all([
+        prisma.competition.count({ where: { isActive: true } }),
+        prisma.team.count(),
+        prisma.player.count(),
+        prisma.match.count(),
+        prisma.syncLog.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          include: {
+            competition: {
+              select: {
+                name: true,
+              },
             },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
     return res.status(200).json({
       counts: {

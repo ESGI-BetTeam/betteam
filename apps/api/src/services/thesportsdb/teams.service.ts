@@ -1,9 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { theSportsDBClient } from './client';
-import {
-  TheSportsDBTeamsResponse,
-  TheSportsDBTeam,
-} from '../../types/thesportsdb';
+import { TheSportsDBTeamsResponse, TheSportsDBTeam } from '../../types/thesportsdb';
 
 /**
  * Service de synchronisation des équipes depuis TheSportsDB
@@ -32,7 +29,7 @@ class TeamsService {
       const response = await theSportsDBClient.get<TheSportsDBTeamsResponse>(
         `/list/teams/${leagueId}`,
         cacheKey,
-        cacheTTL
+        cacheTTL,
       );
 
       if (!response.list || response.list.length === 0) {
@@ -103,7 +100,7 @@ class TeamsService {
 
     const duration = Date.now() - startTime;
     console.log(
-      `✅ Teams sync completed: ${successCount} competitions success, ${errorCount} errors (${duration}ms)`
+      `✅ Teams sync completed: ${successCount} competitions success, ${errorCount} errors (${duration}ms)`,
     );
   }
 
@@ -120,7 +117,7 @@ class TeamsService {
       const response = await theSportsDBClient.get<TheSportsDBTeamsResponse>(
         `/lookup/team/${teamId}`,
         cacheKey,
-        cacheTTL
+        cacheTTL,
       );
 
       if (!response.list || response.list.length === 0) {
@@ -284,20 +281,20 @@ class TeamsService {
   /**
    * Récupérer les matchs d'une équipe avec filtres
    */
-  async getTeamMatches(teamId: string, options: {
-    status?: string;
-    limit?: number;
-    offset?: number;
-  }) {
+  async getTeamMatches(
+    teamId: string,
+    options: {
+      status?: string;
+      limit?: number;
+      offset?: number;
+    },
+  ) {
     const limit = Math.min(100, Math.max(1, options.limit || 20));
     const offset = Math.max(0, options.offset || 0);
 
     // Construire les conditions
     const where: any = {
-      OR: [
-        { homeTeamId: teamId },
-        { awayTeamId: teamId },
-      ],
+      OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
     };
 
     if (options.status) {
@@ -330,10 +327,7 @@ class TeamsService {
     // Récupérer tous les matchs terminés
     const matches = await prisma.match.findMany({
       where: {
-        OR: [
-          { homeTeamId: teamId },
-          { awayTeamId: teamId },
-        ],
+        OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
         status: 'finished',
       },
       select: {

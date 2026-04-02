@@ -118,7 +118,9 @@ class BetsService {
 
     // Check if we're too early (more than J-7)
     if (now < maxBettingDate) {
-      const daysUntilOpen = Math.ceil((maxBettingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const daysUntilOpen = Math.ceil(
+        (maxBettingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
       return {
         valid: false,
         error: `Les paris ouvriront dans ${daysUntilOpen} jour(s), le ${maxBettingDate.toLocaleDateString('fr-FR')}.`,
@@ -166,7 +168,10 @@ class BetsService {
     });
 
     if (wallet?.isFrozen) {
-      return { valid: false, error: 'Cette ligue est gelée. Ajoutez des fonds à la cagnotte pour la débloquer.' };
+      return {
+        valid: false,
+        error: 'Cette ligue est gelée. Ajoutez des fonds à la cagnotte pour la débloquer.',
+      };
     }
 
     // If never changed, allow
@@ -183,7 +188,7 @@ class BetsService {
     }
 
     const daysSinceChange = Math.floor(
-      (Date.now() - league.competitionChangedAt.getTime()) / (1000 * 60 * 60 * 24)
+      (Date.now() - league.competitionChangedAt.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     if (daysSinceChange < DEFAULT_FREE_COMPETITION_CHANGE_DAYS) {
@@ -219,7 +224,7 @@ class BetsService {
     }
 
     const daysSinceChange = Math.floor(
-      (Date.now() - league.competitionChangedAt.getTime()) / (1000 * 60 * 60 * 24)
+      (Date.now() - league.competitionChangedAt.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     if (daysSinceChange >= DEFAULT_FREE_COMPETITION_CHANGE_DAYS) {
@@ -299,7 +304,10 @@ class BetsService {
           return { valid: false, error: 'Format de prédiction invalide.' };
         }
         if (!['home', 'draw', 'away'].includes(parsed.value)) {
-          return { valid: false, error: 'Valeur de prédiction invalide. Utilisez "home", "draw" ou "away".' };
+          return {
+            valid: false,
+            error: 'Valeur de prédiction invalide. Utilisez "home", "draw" ou "away".',
+          };
         }
         return { valid: true };
       }

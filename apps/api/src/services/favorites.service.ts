@@ -48,10 +48,13 @@ class FavoritesService {
   /**
    * Récupérer toutes les équipes favorites d'un utilisateur
    */
-  async getUserFavoriteTeams(userId: string, options?: {
-    page?: number;
-    limit?: number;
-  }) {
+  async getUserFavoriteTeams(
+    userId: string,
+    options?: {
+      page?: number;
+      limit?: number;
+    },
+  ) {
     const page = options?.page || 1;
     const limit = Math.min(options?.limit || 20, 100);
     const skip = (page - 1) * limit;
