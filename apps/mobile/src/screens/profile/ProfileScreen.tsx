@@ -16,7 +16,7 @@ export function ProfileScreen() {
         <Text style={styles.infoSub}>{user?.email}</Text>
         <Button
           title="Se déconnecter"
-          variant="outline"
+          variant="danger"
           onPress={logout}
           style={{ marginTop: spacing.xl }}
         />
