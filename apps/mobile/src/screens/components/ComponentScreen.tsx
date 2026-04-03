@@ -80,6 +80,11 @@ export function ComponentScreen() {
             error='Password required'
             type='password'
           />
+          <Input
+            label='Input textarea'
+            placeholder='Input textarea'
+            type='textarea'
+          />
         </View>
       </View>
     </ScrollView>
