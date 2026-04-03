@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { colors, spacing, radius, typo } from '../../theme';
 
-type InputType   = 'text' | 'password' | 'email' | 'search';
+type InputType   = 'text' | 'password' | 'email' | 'search' | 'textarea';
 
 interface InputProps extends Omit<TextInputProps, 'secureTextEntry'> {
   label? : string;
@@ -34,6 +34,11 @@ const TYPE_CONFIG: Record<InputType, Partial<TextInputProps>> = {
   password: { secureTextEntry: true, autoCapitalize: 'none' },
   email:    { keyboardType: 'email-address', autoCapitalize: 'none', autoComplete: 'email' },
   search:   { returnKeyType: 'search', clearButtonMode: 'while-editing' },
+  textarea: {
+    multiline: true,
+    numberOfLines: 4,
+    textAlignVertical: 'top',
+  },
 };
 
 export function Input({
@@ -75,6 +80,7 @@ export function Input({
       <View
         style={[
           styles.inputWrapper,
+          type === 'textarea' ? styles.textarea : styles.default,
           isFocused && !disabled && styles.focused,
           !!error   && styles.hasError,
           disabled  && styles.wrapperDisabled,
@@ -138,15 +144,27 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: radius.full,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.accent,
     backgroundColor: colors.backgroundGlass,
   },
 
+  // Type
+  default: {
+    height: 48,
+    borderRadius: radius.full,
+  },
+  textarea: {
+    height: undefined,
+    minHeight: 100,
+    borderRadius: radius.lg,
+    alignItems: 'flex-start',
+  },
+
   // States
   focused: {
+
   },
   hasError: {
     backgroundColor: colors.errorDark,
