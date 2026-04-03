@@ -7,6 +7,7 @@ import { State } from '@/components/ui/State';
 import { Segment } from '@/components/ui/Segment';
 import { Tag } from '@/components/ui/Tag';
 import { Input } from '@/components/ui/Input';
+import { InputNumber } from '@/components/ui/InputNumber';
 
 export function ComponentScreen() {
   return (
@@ -85,6 +86,11 @@ export function ComponentScreen() {
             placeholder='Input textarea'
             type='textarea'
           />
+        </View>
+
+        <Text style={typo.h2}>Input Number :</Text>
+        <View style={styles.componentsContainer}>
+         <InputNumber />
         </View>
       </View>
     </ScrollView>
