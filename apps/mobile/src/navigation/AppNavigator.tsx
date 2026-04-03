@@ -1,25 +1,48 @@
-import React from 'react';
+import React, { JSX } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, StyleSheet } from 'react-native';
-import { HomeScreen } from '../screens/home/HomeScreen';
-import { LeaguesScreen } from '../screens/leagues/LeaguesScreen';
-import { PronosticsScreen } from '../screens/pronostics/PronosticsScreen';
-import { ProfileScreen } from '../screens/profile/ProfileScreen';
-import { ComponentScreen } from '../screens/components/ComponentScreen';
-import { AppTabParamList } from '../types/navigation';
-import { colors, fontSize } from '../theme';
+import { Text, View, StyleSheet, Platform } from 'react-native';
+import { AppTabParamList } from '@/types/navigation';
+import { colors, spacing, radius, typo } from '@/theme';
+
+import { Home2, People , Receipt21, Profile, MainComponent } from 'iconsax-react-nativejs';
+
+// Screens
+import { HomeScreen } from '@/screens/home/HomeScreen';
+import { LeaguesScreen } from '@/screens/leagues/LeaguesScreen';
+import { PronosticsScreen } from '@/screens/pronostics/PronosticsScreen';
+import { ProfileScreen } from '@/screens/profile/ProfileScreen';
+import { ComponentScreen } from '@/screens/components/ComponentScreen';
+
+type TabName = keyof AppTabParamList;
+
+const TAB_CONFIG: Record<TabName, { label: string; icon: React.ComponentType<{ size: string; color: string; variant?: 'Bulk' | 'Outline'  }> }> = {
+  Home: { label: 'Accueil', icon: Home2 },
+  Leagues: { label: 'Ligues', icon: People },
+  Pronostics: { label: 'Pronostiques', icon: Receipt21 },
+  Profile: { label: 'Profil', icon: Profile },
+  Components: { label: 'Composants', icon: MainComponent },
+};
+
+const SCREEN_MAP: Record<TabName, React.ComponentType> = {
+  Home:       HomeScreen,
+  Leagues:    LeaguesScreen,
+  Pronostics: PronosticsScreen,
+  Profile:    ProfileScreen,
+  Components: ComponentScreen,
+};
+
+function TabIcon({ name, focused }: { name: TabName; focused: boolean }) {
+  const { icon: Icon } = TAB_CONFIG[name];
+  const color = focused ? colors.accent : colors.textSecondary;
+
+  return (
+    <View style={styles.iconWrapper}>
+      <Icon size="22" color={color} variant={focused ? 'Bulk' : 'Outline'} />
+    </View>
+  );
+}
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
-
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Accueil: '🏠',
-    Leagues: '🏆',
-    Pronostiques: '⚽',
-    Profil: '👤',
-  };
-  return <Text style={[styles.icon, focused && styles.iconFocused]}>{icons[label] ?? '•'}</Text>;
-}
 
 export function AppNavigator() {
   return (
@@ -28,20 +51,25 @@ export function AppNavigator() {
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: styles.tabLabel,
-        tabBarIcon: ({ focused }) => <TabIcon label={route.name} focused={focused} />,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarIcon: ({ focused }) => (
+          <TabIcon name={route.name as TabName} focused={focused} />
+        ),
+        tabBarLabel: ({ focused }) => (
+          <Text style={[typo.p, { color: focused ? colors.accent : colors.textSecondary }]}>
+            {TAB_CONFIG[route.name as TabName].label}
+          </Text>
+        ),
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Accueil' }} />
-      <Tab.Screen name="Leagues" component={LeaguesScreen} options={{ tabBarLabel: 'Leagues' }} />
-      <Tab.Screen
-        name="Pronostics"
-        component={PronosticsScreen}
-        options={{ tabBarLabel: 'Pronostiques' }}
-      />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Profil' }} />
-      <Tab.Screen name="Components" component={ComponentScreen} options={{ tabBarLabel: 'Component' }} />
+      {(Object.keys(TAB_CONFIG) as TabName[]).map((name) => (
+        <Tab.Screen
+          key={name}
+          name={name}
+          component={SCREEN_MAP[name]}
+          options={{ tabBarLabel: TAB_CONFIG[name].label }}
+        />
+      ))}
     </Tab.Navigator>
   );
 }
@@ -51,19 +79,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundElevated,
     borderTopColor: colors.border,
     borderTopWidth: 1,
-    height: 85,
-    paddingTop: 8,
-    paddingBottom: 24,
+    height: 80,
+    paddingTop: spacing.sm,
   },
-  tabLabel: {
-    fontSize: fontSize.xs,
-    fontWeight: '500',
+  iconWrapper: {
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.full,
   },
   icon: {
-    fontSize: 22,
-    opacity: 0.5,
+    fontSize: 20,
+    opacity: 0.45,
   },
   iconFocused: {
+    color: colors.accent,
     opacity: 1,
+    fontSize: 22,
   },
 });
