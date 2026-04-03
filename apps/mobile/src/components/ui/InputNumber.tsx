@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { colors, spacing, radius } from '@/theme';
+import { colors, spacing, radius,typo } from '@/theme';
 
 interface InputNumberProps {
   value?: number;
@@ -125,13 +125,17 @@ const styles = StyleSheet.create({
   },
 
   button: {
-    padding: spacing.sm,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   operator: {
-    fontSize: 24,
     color: colors.textPrimary,
-    lineHeight: 28,
+    fontSize: 30,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   operatorDisabled: {
     opacity: 0.3,
@@ -150,8 +154,6 @@ const styles = StyleSheet.create({
   },
 
   value: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '600',
+    ...typo.pBold,
   },
 });

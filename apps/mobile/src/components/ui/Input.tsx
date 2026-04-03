@@ -8,7 +8,7 @@ import {
   TextInputProps,
   ViewStyle,
 } from 'react-native';
-import { colors, spacing, radius, typo } from '../../theme';
+import { colors, spacing, radius, typo } from '@/theme';
 
 type InputType   = 'text' | 'password' | 'email' | 'search' | 'textarea';
 
