@@ -1,87 +1,188 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, StyleSheet, TextInputProps } from 'react-native';
-import { colors, spacing, radius, fontSize, typo } from '../../theme';
+import {
+  View,
+  TextInput,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  TextInputProps,
+  ViewStyle,
+} from 'react-native';
+import { colors, spacing, radius, typo } from '../../theme';
 
-interface InputProps extends TextInputProps {
-  label?: string;
-  error?: string;
-  icon?: React.ReactNode;
-  isPassword?: boolean;
+type InputType   = 'text' | 'password' | 'email' | 'search';
+
+interface InputProps extends Omit<TextInputProps, 'secureTextEntry'> {
+  label? : string;
+  placeholder? : string;
+  error? : string;
+  hint? : string;
+
+  iconLeft? : React.ReactNode;
+  iconRight? : React.ReactNode;
+
+  type? : InputType;
+  disabled? : boolean;
+
+  onChangeText?: (value: string) => void
+
+  containerStyle? : ViewStyle;
 }
 
-export function Input({ label, error, icon, isPassword, style, ...props }: InputProps) {
+const TYPE_CONFIG: Record<InputType, Partial<TextInputProps>> = {
+  text:     {},
+  password: { secureTextEntry: true, autoCapitalize: 'none' },
+  email:    { keyboardType: 'email-address', autoCapitalize: 'none', autoComplete: 'email' },
+  search:   { returnKeyType: 'search', clearButtonMode: 'while-editing' },
+};
+
+export function Input({
+  label,
+  placeholder,
+  error,
+  hint,
+
+  iconLeft,
+  iconRight,
+
+  type = 'text',
+  disabled = false,
+
+  style,
+  containerStyle,
+  ...props
+}: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const isPassword = type === 'password';
+  const typeProps  = TYPE_CONFIG[type];
+
+  // For password, we generate secureTextEntry manually
+  const { secureTextEntry: _, ...safeTypeProps } = typeProps;
+
   return (
-    <View style={styles.container}>
-      {label && <Text style={typo.pSecondary}>{label}</Text>}
+    <View style={[styles.container, containerStyle]}>
+
+      {/* Label */}
+      {label && (
+        <Text style={[typo.small, styles.label, disabled && styles.textDisabled]}>
+          {label}
+        </Text>
+      )}
+
+      {/* Wrapper */}
       <View
         style={[
           styles.inputWrapper,
-          isFocused && styles.inputWrapperFocused,
-          error && styles.inputWrapperError,
+          isFocused && !disabled && styles.focused,
+          !!error   && styles.hasError,
+          disabled  && styles.wrapperDisabled,
         ]}
       >
-        {icon && <View style={styles.icon}>{icon}</View>}
+        {/* Left icon */}
+        {iconLeft && <View style={styles.iconLeft}>{iconLeft}</View>}
+
+        {/* Input */}
         <TextInput
           style={[typo.p, styles.input, style]}
-          placeholderTextColor={colors.textMuted}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textSecondary}
           selectionColor={colors.accent}
+          editable={!disabled}
           secureTextEntry={isPassword && !showPassword}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          {...safeTypeProps}
           {...props}
         />
+
+        {/* Toggle password */}
         {isPassword && (
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.toggle}>
-            <Text style={[typo.small, styles.toggleText]}>{showPassword ? 'Masquer' : 'Voir'}</Text>
+          <TouchableOpacity
+            onPress={() => setShowPassword(!showPassword)}
+            style={styles.iconRight}
+            disabled={disabled}
+          >
+            <Text style={[typo.small, styles.toggleText]}>
+              {showPassword ? 'Masquer' : 'Voir'}
+            </Text>
           </TouchableOpacity>
         )}
+
+        {/* Right icon (if no password) */}
+        {!isPassword && iconRight && (
+          <View style={styles.iconRight}>{iconRight}</View>
+        )}
       </View>
-      {error && <Text style={[typo.small, styles.error]}>{error}</Text>}
+
+      {/* Error or hint */}
+      {error
+        ? <Text style={[typo.small, styles.error]}>{error}</Text>
+        : hint && <Text style={[typo.small, styles.hint]}>{hint}</Text>
+      }
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing.md,
+    marginBottom: 20,
   },
   label: {
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
+
+  // Wrapper
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundInput,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: radius.full,
     paddingHorizontal: spacing.md,
-    height: 52,
-  },
-  inputWrapperFocused: {
+    borderWidth: 1,
     borderColor: colors.accent,
+    backgroundColor: colors.backgroundGlass,
   },
-  inputWrapperError: {
+
+  // States
+  focused: {
+  },
+  hasError: {
+    backgroundColor: colors.errorDark,
     borderColor: colors.error,
   },
-  icon: {
-    marginRight: spacing.sm,
+  wrapperDisabled: {
+    opacity: 0.5,
   },
+
+  // Input
   input: {
     flex: 1,
     color: colors.textPrimary,
   },
-  toggle: {
-    paddingLeft: spacing.sm,
+
+  // Icons
+  iconLeft: {
+    marginRight: spacing.sm,
   },
+  iconRight: {
+    marginLeft: spacing.sm,
+  },
+
+  // Texts
   toggleText: {
     color: colors.accent,
   },
   error: {
     color: colors.error,
     marginTop: spacing.xs,
+  },
+  hint: {
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  textDisabled: {
+    opacity: 0.5,
   },
 });
