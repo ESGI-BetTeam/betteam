@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { JSX } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, StyleSheet, Platform } from 'react-native';
 import { AppTabParamList } from '@/types/navigation';
 import { colors, spacing, radius, typo } from '@/theme';
 
-import { Home2, Cup, AddSquare, UserSquare, MainComponent } from 'iconsax-reactjs';
+import { Home2, People , Receipt21, Profile, MainComponent } from 'iconsax-react-nativejs';
 
 // Screens
 import { HomeScreen } from '@/screens/home/HomeScreen';
@@ -15,12 +15,12 @@ import { ComponentScreen } from '@/screens/components/ComponentScreen';
 
 type TabName = keyof AppTabParamList;
 
-const TAB_CONFIG: Record<TabName, { label: string; icon: object }> = {
-  Home: { label: 'Accueil', icon: <Home2 size="32" color="#37d67a"/> },
-  Leagues: { label: 'Ligues', icon: <Cup size="32" color="#37d67a"/> },
-  Pronostics: { label: 'Pronostiques', icon: <AddSquare size="32" color="#37d67a"/> },
-  Profile: { label: 'Profil', icon: <UserSquare size="32" color="#37d67a"/> },
-  Components: { label: 'Composants', icon: <MainComponent size="32" color="#37d67a"/> },
+const TAB_CONFIG: Record<TabName, { label: string; icon: React.ComponentType<{ size: string; color: string; variant?: 'Bulk' | 'Outline'  }> }> = {
+  Home: { label: 'Accueil', icon: Home2 },
+  Leagues: { label: 'Ligues', icon: People },
+  Pronostics: { label: 'Pronostiques', icon: Receipt21 },
+  Profile: { label: 'Profil', icon: Profile },
+  Components: { label: 'Composants', icon: MainComponent },
 };
 
 const SCREEN_MAP: Record<TabName, React.ComponentType> = {
@@ -32,11 +32,12 @@ const SCREEN_MAP: Record<TabName, React.ComponentType> = {
 };
 
 function TabIcon({ name, focused }: { name: TabName; focused: boolean }) {
-  const { icon } = TAB_CONFIG[name];
+  const { icon: Icon } = TAB_CONFIG[name];
+  const color = focused ? colors.accent : colors.textSecondary;
 
   return (
     <View style={styles.iconWrapper}>
-      <Text style={[styles.icon, focused && styles.iconFocused]}>{icon}</Text>
+      <Icon size="22" color={color} variant={focused ? 'Bulk' : 'Outline'} />
     </View>
   );
 }
@@ -55,7 +56,7 @@ export function AppNavigator() {
           <TabIcon name={route.name as TabName} focused={focused} />
         ),
         tabBarLabel: ({ focused }) => (
-          <Text>
+          <Text style={[typo.p, { color: focused ? colors.accent : colors.textSecondary }]}>
             {TAB_CONFIG[route.name as TabName].label}
           </Text>
         ),
@@ -80,13 +81,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     height: 80,
     paddingTop: spacing.sm,
-  },
-  tabLabel: {
-    ...typo.h1,
-    marginTop: 10,
-  },
-  tabLabelFocused: {
-    color: colors.accent,
   },
   iconWrapper: {
     height: '100%',
