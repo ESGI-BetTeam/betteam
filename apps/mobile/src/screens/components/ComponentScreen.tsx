@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { State } from '@/components/ui/State';
 import { Segment } from '@/components/ui/Segment';
 import { Tag } from '@/components/ui/Tag';
+import { Input } from '@/components/ui/Input';
 
 export function ComponentScreen() {
   return (
@@ -56,12 +57,34 @@ export function ComponentScreen() {
             value='test1'
             onChange={(value: string) => console.log(value)}
           />
+        </View>
+
         <Text style={typo.h2}>Tag :</Text>
         <View style={styles.componentsContainer}>
           <Tag title='Primary tag' variant='primary' />
           <Tag title='Secondary tag' variant='secondary' />
           <Tag title='Danger tag' variant='danger' />
           <Tag title='Outline tag' variant='outline' />
+        </View>
+
+        <Text style={typo.h2}>Input :</Text>
+        <View style={styles.componentsContainer}>
+          <Input
+            label='Input text'
+            placeholder='Input text'
+            onChangeText={(value: string) => console.log(value)}
+          />
+          <Input
+            label='Input password'
+            placeholder='Input password'
+            error='Password required'
+            type='password'
+          />
+          <Input
+            label='Input textarea'
+            placeholder='Input textarea'
+            type='textarea'
+          />
         </View>
       </View>
     </ScrollView>
