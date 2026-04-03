@@ -93,6 +93,7 @@ export function RegisterScreen() {
               value={firstName}
               onChangeText={setFirstName}
               error={errors.firstName}
+              type='text'
               autoCapitalize="words"
             />
 
@@ -102,6 +103,7 @@ export function RegisterScreen() {
               value={lastName}
               onChangeText={setLastName}
               error={errors.lastName}
+              type='text'
               autoCapitalize="words"
             />
 
@@ -111,7 +113,7 @@ export function RegisterScreen() {
               value={username}
               onChangeText={setUsername}
               error={errors.username}
-              autoCapitalize="none"
+              type='text'
             />
 
             <Input
@@ -120,9 +122,7 @@ export function RegisterScreen() {
               value={email}
               onChangeText={setEmail}
               error={errors.email}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
+              type='email'
             />
 
             <Input
@@ -131,7 +131,7 @@ export function RegisterScreen() {
               value={password}
               onChangeText={setPassword}
               error={errors.password}
-              isPassword
+              type='password'
             />
 
             <Input
@@ -140,7 +140,7 @@ export function RegisterScreen() {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               error={errors.confirmPassword}
-              isPassword
+              type='password'
             />
 
             <Button
