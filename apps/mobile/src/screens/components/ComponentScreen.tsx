@@ -8,8 +8,37 @@ import { Segment } from '@/components/ui/Segment';
 import { Tag } from '@/components/ui/Tag';
 import { Input } from '@/components/ui/Input';
 import { InputNumber } from '@/components/ui/InputNumber';
+import { Timeline } from '@/components/ui/Timeline';
+import { useState, useEffect } from 'react';
 
 export function ComponentScreen() {
+  const timelineCountStep = 4;
+const [timelineStep, setTimelineStep] = useState(1);
+const [done, setDone] = useState(false);
+
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (timelineStep >= timelineCountStep) {
+      setDone(true);
+    } else {
+      setTimelineStep(prev => prev + 1);
+    }
+  }, 2000);
+
+  return () => clearTimeout(timer);
+}, [timelineStep]);
+
+// Reset après l'animation done
+useEffect(() => {
+  if (!done) return;
+  const timer = setTimeout(() => {
+    setDone(false);
+    setTimelineStep(1);
+  }, 2000);
+
+  return () => clearTimeout(timer);
+}, [done]);
+
   return (
     <ScrollView style={styles.safe}>
       <View style={styles.container}>
@@ -90,8 +119,14 @@ export function ComponentScreen() {
 
         <Text style={typo.h2}>Input Number :</Text>
         <View style={styles.componentsContainer}>
-         <InputNumber />
+          <InputNumber />
         </View>
+
+        <Text style={typo.h2}>Timeline :</Text>
+        <View style={styles.componentsContainer}>
+          <Timeline stepCount={timelineCountStep} currentStep={timelineStep} done={done} />
+        </View>
+
       </View>
     </ScrollView>
   );
