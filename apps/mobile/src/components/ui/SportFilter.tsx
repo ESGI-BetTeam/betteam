@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import { colors, spacing, borderWidth } from '@/theme';
+import { colors, spacing, borderWidth, typo } from '@/theme';
 
 export interface SportFilterItem {
   key: string;
@@ -55,8 +55,8 @@ export function SportFilter({ items, selected, onSelect }: SportFilterProps) {
             size={13}
             color={!selected ? colors.accent : colors.textSecondary}
           />
-          <Text style={[styles.chipLabel, !selected && styles.chipLabelActive]}>Tout</Text>
-          <Text style={[styles.chipCount, !selected && styles.chipCountActive]}>{total}</Text>
+          <Text style={[typo.smallSecondary, styles.chipLabel, !selected && styles.chipLabelActive]}>Tout</Text>
+          <Text style={[typo.small, styles.chipCount, !selected && styles.chipCountActive]}>{total}</Text>
         </TouchableOpacity>
 
         {items.map((item) => {
@@ -73,8 +73,8 @@ export function SportFilter({ items, selected, onSelect }: SportFilterProps) {
                 color={isActive ? colors.accent : colors.textSecondary}
                 size={14}
               />
-              <Text style={[styles.chipLabel, isActive && styles.chipLabelActive]}>{getSportLabel(item.key)}</Text>
-              <Text style={[styles.chipCount, isActive && styles.chipCountActive]}>{item.count}</Text>
+              <Text style={[typo.smallSecondary, styles.chipLabel, isActive && styles.chipLabelActive]}>{getSportLabel(item.key)}</Text>
+              <Text style={[typo.small, styles.chipCount, isActive && styles.chipCountActive]}>{item.count}</Text>
             </TouchableOpacity>
           );
         })}
@@ -124,19 +124,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentLight,
   },
   chipLabel: {
-    color: colors.textSecondary,
     fontSize: 11,
-    fontFamily: 'Inter-Regular',
+    lineHeight: 16,
     fontWeight: '500',
   },
   chipLabelActive: {
     color: colors.textPrimary,
   },
   chipCount: {
-    color: colors.textSecondary,
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
+    lineHeight: 16,
     fontWeight: '600',
+    color: colors.textSecondary,
   },
   chipCountActive: {
     color: colors.textPrimary,

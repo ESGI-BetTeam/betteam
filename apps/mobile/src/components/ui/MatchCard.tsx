@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Calendar } from 'iconsax-react-nativejs';
-import { colors, spacing, radius, borderWidth } from '@/theme';
+import { colors, spacing, radius, borderWidth, typo, fontSize } from '@/theme';
 import { State } from './State';
 
 interface TeamInfo {
@@ -75,7 +75,7 @@ function TeamLogo({ name, logoUrl, size }: TeamInfo & { size: number }) {
 
   return (
     <View style={[styles.teamLogoFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={[styles.teamLogoInitial, { fontSize: size * 0.4 }]}>
+      <Text style={[typo.small, styles.teamLogoInitial, { fontSize: size * 0.4 }]}>
         {name.charAt(0).toUpperCase()}
       </Text>
     </View>
@@ -106,7 +106,7 @@ export function MatchCard({
       <View style={styles.header}>
         <View style={styles.dateRow}>
           <Calendar size={14} color={colors.textSecondary} variant="Outline" />
-          <Text style={styles.dateText}>{formatMatchDate(date)}</Text>
+          <Text style={[typo.smallSecondary, styles.dateText]}>{formatMatchDate(date)}</Text>
         </View>
         <State
           variant={stateVariantMap[status]}
@@ -118,15 +118,15 @@ export function MatchCard({
       <View style={[styles.teamsRow, !showOdds && !isFeatured && { marginBottom: 0 }]}>
         <View style={styles.team}>
           <TeamLogo name={homeTeam.name} logoUrl={homeTeam.logoUrl} size={logoSize} />
-          <Text style={[styles.teamName, isFeatured && styles.teamNameFeatured]} numberOfLines={1}>
+          <Text style={[typo.small, styles.teamName, isFeatured && styles.teamNameFeatured]} numberOfLines={1}>
             {homeTeam.name}
           </Text>
         </View>
 
-        <Text style={styles.vs}>VS</Text>
+        <Text style={[typo.smallSecondary, styles.vs]}>VS</Text>
 
         <View style={[styles.team, styles.teamRight]}>
-          <Text style={[styles.teamName, isFeatured && styles.teamNameFeatured]} numberOfLines={1}>
+          <Text style={[typo.small, styles.teamName, isFeatured && styles.teamNameFeatured]} numberOfLines={1}>
             {awayTeam.name}
           </Text>
           <TeamLogo name={awayTeam.name} logoUrl={awayTeam.logoUrl} size={logoSize} />
@@ -137,16 +137,16 @@ export function MatchCard({
       {showOdds && (
         <View style={styles.oddsRow}>
           <TouchableOpacity style={[styles.oddButton, styles.oddButtonFeatured]} activeOpacity={0.7}>
-            <Text style={[styles.oddLabel, styles.oddLabelFeatured]} numberOfLines={1}>{homeTeam.name}</Text>
-            <Text style={[styles.oddValue, styles.oddValueFeatured]}>{odds.home.toFixed(2)}</Text>
+            <Text style={[typo.smallSecondary, styles.oddLabel, styles.oddLabelFeatured]} numberOfLines={1}>{homeTeam.name}</Text>
+            <Text style={[typo.small, styles.oddValue, styles.oddValueFeatured]}>{odds.home.toFixed(2)}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.oddButton, styles.oddButtonFeatured]} activeOpacity={0.7}>
-            <Text style={[styles.oddLabel, styles.oddLabelFeatured]} numberOfLines={1}>Match nul</Text>
-            <Text style={[styles.oddValue, styles.oddValueFeatured]}>{odds.draw.toFixed(2)}</Text>
+            <Text style={[typo.smallSecondary, styles.oddLabel, styles.oddLabelFeatured]} numberOfLines={1}>Match nul</Text>
+            <Text style={[typo.small, styles.oddValue, styles.oddValueFeatured]}>{odds.draw.toFixed(2)}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.oddButton, styles.oddButtonFeatured]} activeOpacity={0.7}>
-            <Text style={[styles.oddLabel, styles.oddLabelFeatured]} numberOfLines={1}>{awayTeam.name}</Text>
-            <Text style={[styles.oddValue, styles.oddValueFeatured]}>{odds.away.toFixed(2)}</Text>
+            <Text style={[typo.smallSecondary, styles.oddLabel, styles.oddLabelFeatured]} numberOfLines={1}>{awayTeam.name}</Text>
+            <Text style={[typo.small, styles.oddValue, styles.oddValueFeatured]}>{odds.away.toFixed(2)}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -178,9 +178,8 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   dateText: {
-    color: colors.textSecondary,
     fontSize: 11,
-    fontFamily: 'Inter-Regular',
+    lineHeight: 16,
   },
   teamsRow: {
     flexDirection: 'row',
@@ -207,25 +206,21 @@ const styles = StyleSheet.create({
   },
   teamLogoInitial: {
     color: colors.textSecondary,
-    fontFamily: 'Inter-Regular',
     fontWeight: '600',
   },
   teamName: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontFamily: 'Inter-Regular',
+    fontSize: fontSize.sm,
     fontWeight: '500',
     flexShrink: 1,
   },
   teamNameFeatured: {
-    fontSize: 15,
+    fontSize: fontSize.md,
   },
   vs: {
     color: colors.textMuted,
-    fontSize: 13,
-    fontFamily: 'Inter-Regular',
     fontWeight: '600',
     marginHorizontal: spacing.sm,
+    lineHeight: 16,
   },
   oddsRow: {
     flexDirection: 'row',
@@ -240,7 +235,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   oddButtonFeatured: {
-    backgroundColor: 'rgba(16, 185, 129, 0.50)',
+    backgroundColor: colors.accentMedium,
   },
   oddButtonCompact: {
     backgroundColor: colors.backgroundInput,
@@ -248,10 +243,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   oddLabel: {
-    color: colors.textSecondary,
     fontSize: 9,
-    fontFamily: 'Inter-Regular',
-    fontWeight: '500',
+    lineHeight: 12,
     marginBottom: 2,
   },
   oddLabelFeatured: {
@@ -259,10 +252,9 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   oddValue: {
-    color: colors.accent,
-    fontSize: 13,
-    fontFamily: 'Inter-Regular',
+    fontSize: fontSize.sm,
     fontWeight: '700',
+    lineHeight: 16,
   },
   oddValueFeatured: {
     color: colors.white,
