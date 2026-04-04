@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, spacing, typo } from '@/theme';
+import { spacing, typo, colors } from '@/theme';
 
 interface SectionHeaderProps {
   title: string;
@@ -14,7 +14,7 @@ export function SectionHeader({ title, actionLabel, onAction }: SectionHeaderPro
       <Text style={typo.h2}>{title}</Text>
       {actionLabel && onAction && (
         <TouchableOpacity onPress={onAction}>
-          <Text style={styles.action}>{actionLabel}</Text>
+          <Text style={[typo.small, styles.action]}>{actionLabel}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -30,8 +30,6 @@ const styles = StyleSheet.create({
   },
   action: {
     color: colors.accent,
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
     fontWeight: '500',
   },
 });

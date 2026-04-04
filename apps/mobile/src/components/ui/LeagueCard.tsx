@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, spacing, radius, borderWidth } from '@/theme';
+import { colors, spacing, radius, borderWidth, typo } from '@/theme';
 import { Avatar } from './Avatar';
 import { Tag } from './Tag';
 
@@ -8,10 +8,10 @@ import { Tag } from './Tag';
 const LEAGUE_COLORS = [
   colors.accent,
   colors.secondary,
-  '#F59E0B',
-  '#EC4899',
-  '#8B5CF6',
-  '#06B6D4',
+  colors.leagueAmber,
+  colors.leaguePink,
+  colors.leaguePurple,
+  colors.leagueCyan,
 ] as const;
 
 interface LeagueCardProps {
@@ -45,8 +45,8 @@ export function LeagueCard({
       <View style={styles.topRow}>
         <Avatar name={name} size={36} style={{ backgroundColor: accentColor }} />
         <View style={styles.nameBlock}>
-          <Text style={styles.name} numberOfLines={1}>{name}</Text>
-          <Text style={styles.subtitle}>{membersCount} Participants</Text>
+          <Text style={[typo.pBold, styles.name]} numberOfLines={1}>{name}</Text>
+          <Text style={typo.smallSecondary}>{membersCount} Participants</Text>
         </View>
         {level != null && (
           <Tag
@@ -60,8 +60,8 @@ export function LeagueCard({
       {rank != null && totalMembers != null && (
         <View style={styles.rankSection}>
           <View style={styles.rankRow}>
-            <Text style={styles.rankLabel}>Classement</Text>
-            <Text style={styles.rankValue}>{rank} / {totalMembers}</Text>
+            <Text style={typo.smallSecondary}>Classement</Text>
+            <Text style={[typo.small, styles.rankValue]}>{rank} / {totalMembers}</Text>
           </View>
           <View style={styles.progressTrack}>
             <View
@@ -96,15 +96,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    color: colors.textPrimary,
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    fontWeight: '600',
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
+    marginBottom: 0,
   },
   rankSection: {
     gap: spacing.xs,
@@ -114,15 +107,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  rankLabel: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-  },
   rankValue: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
     fontWeight: '600',
   },
   progressTrack: {

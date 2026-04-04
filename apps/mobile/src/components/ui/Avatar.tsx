@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Image, Text, StyleSheet, ViewStyle, ImageStyle } from 'react-native';
-import { colors, radius } from '@/theme';
+import { colors, typo } from '@/theme';
 
 interface AvatarProps {
   uri?: string | null;
@@ -36,7 +36,7 @@ export function Avatar({ uri, name, size = 40, style }: AvatarProps) {
 
   return (
     <View style={[styles.fallback, containerStyle, style]}>
-      <Text style={[styles.initials, { fontSize: size * 0.4 }]}>{initials}</Text>
+      <Text style={[typo.pBold, styles.initials, { fontSize: size * 0.4 }]}>{initials}</Text>
     </View>
   );
 }
@@ -52,7 +52,6 @@ const styles = StyleSheet.create({
   },
   initials: {
     color: colors.white,
-    fontFamily: 'Inter-Regular',
-    fontWeight: '700',
+    lineHeight: undefined,
   },
 });
