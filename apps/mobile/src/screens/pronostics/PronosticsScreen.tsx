@@ -1,19 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typo } from '../../theme';
 
 export function PronosticsScreen() {
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <Text style={typo.h1}>Pronostiques</Text>
-      </View>
-    </SafeAreaView>
+    <View style={styles.container}>
+      <Text style={typo.h1}>Pronostiques</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  container: { flex: 1, padding: spacing.lg },
+  container: { flex: 1, padding: spacing.lg, backgroundColor: colors.background },
 });
