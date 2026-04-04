@@ -14,8 +14,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { Logo } from '../../components/ui/Logo';
 import { useAuthStore } from '../../stores/authStore';
-import { colors, spacing, radius, typo } from '../../theme';
+import { colors, spacing, typo } from '../../theme';
 import { AuthStackParamList } from '../../types/navigation';
 import { AxiosError } from 'axios';
 
@@ -79,10 +80,8 @@ export function RegisterScreen() {
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoIcon}>⚽</Text>
-            </View>
-            <Text style={typo.h1}>Créer un compte</Text>
+            <Logo width={160} height={48} />
+            <Text style={[typo.h1, { marginTop: spacing.md }]}>Créer un compte</Text>
             <Text style={typo.pSecondary}>Rejoignez BetTeam</Text>
           </View>
 
@@ -179,18 +178,6 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: spacing.xl,
-  },
-  logoContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.xl,
-    backgroundColor: colors.accentLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  logoIcon: {
-    fontSize: 36,
   },
   form: {
     marginBottom: spacing.lg,

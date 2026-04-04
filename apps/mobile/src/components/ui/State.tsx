@@ -52,12 +52,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: radius.sm,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   label: {
-    fontSize: fontSize.md,
-    fontWeight: '600',
+    fontSize: fontSize.xs,
+    fontWeight: '500',
+    fontFamily: 'Inter-Regular',
   },
 });

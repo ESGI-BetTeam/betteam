@@ -1,8 +1,11 @@
 import React, { JSX } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, StyleSheet, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppTabParamList } from '@/types/navigation';
 import { colors, spacing, radius, typo } from '@/theme';
+import { useAuthStore } from '@/stores/authStore';
+import { Header } from '@/components/ui/Header';
 
 import { Home2, People , Receipt21, Profile, MainComponent } from 'iconsax-react-nativejs';
 
@@ -45,36 +48,48 @@ function TabIcon({ name, focused }: { name: TabName; focused: boolean }) {
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
 export function AppNavigator() {
+  const { user } = useAuthStore();
+
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarIcon: ({ focused }) => (
-          <TabIcon name={route.name as TabName} focused={focused} />
-        ),
-        tabBarLabel: ({ focused }) => (
-          <Text style={[typo.p, { color: focused ? colors.accent : colors.textSecondary }]}>
-            {TAB_CONFIG[route.name as TabName].label}
-          </Text>
-        ),
-      })}
-    >
-      {(Object.keys(TAB_CONFIG) as TabName[]).map((name) => (
-        <Tab.Screen
-          key={name}
-          name={name}
-          component={SCREEN_MAP[name]}
-          options={{ tabBarLabel: TAB_CONFIG[name].label }}
-        />
-      ))}
-    </Tab.Navigator>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <Header
+        username={user?.username}
+        avatarUri={user?.avatar}
+      />
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarStyle: styles.tabBar,
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.textSecondary,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={route.name as TabName} focused={focused} />
+          ),
+          tabBarLabel: ({ focused }) => (
+            <Text style={[typo.p, { color: focused ? colors.accent : colors.textSecondary }]}>
+              {TAB_CONFIG[route.name as TabName].label}
+            </Text>
+          ),
+        })}
+      >
+        {(Object.keys(TAB_CONFIG) as TabName[]).map((name) => (
+          <Tab.Screen
+            key={name}
+            name={name}
+            component={SCREEN_MAP[name]}
+            options={{ tabBarLabel: TAB_CONFIG[name].label }}
+          />
+        ))}
+      </Tab.Navigator>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   tabBar: {
     backgroundColor: colors.backgroundElevated,
     borderTopColor: colors.border,

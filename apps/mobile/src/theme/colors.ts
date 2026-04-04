@@ -21,6 +21,9 @@ export const colors = {
   accentLight: 'rgba(16, 185, 129, 0.15)',
   accentWarning: '#FFC6AD',
 
+  // Accent medium (CTA odds)
+  accentMedium: 'rgba(16, 185, 129, 0.50)',
+
   // Secondary
   secondary: '#6366F1',
   secondaryActive: '#6366F1',
@@ -30,6 +33,12 @@ export const colors = {
   error: '#EF4444',
   errorDark: '#260B0B',
   errorLight: 'rgba(239, 68, 68, 0.15)',
+
+  // League palette
+  leagueAmber: '#F59E0B',
+  leaguePink: '#EC4899',
+  leaguePurple: '#8B5CF6',
+  leagueCyan: '#06B6D4',
 
   // Utility
   white: '#FFFFFF',
