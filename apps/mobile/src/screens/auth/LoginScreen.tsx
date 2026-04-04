@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/ui/Logo';
 import { useAuthStore } from '@/stores/authStore';
 import { colors, spacing, fontSize, radius, typo } from '@/theme';
 import { AuthStackParamList } from '@/types/navigation';
@@ -62,10 +63,7 @@ export function LoginScreen() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoIcon}>⚽</Text>
-            </View>
-            <Text style={typo.h1}>BetTeam</Text>
+            <Logo width={160} height={48} />
             <Text style={[styles.subtitle, typo.p]}>Connectez-vous à votre compte</Text>
           </View>
 
@@ -159,19 +157,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xl,
   },
-  logoContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.xl,
-    backgroundColor: colors.accentLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  logoIcon: {
-    fontSize: 36,
-  },
   subtitle: {
+    marginTop: spacing.md,
     color: colors.textSecondary,
   },
   form: {

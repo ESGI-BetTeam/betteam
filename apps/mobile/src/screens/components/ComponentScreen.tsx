@@ -8,6 +8,13 @@ import { Segment } from '@/components/ui/Segment';
 import { Tag } from '@/components/ui/Tag';
 import { Input } from '@/components/ui/Input';
 import { InputNumber } from '@/components/ui/InputNumber';
+import { Avatar } from '@/components/ui/Avatar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Header } from '@/components/ui/Header';
+import { Logo } from '@/components/ui/Logo';
+import { LeagueCard } from '@/components/ui/LeagueCard';
+import { MatchCard } from '@/components/ui/MatchCard';
+import { SportFilter } from '@/components/ui/SportFilter';
 
 export function ComponentScreen() {
   return (
@@ -92,6 +99,89 @@ export function ComponentScreen() {
         <View style={styles.componentsContainer}>
          <InputNumber />
         </View>
+
+        <Text style={typo.h2}>Logo :</Text>
+        <View style={[styles.componentsContainer, styles.row]}>
+          <Logo width={160} height={48} />
+          <Logo width={100} height={30} />
+        </View>
+
+        <Text style={typo.h2}>Avatar :</Text>
+        <View style={[styles.componentsContainer, styles.row]}>
+          <Avatar name="John Doe" size={40} />
+          <Avatar name="Sarah L" size={48} style={{ backgroundColor: colors.secondary }} />
+          <Avatar name="?" size={32} />
+        </View>
+
+        <Text style={typo.h2}>Header :</Text>
+        <View style={styles.componentsContainer}>
+          <Header username="JohnDoe" points={450} />
+        </View>
+
+        <Text style={typo.h2}>Section Header :</Text>
+        <View style={styles.componentsContainer}>
+          <SectionHeader title="Mes Ligues" actionLabel="Voir tout" onAction={() => console.log("voir tout")} />
+          <SectionHeader title="Prochains Matchs" />
+        </View>
+
+        <Text style={typo.h2}>League Card :</Text>
+        <View style={[styles.componentsContainer, styles.row]}>
+          <LeagueCard
+            name="Ligue 1"
+            membersCount={42}
+            rank={5}
+            totalMembers={42}
+            level={5}
+            colorIndex={0}
+            onPress={() => console.log("league pressed")}
+          />
+          <LeagueCard
+            name="Ligue 2"
+            membersCount={18}
+            rank={3}
+            totalMembers={18}
+            colorIndex={1}
+            onPress={() => console.log("league pressed")}
+          />
+        </View>
+
+        <Text style={typo.h2}>Sport Filter :</Text>
+        <View style={styles.componentsContainer}>
+          <SportFilter
+            items={[
+              { key: 'soccer', label: 'Football', count: 30 },
+              { key: 'ice hockey', label: 'Hockey', count: 17 },
+              { key: 'basketball', label: 'Basket', count: 3 },
+            ]}
+            selected={null}
+            onSelect={() => {}}
+          />
+        </View>
+
+        <Text style={typo.h2}>Match Card (featured) :</Text>
+        <View style={styles.componentsContainer}>
+          <MatchCard
+            homeTeam={{ name: "PSG" }}
+            awayTeam={{ name: "Marseille" }}
+            date={new Date().toISOString()}
+            status="open"
+            variant="featured"
+            odds={{ home: 1.85, draw: 3.40, away: 4.20 }}
+            onPress={() => console.log("pronostiquer")}
+          />
+        </View>
+
+        <Text style={typo.h2}>Match Card (compact) :</Text>
+        <View style={styles.componentsContainer}>
+          <MatchCard
+            homeTeam={{ name: "Lyon" }}
+            awayTeam={{ name: "Monaco" }}
+            date={new Date(Date.now() + 86400000).toISOString()}
+            status="open"
+            variant="compact"
+            odds={{ home: 2.10, draw: 3.20, away: 3.50 }}
+          />
+        </View>
       </View>
     </ScrollView>
   );
@@ -109,9 +199,13 @@ const styles = StyleSheet.create({
   componentsContainer: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '10',
+    gap: 10,
     marginLeft: 30,
     marginRight: 30,
     marginBottom : 30
+  },
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
 });
