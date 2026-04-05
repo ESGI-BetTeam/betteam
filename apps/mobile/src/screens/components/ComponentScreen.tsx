@@ -52,13 +52,6 @@ export function ComponentScreen() {
       <View style={styles.container}>
         <Text style={typo.h1}>Components</Text>
 
-        
-
-        <Text style={typo.h2}>Timeline :</Text>
-        <View style={styles.componentsContainer}>
-          <Timeline stepCount={timelineCountStep} currentStep={timelineStep} done={timelineIsDone} displayConfetti={true} />
-        </View>
-
         <Text style={typo.h2}>Typo :</Text>
         <View style={styles.componentsContainer}>
           <Text style={typo.h1}>Heading 1</Text>
