@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { colors, spacing, typo } from '@/theme';
-
+import { colors, typo } from '@/theme';
+import { PIConfetti, PIConfettiMethods } from 'react-native-fast-confetti';
 import { TickCircle } from 'iconsax-react-nativejs';
+
+const CIRCLE_SIZE = 42;
 
 interface TimelineProps {
   stepCount: number;
@@ -11,6 +13,8 @@ interface TimelineProps {
 }
 
 export function Timeline({ stepCount, currentStep, done = false }: TimelineProps) {
+  const [viewDimensions, setViewDimensions] = useState({ height: 0, width: 0 })
+  const confettiRef = useRef<PIConfettiMethods>(null);
   const animations = useRef(
     Array.from({ length: stepCount }, () => new Animated.Value(0))
   ).current;
@@ -27,7 +31,7 @@ export function Timeline({ stepCount, currentStep, done = false }: TimelineProps
         Animated.stagger(50,
           animations.map((anim, i) => {
             const center = (stepCount - 1) / 2;
-            const offset = (center - i) * (CIRCLE_SIZE + 10 + 4); // 4 = marginInline * 2
+            const offset = (center - i) * (CIRCLE_SIZE + 10 + 4);
             return Animated.spring(anim, {
               toValue: offset,
               useNativeDriver: true,
@@ -36,7 +40,9 @@ export function Timeline({ stepCount, currentStep, done = false }: TimelineProps
             });
           })
         ),
-      ]).start();
+      ]).start(() => {
+        confettiRef.current?.restart();
+      });
     } else {
       Animated.parallel([
         Animated.timing(lineOpacity, {
@@ -57,7 +63,7 @@ export function Timeline({ stepCount, currentStep, done = false }: TimelineProps
   }, [done]);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={(e) => setViewDimensions(e.nativeEvent.layout)}>
       {Array.from({ length: stepCount }, (_, i) => {
         const step        = i + 1;
         const isCompleted = done || step < currentStep;
@@ -66,8 +72,6 @@ export function Timeline({ stepCount, currentStep, done = false }: TimelineProps
 
         return (
           <React.Fragment key={step}>
-
-            {/* Cercle */}
             <Animated.View style={{ transform: [{ translateX: animations[i] }] }}>
               <View style={[styles.circle, isActive && styles.circleActive]}>
                 <View style={[
@@ -86,7 +90,6 @@ export function Timeline({ stepCount, currentStep, done = false }: TimelineProps
               </View>
             </Animated.View>
 
-            {/* Ligne */}
             {step < stepCount && (
               <Animated.View
                 style={[
@@ -96,22 +99,33 @@ export function Timeline({ stepCount, currentStep, done = false }: TimelineProps
                 ]}
               />
             )}
-
           </React.Fragment>
         );
       })}
+
+      {done && (
+        <PIConfetti
+          ref={confettiRef}
+          count={80}
+          colors={[colors.accent, colors.accent, colors.textPrimary, colors.accentLight]}
+          containerStyle={styles.confetti}
+          blastDuration={500}
+          fadeOutOnEnd={true}
+          blastPosition={{ x: (viewDimensions.width / 2) + 50, y: (viewDimensions.height / 2) + 150 }}
+        />
+      )}
     </View>
   );
 }
 
-const CIRCLE_SIZE = 42;
-
 const styles = StyleSheet.create({
   container: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
   },
+
   circle: {
     width: CIRCLE_SIZE + 10,
     height: CIRCLE_SIZE + 10,
@@ -125,6 +139,7 @@ const styles = StyleSheet.create({
   circleActive: {
     borderColor: colors.accent,
   },
+
   dot: {
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
@@ -137,12 +152,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   dotCompleted: {
-    backgroundColor: colors.background
-    ,
+    backgroundColor: colors.background,
   },
   dotPending: {
     backgroundColor: colors.textMuted,
   },
+
   stepNumber: {
     ...typo.p,
     color: colors.white,
@@ -150,6 +165,7 @@ const styles = StyleSheet.create({
   stepNumberActive: {
     color: colors.white,
   },
+
   line: {
     flex: 1,
     height: 2,
@@ -157,5 +173,17 @@ const styles = StyleSheet.create({
   },
   lineCompleted: {
     backgroundColor: colors.accent,
+  },
+
+  confetti: {
+    position: 'absolute',
+    top: -150,
+    left: -50,
+    pointerEvents: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 1500,
+    width: 800,
   },
 });
