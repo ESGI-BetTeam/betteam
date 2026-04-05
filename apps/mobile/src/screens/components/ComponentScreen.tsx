@@ -21,36 +21,43 @@ import { Timeline } from '@/components/ui/Timeline';
 
 export function ComponentScreen() {
   const timelineCountStep = 4;
-const [timelineStep, setTimelineStep] = useState(1);
-const [done, setDone] = useState(false);
+  const [timelineStep, setTimelineStep] = useState(1);
+  const [timelineIsDone, setTimelineIsDone] = useState(false);
 
-useEffect(() => {
-  const timer = setTimeout(() => {
-    if (timelineStep >= timelineCountStep) {
-      setDone(true);
-    } else {
-      setTimelineStep(prev => prev + 1);
-    }
-  }, 2000);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (timelineStep >= timelineCountStep) {
+        setTimelineIsDone(true);
+      } else {
+        setTimelineStep(prev => prev + 1);
+      }
+    }, 2000);
 
-  return () => clearTimeout(timer);
-}, [timelineStep]);
+    return () => clearTimeout(timer);
+  }, [timelineStep]);
 
-// Reset après l'animation done
-useEffect(() => {
-  if (!done) return;
-  const timer = setTimeout(() => {
-    setDone(false);
-    setTimelineStep(1);
-  }, 2000);
+  // Reset after "done" animation
+  useEffect(() => {
+    if (!timelineIsDone) return;
+    const timer = setTimeout(() => {
+      setTimelineIsDone(false);
+      setTimelineStep(1);
+    }, 9000);
 
-  return () => clearTimeout(timer);
-}, [done]);
+    return () => clearTimeout(timer);
+  }, [timelineIsDone]);
 
   return (
     <ScrollView style={styles.safe}>
       <View style={styles.container}>
         <Text style={typo.h1}>Components</Text>
+
+        
+
+        <Text style={typo.h2}>Timeline :</Text>
+        <View style={styles.componentsContainer}>
+          <Timeline stepCount={timelineCountStep} currentStep={timelineStep} done={timelineIsDone} />
+        </View>
 
         <Text style={typo.h2}>Typo :</Text>
         <View style={styles.componentsContainer}>
@@ -214,7 +221,7 @@ useEffect(() => {
         </View>
         <Text style={typo.h2}>Timeline :</Text>
         <View style={styles.componentsContainer}>
-          <Timeline stepCount={timelineCountStep} currentStep={timelineStep} done={done} displayConfetti={true} />
+          <Timeline stepCount={timelineCountStep} currentStep={timelineStep} done={timelineIsDone} displayConfetti={true} />
         </View>
 
       </View>
