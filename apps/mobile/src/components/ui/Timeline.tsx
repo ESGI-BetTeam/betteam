@@ -10,9 +10,10 @@ interface TimelineProps {
   stepCount: number;
   currentStep: number;
   done?: boolean;
+  displayConfetti?: boolean;
 }
 
-export function Timeline({ stepCount, currentStep, done = false }: TimelineProps) {
+export function Timeline({ stepCount, currentStep, done = false, displayConfetti = false }: TimelineProps) {
   const [viewDimensions, setViewDimensions] = useState({ height: 0, width: 0 })
   const confettiRef = useRef<PIConfettiMethods>(null);
   const animations = useRef(
@@ -103,7 +104,7 @@ export function Timeline({ stepCount, currentStep, done = false }: TimelineProps
         );
       })}
 
-      {done && (
+      {(done && displayConfetti) && (
         <PIConfetti
           ref={confettiRef}
           count={80}

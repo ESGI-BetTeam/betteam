@@ -23,7 +23,7 @@ export function ComponentScreen() {
       } else {
         setTimelineStep(prev => prev + 1);
       }
-    }, 2000);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, [timelineStep]);
@@ -48,7 +48,7 @@ export function ComponentScreen() {
 
         <Text style={typo.h2}>Timeline :</Text>
         <View style={styles.componentsContainer}>
-          <Timeline stepCount={timelineCountStep} currentStep={timelineStep} done={timelineIsDone} />
+          <Timeline stepCount={timelineCountStep} currentStep={timelineStep} done={timelineIsDone} displayConfetti={true} />
         </View>
 
         <Text style={typo.h2}>Typo :</Text>
