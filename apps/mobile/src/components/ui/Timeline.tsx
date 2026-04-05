@@ -15,10 +15,15 @@ interface TimelineProps {
 
 export function Timeline({ stepCount, currentStep, done = false, displayConfetti = false }: TimelineProps) {
   const [viewDimensions, setViewDimensions] = useState({ height: 0, width: 0 })
+
   const confettiRef = useRef<PIConfettiMethods>(null);
-  const animations = useRef(
-    Array.from({ length: stepCount }, () => new Animated.Value(0))
-  ).current;
+
+  const animationsRef = useRef<Animated.Value[]>([]);
+  if (animationsRef.current.length !== stepCount) {
+    animationsRef.current = Array.from({ length: stepCount }, () => new Animated.Value(0));
+  }
+  const animations = animationsRef.current;
+
   const lineOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -61,7 +66,7 @@ export function Timeline({ stepCount, currentStep, done = false, displayConfetti
         ),
       ]).start();
     }
-  }, [done]);
+  }, [done, animations, lineOpacity, stepCount]);
 
   return (
     <View style={styles.container} onLayout={(e) => setViewDimensions(e.nativeEvent.layout)}>
@@ -83,7 +88,7 @@ export function Timeline({ stepCount, currentStep, done = false, displayConfetti
                 ]}>
                   {isCompleted
                     ? <TickCircle size="90%" color={colors.accent} variant='Bulk' />
-                    : <Text style={[styles.stepNumber, isActive && styles.stepNumberActive]}>
+                    : <Text style={[styles.stepNumber]}>
                         {step}
                       </Text>
                   }
@@ -161,9 +166,6 @@ const styles = StyleSheet.create({
 
   stepNumber: {
     ...typo.p,
-    color: colors.white,
-  },
-  stepNumberActive: {
     color: colors.white,
   },
 

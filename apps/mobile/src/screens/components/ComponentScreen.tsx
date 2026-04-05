@@ -212,6 +212,7 @@ export function ComponentScreen() {
             odds={{ home: 2.10, draw: 3.20, away: 3.50 }}
           />
         </View>
+
         <Text style={typo.h2}>Timeline :</Text>
         <View style={styles.componentsContainer}>
           <Timeline stepCount={timelineCountStep} currentStep={timelineStep} done={timelineIsDone} displayConfetti={true} />
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
   componentsContainer: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 10,
+    gap: spacing.sm,
     marginLeft: 30,
     marginRight: 30,
     marginBottom : 30
