@@ -1,4 +1,6 @@
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useState, useEffect } from 'react';
+
 import { colors, spacing, typo } from '@/theme';
 
 // Components
@@ -15,8 +17,36 @@ import { Logo } from '@/components/ui/Logo';
 import { LeagueCard } from '@/components/ui/LeagueCard';
 import { MatchCard } from '@/components/ui/MatchCard';
 import { SportFilter } from '@/components/ui/SportFilter';
+import { Timeline } from '@/components/ui/Timeline';
 
 export function ComponentScreen() {
+  const timelineCountStep = 4;
+  const [timelineStep, setTimelineStep] = useState(1);
+  const [timelineIsDone, setTimelineIsDone] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (timelineStep >= timelineCountStep) {
+        setTimelineIsDone(true);
+      } else {
+        setTimelineStep(prev => prev + 1);
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [timelineStep]);
+
+  // Reset after "done" animation
+  useEffect(() => {
+    if (!timelineIsDone) return;
+    const timer = setTimeout(() => {
+      setTimelineIsDone(false);
+      setTimelineStep(1);
+    }, 9000);
+
+    return () => clearTimeout(timer);
+  }, [timelineIsDone]);
+
   return (
     <ScrollView style={styles.safe}>
       <View style={styles.container}>
@@ -97,7 +127,7 @@ export function ComponentScreen() {
 
         <Text style={typo.h2}>Input Number :</Text>
         <View style={styles.componentsContainer}>
-         <InputNumber />
+          <InputNumber />
         </View>
 
         <Text style={typo.h2}>Logo :</Text>
@@ -182,6 +212,11 @@ export function ComponentScreen() {
             odds={{ home: 2.10, draw: 3.20, away: 3.50 }}
           />
         </View>
+        <Text style={typo.h2}>Timeline :</Text>
+        <View style={styles.componentsContainer}>
+          <Timeline stepCount={timelineCountStep} currentStep={timelineStep} done={timelineIsDone} displayConfetti={true} />
+        </View>
+
       </View>
     </ScrollView>
   );
