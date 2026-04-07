@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import { colors, typo } from '@/theme';
 import { PIConfetti, PIConfettiMethods } from 'react-native-fast-confetti';
 import { TickCircle } from 'iconsax-react-nativejs';
@@ -71,10 +71,10 @@ export function Timeline({ stepCount, currentStep, done = false, displayConfetti
   return (
     <View style={styles.container} onLayout={(e) => setViewDimensions(e.nativeEvent.layout)}>
       {Array.from({ length: stepCount }, (_, i) => {
-        const step        = i + 1;
+        const step = i + 1;
         const isCompleted = done || step < currentStep;
-        const isActive    = !done && step === currentStep;
-        const isPending   = !done && step > currentStep;
+        const isActive = !done && step === currentStep;
+        const isPending = !done && step > currentStep;
 
         return (
           <React.Fragment key={step}>
@@ -83,8 +83,8 @@ export function Timeline({ stepCount, currentStep, done = false, displayConfetti
                 <View style={[
                   styles.dot,
                   isCompleted && styles.dotCompleted,
-                  isActive    && styles.dotActive,
-                  isPending   && styles.dotPending,
+                  isActive && styles.dotActive,
+                  isPending && styles.dotPending,
                 ]}>
                   {isCompleted
                     ? <TickCircle size="90%" color={colors.accent} variant='Bulk' />
@@ -117,6 +117,7 @@ export function Timeline({ stepCount, currentStep, done = false, displayConfetti
           containerStyle={styles.confetti}
           blastDuration={500}
           fadeOutOnEnd={true}
+          // Set "x + 50" and "y + 150" arbitrarily to fit with the position in the bellow style
           blastPosition={{ x: (viewDimensions.width / 2) + 50, y: (viewDimensions.height / 2) + 150 }}
         />
       )}
@@ -180,13 +181,13 @@ const styles = StyleSheet.create({
 
   confetti: {
     position: 'absolute',
-    top: -150,
-    left: -50,
+    top: -150, // Moving back the top to avoid the component cropping (for confetti)
+    left: -50, // Moving back the left to avoid the component cropping (for confetti)
     pointerEvents: 'none',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 1500,
-    width: 800,
+    height: Dimensions.get('window').height,
+    width: Dimensions.get('window').width,
   },
 });
