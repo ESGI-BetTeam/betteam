@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 
 import { colors, spacing, typo } from '@/theme';
 
+import { Activity } from 'iconsax-react-nativejs';
+
 // Components
 import { Button } from '@/components/ui/Button';
 import { State } from '@/components/ui/State';
@@ -18,6 +20,9 @@ import { LeagueCard } from '@/components/ui/LeagueCard';
 import { MatchCard } from '@/components/ui/MatchCard';
 import { SportFilter } from '@/components/ui/SportFilter';
 import { Timeline } from '@/components/ui/Timeline';
+import { RadioGroup } from '@/components/ui/Radio/RadioGroup';
+import { RadioItemDefault, RadioTile } from '@/components/ui/Radio/Index';
+import { RadioRichTile } from '@/components/ui/Radio/items/RadioItemRichTile';
 
 export function ComponentScreen() {
   const timelineCountStep = 4;
@@ -46,6 +51,10 @@ export function ComponentScreen() {
 
     return () => clearTimeout(timer);
   }, [timelineIsDone]);
+
+  const [delivery, setDelivery] = useState('instant')
+  const [size, setSize] = useState('xxl');
+  const [payment, setPayment] = useState('transfer');
 
   return (
     <ScrollView style={styles.safe}>
@@ -216,6 +225,50 @@ export function ComponentScreen() {
         <Text style={typo.h2}>Timeline :</Text>
         <View style={styles.componentsContainer}>
           <Timeline stepCount={timelineCountStep} currentStep={timelineStep} done={timelineIsDone} displayConfetti={true} />
+        </View>
+
+        <Text style={typo.h2}>Radio :</Text>
+        <View style={styles.componentsContainer}>
+          <Text style={typo.h3}>Default :</Text>
+          <RadioGroup
+            options={[
+              { value: 'standard', label: 'Standard', description: 'Livraison en 5–7 jours ouvrés' },
+              { value: 'express', label: 'Express', description: 'Livraison en 2–3 jours ouvrés' },
+              { value: 'instant', label: 'Instantanée', description: 'Indisponible pour le moment', disabled: true },
+            ]}
+            value={delivery}
+            onChange={setDelivery}
+            ItemComponent={RadioItemDefault}
+            label='Mode de livraison'
+          />
+
+          <Text style={typo.h3}>Tile :</Text>
+          <RadioGroup
+            options={[
+              { value: 's', label: 'Taille', description: 'S' },
+              { value: 'm', label: 'Taille', description: 'M' },
+              { value: 'l', label: 'Taille', description: 'L' },
+              { value: 'xl', label: 'Taille', description: 'XL' },
+              { value: 'xxl', label: 'Taille', description: 'XXL', disabled: true },
+            ]}
+            value={size}
+            onChange={setSize}
+            ItemComponent={RadioTile}
+            label="Taille"
+          />
+          
+          <Text style={typo.h3}>RichTile :</Text>
+          <RadioGroup
+            options={[
+              { value: 'card', label: 'Visa, Mastercard, CB', description: 'Carte bancaire', icon: Activity, },
+              { value: 'paypal', label: 'Paiement via votre compte', description: 'PayPal', icon: Activity, },
+              { value: 'transfer', label: 'Délai de 2–3 jours ouvrés', description: 'Virement bancaire', icon: Activity, disabled: true },
+            ]}
+            value={payment}
+            onChange={setPayment}
+            ItemComponent={RadioRichTile}
+            label='Mode de livraison'
+          />
         </View>
 
       </View>
