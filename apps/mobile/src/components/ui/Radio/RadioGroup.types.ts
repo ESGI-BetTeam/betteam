@@ -1,4 +1,4 @@
-import { ComponentType, ReactNode } from 'react';
+import { ComponentType } from 'react';
 import type { IconProps } from 'iconsax-react-nativejs';
 
 export interface RadioOption {
