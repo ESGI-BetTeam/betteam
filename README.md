@@ -596,9 +596,9 @@ Les contributions sont les bienvenues ! Voici comment contribuer :
 
 ### Q1 2026
 - [x] Setup de l'API backend avec Express et Swagger UI
-- [ ] Connexion base de données PostgreSQL
-- [ ] Authentification JWT et gestion utilisateurs
-- [ ] Implémentation des endpoints de ligues et paris
+- [x] Connexion base de données PostgreSQL
+- [x] Authentification JWT et gestion utilisateurs
+- [x] Implémentation des endpoints de ligues et paris
 
 ### Q2 2026
 - [ ] Application mobile iOS et Android
@@ -627,9 +627,10 @@ Ce projet est sous licence **MIT**. Voir le fichier [LICENSE](LICENSE) pour plus
 
 Développé avec passion par l'équipe BetTeam.
 
-- **Victor Besson** - Lead Developer
-- **Jallyl Tourougui** - Developer
-- **Leo Filsnoel** - Developer
+- **BESSON Victor** - Lead Developer
+- **FILSNOEL Leo** - Developer
+- **RENAULD Yohann** - Developer
+- **TOUROUGUI Jallyl** - Developer
 
 ---
 
