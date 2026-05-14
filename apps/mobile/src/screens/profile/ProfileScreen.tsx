@@ -3,10 +3,13 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-nat
 import { Button } from '../../components/ui/Button';
 import { Avatar } from '../../components/ui/Avatar';
 import { useAuthStore } from '../../stores/authStore';
-import { colors, spacing, typo } from '../../theme';
+import { colors, radius, spacing, typo } from '../../theme';
 
 import { profileService } from '@/services/profile.service';
 import { UserWithStats } from '@/types/stats';
+
+import { Cup, DollarCircle, HuobiToken, Lovely, Receipt21 } from 'iconsax-react-nativejs';
+import { Tag } from '@/components/ui/Tag';
 
 export function ProfileScreen() {
   const { logout } = useAuthStore();
@@ -57,19 +60,44 @@ export function ProfileScreen() {
             @{profile?.user.username}
           </Text>
         </View>
+        <View style={styles.tagContainer}>
+          <Tag
+            title={profile?.stats.currentStreak.count.toString() || '0'}
+            variant='outline'
+            icon={
+              <HuobiToken
+                size={12}
+                color={colors.accent}
+                style={styles.profileTag}
+              />}
+            />
+            <Tag
+              title={profile?.stats.averageBetAmount.toString() || '0'}
+              variant='outline'
+              icon={
+                <DollarCircle
+                  size={12}
+                  color={colors.accent}
+                  style={styles.profileTag}
+                />}
+              />
+        </View>
       </View>
 
       <View style={styles.statsContainer}>
         <StatCard
+          Icon={Receipt21}
           label="Paris"
           value={profile?.stats.totalBets.toString() || '0'}
         />
         <StatCard
+          Icon={Cup}
           label="Succès"
           value={`${profile?.stats.winRate}%` || '0%'}
         />
         <StatCard
-          label="Sport"
+          Icon={Lovely}
+          label="Sport favori"
           value={profile?.stats.favoriteSport || 'N/A'}
         />
       </View>
@@ -84,11 +112,12 @@ export function ProfileScreen() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({ Icon, label, value }: { Icon: React.ComponentType<{size: string, color: string, variant: "Bulk"}> , label: string; value: string }) {
   return (
     <View style={styles.statCard}>
+      <Icon size="32" color={colors.accent} variant="Bulk" />
+      <Text style={[typo.pBold, styles.statCardValue]}>{value}</Text>
       <Text style={typo.smallSecondary}>{label}</Text>
-      <Text style={typo.pBold}>{value}</Text>
     </View>
   );
 }
@@ -113,8 +142,15 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   nameContainer: {
-    alignItems: 'center',
     marginTop: spacing.md,
+  },
+  tagContainer: {
+    marginTop: spacing.md,
+    flexDirection: 'row',
+    gap: spacing.sm
+  },
+  profileTag: {
+    marginTop: spacing.xs
   },
   statsContainer: {
     flexDirection: 'row',
@@ -124,10 +160,13 @@ const styles = StyleSheet.create({
   statCard: {
     backgroundColor: colors.backgroundCard,
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     width: '30%',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderActive,
   },
+  statCardValue: {
+    marginTop: spacing.sm
+  }
 });

@@ -51,10 +51,9 @@ export function Tag({
 
 const styles = StyleSheet.create({
   base: {
-    alignSelf: 'flex-start',
+    flexDirection: 'row',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    gap: spacing.sm,
     borderRadius: radius.full,
   },
 });
