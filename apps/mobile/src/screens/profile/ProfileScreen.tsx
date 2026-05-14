@@ -142,10 +142,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   nameContainer: {
+    alignItems: 'center',
     marginTop: spacing.md,
   },
   tagContainer: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     flexDirection: 'row',
     gap: spacing.sm
   },
