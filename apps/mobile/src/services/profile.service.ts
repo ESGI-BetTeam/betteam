@@ -1,7 +1,6 @@
 import { api } from "./api";
 
 import { UserStats, UserWithStats } from "@/types/stats";
-import { User } from "./auth.service";
 
 export const profileService = {
 	async getProfile(): Promise<UserWithStats> {
