@@ -24,6 +24,7 @@ export interface League {
   id: string;
   name: string;
   description: string | null;
+  logoUrl: string | null;
   isPrivate: boolean;
   ownerId: string;
   inviteCode: string;

@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Add } from 'iconsax-react-nativejs';
 import { useAuthStore } from '@/stores/authStore';
+import { resolveMediaUrl } from '@/services/api';
 import { leagueService, League, LeaderboardEntry } from '@/services/league.service';
 import { matchService, Match } from '@/services/match.service';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -189,6 +190,7 @@ export function HomeScreen() {
                 membersCount={item._count?.members ?? 0}
                 rank={item.userRank}
                 totalMembers={item._count?.members}
+                logoUrl={resolveMediaUrl(item.logoUrl)}
                 colorIndex={index}
                 onPress={() => {}}
               />

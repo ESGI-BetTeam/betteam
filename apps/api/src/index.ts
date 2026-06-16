@@ -11,6 +11,9 @@ console.log('🔧 [1/8] Starting BetTeam API...');
 import { prisma } from './lib/prisma';
 console.log('🔧 [2/8] Prisma client imported');
 
+// Persistent uploads (served from the Railway volume)
+import { UPLOADS_DIR, ensureUploadsDir } from './lib/storage';
+
 // Import routes
 import healthRouter from './routes/health';
 import authRouter from './routes/auth';
@@ -59,6 +62,10 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded files (league logos, etc.) from the persistent volume
+ensureUploadsDir();
+app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '7d' }));
 
 // Request logging middleware
 app.use((req, res, next) => {

@@ -5,6 +5,7 @@ export namespace CreateLeagueRequest {
   export interface Body {
     name: string;
     description?: string;
+    logoUrl?: string;
     isPrivate?: boolean;
   }
 }
@@ -76,6 +77,19 @@ export namespace JoinLeagueRequest {
 
 export interface JoinLeagueResponse {
   member: LeagueMember;
+  message: string;
+}
+
+// POST /api/leagues/join - Join a league by invite code alone (no league id known)
+export namespace JoinLeagueByCodeRequest {
+  export interface Body {
+    inviteCode: string;
+  }
+}
+
+export interface JoinLeagueByCodeResponse {
+  member: LeagueMember;
+  league: League;
   message: string;
 }
 

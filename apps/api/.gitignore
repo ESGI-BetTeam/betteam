@@ -33,6 +33,7 @@ coverage/
 
 # Uploads/temp files
 uploads/
+.local-storage/
 temp/
 tmp/
 

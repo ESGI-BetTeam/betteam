@@ -7,18 +7,24 @@ import { colors, spacing, radius, typo } from '@/theme';
 import { useAuthStore } from '@/stores/authStore';
 import { Header } from '@/components/ui/Header';
 
-import { Home2, People , Receipt21, Profile, MainComponent } from 'iconsax-react-nativejs';
+import { Home2, People, Receipt21, Profile, MainComponent } from 'iconsax-react-nativejs';
 
 // Screens
 import { HomeScreen } from '@/screens/home/HomeScreen';
-import { LeaguesScreen } from '@/screens/leagues/LeaguesScreen';
+import { LeaguesNavigator } from '@/navigation/LeaguesNavigator';
 import { PronosticsScreen } from '@/screens/pronostics/PronosticsScreen';
 import { ProfileScreen } from '@/screens/profile/ProfileScreen';
 import { ComponentScreen } from '@/screens/components/ComponentScreen';
 
 type TabName = keyof AppTabParamList;
 
-const TAB_CONFIG: Record<TabName, { label: string; icon: React.ComponentType<{ size: string; color: string; variant?: 'Bulk' | 'Outline'  }> }> = {
+const TAB_CONFIG: Record<
+  TabName,
+  {
+    label: string;
+    icon: React.ComponentType<{ size: string; color: string; variant?: 'Bulk' | 'Outline' }>;
+  }
+> = {
   Home: { label: 'Accueil', icon: Home2 },
   Leagues: { label: 'Ligues', icon: People },
   Pronostics: { label: 'Pronostiques', icon: Receipt21 },
@@ -27,10 +33,10 @@ const TAB_CONFIG: Record<TabName, { label: string; icon: React.ComponentType<{ s
 };
 
 const SCREEN_MAP: Record<TabName, React.ComponentType> = {
-  Home:       HomeScreen,
-  Leagues:    LeaguesScreen,
+  Home: HomeScreen,
+  Leagues: LeaguesNavigator,
   Pronostics: PronosticsScreen,
-  Profile:    ProfileScreen,
+  Profile: ProfileScreen,
   Components: ComponentScreen,
 };
 
@@ -52,19 +58,14 @@ export function AppNavigator() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <Header
-        username={user?.username}
-        avatarUri={user?.avatar}
-      />
+      <Header username={user?.username} avatarUri={user?.avatar} />
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarStyle: styles.tabBar,
           tabBarActiveTintColor: colors.accent,
           tabBarInactiveTintColor: colors.textSecondary,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name={route.name as TabName} focused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon name={route.name as TabName} focused={focused} />,
           tabBarLabel: ({ focused }) => (
             <Text style={[typo.p, { color: focused ? colors.accent : colors.textSecondary }]}>
               {TAB_CONFIG[route.name as TabName].label}

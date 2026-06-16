@@ -225,6 +225,7 @@ model League {
   id                    String    @id @default(cuid())
   name                  String
   description           String?   @db.Text
+  logoUrl               String?   @map("logo_url") @db.Text
   isPrivate             Boolean   @default(true) @map("is_private")
   ownerId               String    @map("owner_id")
   inviteCode            String    @unique @map("invite_code")
