@@ -20,6 +20,7 @@ interface LeagueCardProps {
   rank?: number;
   totalMembers?: number;
   level?: number;
+  logoUrl?: string | null;
   colorIndex?: number;
   onPress?: () => void;
 }
@@ -30,11 +31,13 @@ export function LeagueCard({
   rank,
   totalMembers,
   level,
+  logoUrl,
   colorIndex = 0,
   onPress,
 }: LeagueCardProps) {
   const accentColor = LEAGUE_COLORS[colorIndex % LEAGUE_COLORS.length];
   const progress = rank && totalMembers ? (totalMembers - rank + 1) / totalMembers : 0;
+  const hasRank = rank !== undefined && totalMembers !== undefined;
 
   return (
     <TouchableOpacity
@@ -42,26 +45,26 @@ export function LeagueCard({
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={styles.topRow}>
-        <Avatar name={name} size={36} style={{ backgroundColor: accentColor }} />
+      <View style={[styles.topRow, hasRank && styles.topRowSpaced]}>
+        <Avatar uri={logoUrl} name={name} size={36} style={{ backgroundColor: accentColor }} />
         <View style={styles.nameBlock}>
-          <Text style={[typo.pBold, styles.name]} numberOfLines={1}>{name}</Text>
+          <Text style={[typo.pBold, styles.name]} numberOfLines={1}>
+            {name}
+          </Text>
           <Text style={typo.smallSecondary}>{membersCount} Participants</Text>
         </View>
-        {level != null && (
-          <Tag
-            title={`Niv. ${level}`}
-            variant="primary"
-            style={{ backgroundColor: accentColor }}
-          />
+        {level !== undefined && (
+          <Tag title={`Niv. ${level}`} variant="primary" style={{ backgroundColor: accentColor }} />
         )}
       </View>
 
-      {rank != null && totalMembers != null && (
+      {hasRank && (
         <View style={styles.rankSection}>
           <View style={styles.rankRow}>
             <Text style={typo.smallSecondary}>Classement</Text>
-            <Text style={[typo.small, styles.rankValue]}>{rank} / {totalMembers}</Text>
+            <Text style={[typo.small, styles.rankValue]}>
+              {rank} / {totalMembers}
+            </Text>
           </View>
           <View style={styles.progressTrack}>
             <View
@@ -90,6 +93,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  topRowSpaced: {
     marginBottom: spacing.md,
   },
   nameBlock: {

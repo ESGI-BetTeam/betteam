@@ -5,6 +5,7 @@ export namespace CreateLeagueRequest {
   export interface Body {
     name: string;
     description?: string;
+    logoUrl?: string;
     isPrivate?: boolean;
   }
 }

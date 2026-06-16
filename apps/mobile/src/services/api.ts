@@ -1,7 +1,18 @@
 import axios from 'axios';
 import { storage } from '../utils/storage';
 
-const API_URL = 'https://betteam-api-dev.up.railway.app';
+export const API_URL = 'https://betteam-api-dev.up.railway.app';
+
+/**
+ * Resolves a stored media value into a displayable URI.
+ * - absolute URLs (http/https) and base64 data-URIs are returned as-is
+ * - server-relative paths (e.g. "/uploads/leagues/x.jpg") are prefixed with the API origin
+ */
+export function resolveMediaUrl(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  if (value.startsWith('http') || value.startsWith('data:')) return value;
+  return `${API_URL}${value.startsWith('/') ? '' : '/'}${value}`;
+}
 
 export const api = axios.create({
   baseURL: `${API_URL}/api`,
