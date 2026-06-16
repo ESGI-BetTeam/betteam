@@ -64,11 +64,13 @@ interface LeaguesApiResponse {
 }
 
 interface LeagueResponse {
-  data: League;
+  league: League;
 }
 
-interface LeaderboardResponse {
-  data: LeaderboardEntry[];
+// The API returns `{ leaderboard, totalMembers }`.
+interface LeaderboardApiResponse {
+  leaderboard: LeaderboardEntry[];
+  totalMembers: number;
 }
 
 export interface CreateLeagueInput {
@@ -116,13 +118,23 @@ export const leagueService = {
     return data;
   },
 
-  async getLeaderboard(leagueId: string): Promise<LeaderboardResponse> {
-    const { data } = await api.get<LeaderboardResponse>(`/leagues/${leagueId}/leaderboard`);
-    return data;
+  async getLeaderboard(
+    leagueId: string,
+  ): Promise<{ data: LeaderboardEntry[]; totalMembers: number }> {
+    const { data } = await api.get<LeaderboardApiResponse>(`/leagues/${leagueId}/leaderboard`);
+    return { data: data.leaderboard ?? [], totalMembers: data.totalMembers ?? 0 };
   },
 
   async getMembers(leagueId: string): Promise<{ data: LeagueMember[] }> {
     const { data } = await api.get(`/leagues/${leagueId}/members`);
     return data;
+  },
+
+  // Joins a league using only its invite code (resolved server-side).
+  async joinByCode(inviteCode: string): Promise<League> {
+    const { data } = await api.post<{ league: League; message: string }>('/leagues/join', {
+      inviteCode: inviteCode.trim().toUpperCase(),
+    });
+    return data.league;
   },
 };

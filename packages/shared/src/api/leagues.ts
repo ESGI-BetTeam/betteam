@@ -80,6 +80,19 @@ export interface JoinLeagueResponse {
   message: string;
 }
 
+// POST /api/leagues/join - Join a league by invite code alone (no league id known)
+export namespace JoinLeagueByCodeRequest {
+  export interface Body {
+    inviteCode: string;
+  }
+}
+
+export interface JoinLeagueByCodeResponse {
+  member: LeagueMember;
+  league: League;
+  message: string;
+}
+
 // POST /api/leagues/:id/leave - Leave a league
 export interface LeaveLeagueResponse {
   message: string;

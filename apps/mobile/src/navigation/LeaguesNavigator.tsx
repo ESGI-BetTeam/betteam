@@ -4,6 +4,7 @@ import { LeaguesStackParamList } from '@/types/navigation';
 import { colors } from '@/theme';
 import { LeaguesScreen } from '@/screens/leagues/LeaguesScreen';
 import { CreateLeagueScreen } from '@/screens/leagues/CreateLeagueScreen';
+import { LeagueDetailScreen } from '@/screens/leagues/LeagueDetailScreen';
 
 const Stack = createNativeStackNavigator<LeaguesStackParamList>();
 
@@ -19,6 +20,11 @@ export function LeaguesNavigator() {
       <Stack.Screen
         name="CreateLeague"
         component={CreateLeagueScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="LeagueDetail"
+        component={LeagueDetailScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>

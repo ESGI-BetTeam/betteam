@@ -14,4 +14,5 @@ export type AppTabParamList = {
 export type LeaguesStackParamList = {
   LeaguesHome: undefined;
   CreateLeague: undefined;
+  LeagueDetail: { leagueId: string; leagueName?: string };
 };

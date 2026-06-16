@@ -24,6 +24,8 @@ import {
   RegenerateInviteCodeResponse,
   JoinLeagueRequest,
   JoinLeagueResponse,
+  JoinLeagueByCodeRequest,
+  JoinLeagueByCodeResponse,
   LeaveLeagueResponse,
   GetLeagueMembersRequest,
   GetLeagueMembersResponse,
@@ -704,6 +706,112 @@ const transformMember = (member: any): LeagueMember => {
       : undefined,
   };
 };
+
+// POST /api/leagues/join - Join a league by invite code alone (league id unknown)
+router.post(
+  '/join',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & { body: JoinLeagueByCodeRequest.Body },
+    res: Response<JoinLeagueByCodeResponse | { error: string }>,
+  ) => {
+    try {
+      const userId = req.userId!;
+      const { inviteCode } = req.body;
+
+      if (!inviteCode || !inviteCode.trim()) {
+        return res.status(400).json({ error: 'Invite code is required.' });
+      }
+
+      const league = await prisma.league.findUnique({
+        where: { inviteCode: inviteCode.trim().toUpperCase() },
+        include: {
+          plan: true,
+          wallet: true,
+          members: { where: { userId } },
+          _count: { select: { members: true } },
+        },
+      });
+
+      if (!league || !league.isActive) {
+        return res.status(404).json({ error: 'Aucune ligue trouvée pour ce code.' });
+      }
+
+      // Check if league is frozen
+      if (league.wallet?.isFrozen) {
+        return res.status(400).json({
+          error: 'Cette ligue est gelée. Contactez un administrateur pour ajouter des fonds.',
+        });
+      }
+
+      // Check if already a member
+      if (league.members.length > 0) {
+        return res.status(409).json({ error: 'Vous êtes déjà membre de cette ligue.' });
+      }
+
+      // Check max members limit based on plan
+      const maxMembers = league.plan?.maxMembers ?? 4;
+      if (league._count.members >= maxMembers) {
+        return res.status(400).json({
+          error: `Cette ligue a atteint sa limite de ${maxMembers} membres. Demandez à un administrateur de passer à un plan supérieur.`,
+        });
+      }
+
+      const member = await prisma.leagueMember.create({
+        data: {
+          leagueId: league.id,
+          userId,
+          role: 'member',
+          points: 1000, // Starting points
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              isActive: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+        },
+      });
+
+      const fullLeague = await prisma.league.findUnique({
+        where: { id: league.id },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              isActive: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          _count: { select: { members: true } },
+        },
+      });
+
+      return res.status(201).json({
+        member: transformMember(member),
+        league: transformLeague(fullLeague),
+        message: 'Successfully joined the league.',
+      });
+    } catch (error) {
+      console.error('Join league by code error:', error);
+      return res.status(500).json({ error: 'Internal server error.' });
+    }
+  },
+);
 
 // POST /api/leagues/:id/join - Join a league via invite code
 router.post(
