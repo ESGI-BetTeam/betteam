@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ArrowLeft2 } from 'iconsax-react-nativejs';
+import { ArrowLeft2, Add, Flash } from 'iconsax-react-nativejs';
 import { LeaguesStackParamList } from '@/types/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { leagueService, League, LeaderboardEntry } from '@/services/league.service';
+import { matchService, GroupBet } from '@/services/match.service';
+import { frenchCompetitionName } from '@/services/competition.service';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ShareLeagueSheet } from '@/components/ui/ShareLeagueSheet';
@@ -35,6 +37,8 @@ export function LeagueDetailScreen() {
 
   const [league, setLeague] = useState<League | null>(null);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [activeBets, setActiveBets] = useState<GroupBet[]>([]);
+  const [competitionName, setCompetitionName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>('season');
@@ -42,12 +46,17 @@ export function LeagueDetailScreen() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [leagueRes, leaderboardRes] = await Promise.all([
+      const [leagueRes, leaderboardRes, challengesRes, competition] = await Promise.all([
         leagueService.getLeague(leagueId),
         leagueService.getLeaderboard(leagueId),
+        // Non-blocking: a missing/failed challenges endpoint just means "no bet"
+        matchService.getActiveChallenges(leagueId).catch(() => ({ data: [] as GroupBet[] })),
+        leagueService.getLeagueCompetition(leagueId).catch(() => null),
       ]);
       setLeague(leagueRes.league);
       setEntries(leaderboardRes.data);
+      setActiveBets(challengesRes.data ?? []);
+      setCompetitionName(competition ? frenchCompetitionName(competition.name) : null);
     } catch {
       // Keep the UI usable on failure
     } finally {
@@ -87,9 +96,17 @@ export function LeagueDetailScreen() {
           >
             <ArrowLeft2 size={24} color={colors.textPrimary} variant="Outline" />
           </TouchableOpacity>
-          <Text style={[typo.h1, styles.title]} numberOfLines={2}>
-            Classement - {displayName}
+          <Text style={[typo.h1, styles.title]} numberOfLines={1}>
+            {displayName}
           </Text>
+          <TouchableOpacity
+            style={[styles.inviteButton, !league && styles.inviteButtonDisabled]}
+            onPress={() => setShareVisible(true)}
+            disabled={!league}
+            activeOpacity={0.8}
+          >
+            <Add size={22} color={colors.white} variant="Outline" />
+          </TouchableOpacity>
         </View>
 
         {isLoading ? (
@@ -121,32 +138,45 @@ export function LeagueDetailScreen() {
                 ))}
               </View>
             )}
-
-            {/* Période : UI uniquement (les deux affichent le cumul pour l'instant) */}
-            <View style={styles.toggle}>
-              <ToggleOption
-                label="Saison"
-                active={period === 'season'}
-                onPress={() => setPeriod('season')}
-              />
-              <ToggleOption
-                label="Ce mois"
-                active={period === 'month'}
-                onPress={() => setPeriod('month')}
-              />
-            </View>
           </>
+        )}
+
+        {/* Suggérer un pari — affiché tant qu'aucun pari n'est en cours */}
+        {!isLoading && activeBets.length === 0 && (
+          <View style={styles.suggestCard}>
+            <View style={styles.suggestIcon}>
+              <Flash size={22} color={colors.accent} variant="Bulk" />
+            </View>
+            <Text style={[typo.h4, styles.suggestTitle]}>Aucun pari en cours</Text>
+            <Text style={[typo.pSecondary, styles.suggestText]}>
+              {competitionName
+                ? `Lancez le premier pari de la ligue sur ${competitionName}.`
+                : 'Lancez le premier pari de votre ligue.'}
+            </Text>
+            <Button
+              title="Suggérer un pari"
+              variant="primary"
+              onPress={() => {}}
+              style={styles.suggestCta}
+            />
+          </View>
         )}
       </ScrollView>
 
-      <View style={styles.footer}>
-        <Button
-          title="Inviter des collègues"
-          variant="primary"
-          onPress={() => setShareVisible(true)}
-          disabled={!league}
-          style={styles.cta}
-        />
+      {/* Période : barre fixe en bas */}
+      <View style={styles.toggleBar}>
+        <View style={styles.toggle}>
+          <ToggleOption
+            label="Saison"
+            active={period === 'season'}
+            onPress={() => setPeriod('season')}
+          />
+          <ToggleOption
+            label="Ce mois"
+            active={period === 'month'}
+            onPress={() => setPeriod('month')}
+          />
+        </View>
       </View>
 
       {league && (
@@ -290,6 +320,22 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     marginBottom: 0,
+    fontSize: 26,
+    lineHeight: 28,
+    // Teko renders caps high in its line box; lower the title slightly so it
+    // sits level with the back arrow.
+    transform: [{ translateY: 5 }],
+  },
+  inviteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inviteButtonDisabled: {
+    opacity: 0.5,
   },
   loadingBox: {
     paddingVertical: spacing.xxl,
@@ -354,6 +400,40 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
 
+  // Suggérer un pari
+  suggestCard: {
+    marginTop: spacing.xl,
+    backgroundColor: colors.backgroundCard,
+    borderRadius: radius.lg,
+    borderWidth: borderWidth.sm,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  suggestIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.full,
+    backgroundColor: colors.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  suggestTitle: {
+    marginBottom: 0,
+  },
+  suggestText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  suggestCta: {
+    height: 46,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.xl,
+  },
+
   // Table
   table: {
     backgroundColor: colors.backgroundCard,
@@ -389,10 +469,15 @@ const styles = StyleSheet.create({
   tdPts: { width: 56, textAlign: 'right' },
   tdDelta: { width: 32, textAlign: 'center' },
 
-  // Toggle
+  // Toggle — pinned at the bottom of the page
+  toggleBar: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.background,
+  },
   toggle: {
     flexDirection: 'row',
-    marginTop: spacing.xl,
     padding: spacing.xs,
     borderRadius: radius.full,
     backgroundColor: colors.backgroundCard,
@@ -401,7 +486,7 @@ const styles = StyleSheet.create({
   },
   toggleOption: {
     flex: 1,
-    height: 40,
+    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.full,
@@ -415,19 +500,5 @@ const styles = StyleSheet.create({
   },
   toggleTextActive: {
     color: colors.white,
-  },
-
-  // Footer
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
-    borderTopWidth: borderWidth.sm,
-    borderTopColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  cta: {
-    height: 54,
-    borderRadius: radius.full,
   },
 });

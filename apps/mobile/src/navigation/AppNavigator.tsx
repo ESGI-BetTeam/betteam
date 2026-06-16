@@ -79,6 +79,18 @@ export function AppNavigator() {
             name={name}
             component={SCREEN_MAP[name]}
             options={{ tabBarLabel: TAB_CONFIG[name].label }}
+            listeners={
+              name === 'Leagues'
+                ? ({ navigation }) => ({
+                    // Always land on the Leagues home, never stay stuck on a pushed
+                    // screen (detail/create) when the tab is tapped.
+                    tabPress: (e) => {
+                      e.preventDefault();
+                      navigation.navigate('Leagues', { screen: 'LeaguesHome' });
+                    },
+                  })
+                : undefined
+            }
           />
         ))}
       </Tab.Navigator>
