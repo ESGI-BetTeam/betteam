@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import axios from 'axios';
-import { ScanBarcode } from 'iconsax-react-nativejs';
 import { colors, spacing, radius, borderWidth, typo } from '@/theme';
 import { leagueService, League } from '@/services/league.service';
 import { BottomSheet } from './BottomSheet';
@@ -99,11 +98,6 @@ export function JoinLeagueSheet({ visible, onClose, onJoined }: JoinLeagueSheetP
         </View>
         {!!error && <Text style={[typo.small, styles.errorText]}>{error}</Text>}
       </View>
-
-      <TouchableOpacity style={styles.qrButton} activeOpacity={0.8} disabled>
-        <ScanBarcode size={18} color={colors.textSecondary} variant="Outline" />
-        <Text style={[typo.pBold, styles.qrButtonText]}>QR Code</Text>
-      </TouchableOpacity>
     </BottomSheet>
   );
 }
@@ -164,20 +158,5 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.error,
     marginTop: spacing.sm,
-  },
-  qrButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    height: 54,
-    borderRadius: radius.full,
-    backgroundColor: colors.backgroundGlass,
-    borderWidth: borderWidth.md,
-    borderColor: colors.borderActive,
-    opacity: 0.5,
-  },
-  qrButtonText: {
-    color: colors.textSecondary,
   },
 });

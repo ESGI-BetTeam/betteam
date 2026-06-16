@@ -173,7 +173,7 @@ export function HomeScreen() {
           <SectionHeader
             title="Mes Ligues"
             actionLabel={leagues.length > 0 ? 'Voir tout' : undefined}
-            onAction={() => navigation.navigate('Leagues')}
+            onAction={() => navigation.navigate('Leagues', { screen: 'LeaguesHome' })}
           />
         </View>
 
@@ -192,7 +192,12 @@ export function HomeScreen() {
                 totalMembers={item._count?.members}
                 logoUrl={resolveMediaUrl(item.logoUrl)}
                 colorIndex={index}
-                onPress={() => {}}
+                onPress={() =>
+                  navigation.navigate('Leagues', {
+                    screen: 'LeagueDetail',
+                    params: { leagueId: item.id, leagueName: item.name },
+                  })
+                }
               />
             )}
           />
@@ -203,7 +208,7 @@ export function HomeScreen() {
             </Text>
             <TouchableOpacity
               style={styles.emptyCtaButton}
-              onPress={() => navigation.navigate('Leagues')}
+              onPress={() => navigation.navigate('Leagues', { screen: 'LeaguesHome' })}
               activeOpacity={0.7}
             >
               <Add size={18} color={colors.white} variant="Outline" />

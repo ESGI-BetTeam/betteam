@@ -86,7 +86,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundCard,
     borderRadius: radius.lg,
     borderWidth: borderWidth.sm,
-    padding: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
     marginRight: spacing.md,
   },
   topRow: {
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   topRowSpaced: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm + 2,
   },
   nameBlock: {
     flex: 1,

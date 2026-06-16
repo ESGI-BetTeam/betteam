@@ -44,7 +44,7 @@ export function LeagueListItem({
       <Avatar
         uri={logoUrl}
         name={name}
-        size={64}
+        size={52}
         style={{ backgroundColor: accentColor, borderRadius: radius.md }}
       />
 
@@ -84,14 +84,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundCard,
     borderRadius: radius.lg,
     borderWidth: borderWidth.sm,
-    padding: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
   },
   content: {
     flex: 1,
     gap: spacing.xs,
   },
   name: {
-    fontSize: 18,
+    fontSize: 16,
     marginBottom: 0,
   },
   metaRow: {

@@ -130,6 +130,26 @@ export const leagueService = {
     return data;
   },
 
+  // The league's active competition (sport context), or null if none is set.
+  async getLeagueCompetition(leagueId: string): Promise<{
+    id: string;
+    name: string;
+    sport: string;
+    country: string | null;
+    logoUrl: string | null;
+  } | null> {
+    const { data } = await api.get<{
+      competition: {
+        id: string;
+        name: string;
+        sport: string;
+        country: string | null;
+        logoUrl: string | null;
+      } | null;
+    }>(`/leagues/${leagueId}/competition`);
+    return data.competition ?? null;
+  },
+
   // Joins a league using only its invite code (resolved server-side).
   async joinByCode(inviteCode: string): Promise<League> {
     const { data } = await api.post<{ league: League; message: string }>('/leagues/join', {
