@@ -312,6 +312,36 @@ class BetsService {
         return { valid: true };
       }
 
+      if (predictionType === 'both_score') {
+        if (!parsed.type || parsed.type !== 'both_score') {
+          return { valid: false, error: 'Format de prédiction invalide.' };
+        }
+        if (!['home', 'draw', 'away'].includes(parsed.value)) {
+          return {
+            valid: false,
+            error: 'Valeur de prédiction invalide. Utilisez "home", "draw" ou "away".',
+          };
+        }
+        const isValidScore = (n: unknown) => Number.isInteger(n) && (n as number) >= 0;
+        if (!isValidScore(parsed.homeScore) || !isValidScore(parsed.awayScore)) {
+          return {
+            valid: false,
+            error: 'Score exact invalide : les scores doivent être des entiers positifs.',
+          };
+        }
+        // The picked winner must be consistent with the predicted score.
+        const { homeScore, awayScore, value } = parsed;
+        const impliedWinner =
+          homeScore > awayScore ? 'home' : homeScore < awayScore ? 'away' : 'draw';
+        if (value !== impliedWinner) {
+          return {
+            valid: false,
+            error: 'Le vainqueur choisi ne correspond pas au score exact saisi.',
+          };
+        }
+        return { valid: true };
+      }
+
       // Add more prediction types here when implemented
       return { valid: false, error: `Type de prédiction "${predictionType}" non supporté.` };
     } catch {

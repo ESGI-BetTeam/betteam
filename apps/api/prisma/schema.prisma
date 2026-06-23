@@ -257,9 +257,10 @@ model LeagueMember {
   id        String   @id @default(cuid())
   leagueId  String   @map("league_id")
   userId    String   @map("user_id")
-  role      String   @default("member") // owner, admin, member
-  points    Int      @default(1000) // Starting points
-  joinedAt  DateTime @default(now()) @map("joined_at")
+  role         String   @default("member") // owner, admin, member
+  points       Int      @default(1000) // Starting points
+  hasRecharged Boolean  @default(false) @map("has_recharged") // Topped up at least once
+  joinedAt     DateTime @default(now()) @map("joined_at")
 
   // Relations
   league    League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)

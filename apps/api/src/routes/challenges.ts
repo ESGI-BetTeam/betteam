@@ -20,6 +20,7 @@ import {
   GetChallengeBetsResponse,
 } from '@betteam/shared/api/bets';
 import { GroupBetWithParticipation } from '@betteam/shared/interfaces/Challenge';
+import { PredictionType } from '@betteam/shared/interfaces/Bet';
 
 const router = Router({ mergeParams: true }); // mergeParams to access :leagueId
 
@@ -625,7 +626,7 @@ router.post(
           matchId: bet.matchId,
           leagueId: bet.leagueId,
           groupBetId: bet.groupBetId,
-          predictionType: bet.predictionType as 'winner',
+          predictionType: bet.predictionType as PredictionType,
           predictionValue: bet.predictionValue,
           amount: bet.amount,
           status: bet.status as 'pending' | 'won' | 'lost' | 'void',

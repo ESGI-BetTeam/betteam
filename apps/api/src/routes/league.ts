@@ -35,6 +35,7 @@ import {
   GetLeaderboardRequest,
   GetLeaderboardResponse,
   LeaderboardEntry,
+  RechargeResponse,
   GetLeagueStatsResponse,
   GetLeagueHistoryRequest,
   GetLeagueHistoryResponse,
@@ -1305,6 +1306,7 @@ router.get(
           lostBets: stats.lost,
           winRate,
           joinedAt: member.joinedAt,
+          hasRecharged: member.hasRecharged,
         };
       });
 
@@ -1315,6 +1317,61 @@ router.get(
     } catch (error) {
       console.error('Get leaderboard error:', error);
       return res.status(500).json({ error: 'Internal server error.' });
+    }
+  },
+);
+
+// Point ceiling a recharge tops members back up to.
+const RECHARGE_CAP = 1000;
+
+// POST /api/leagues/:id/recharge - Top the member's points back up to the cap
+router.post(
+  '/:id/recharge',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response<RechargeResponse | { error: string }>) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId!;
+
+      const league = await prisma.league.findUnique({
+        where: { id },
+        select: { id: true, isActive: true },
+      });
+
+      if (!league || !league.isActive) {
+        return res.status(404).json({ error: 'Ligue non trouvée.' });
+      }
+
+      const membership = await prisma.leagueMember.findUnique({
+        where: { leagueId_userId: { leagueId: id, userId } },
+        select: { id: true, points: true },
+      });
+
+      if (!membership) {
+        return res.status(403).json({ error: 'Vous devez être membre de cette ligue.' });
+      }
+
+      // Recharge is only meant for a low balance; refuse if already at/above the cap.
+      if (membership.points >= RECHARGE_CAP) {
+        return res.status(400).json({
+          error: `Recharge impossible : vous avez déjà ${RECHARGE_CAP} points ou plus.`,
+        });
+      }
+
+      const updated = await prisma.leagueMember.update({
+        where: { id: membership.id },
+        data: { points: RECHARGE_CAP, hasRecharged: true },
+        select: { points: true, hasRecharged: true },
+      });
+
+      return res.status(200).json({
+        points: updated.points,
+        hasRecharged: updated.hasRecharged,
+        message: 'Points rechargés avec succès.',
+      });
+    } catch (error) {
+      console.error('Recharge error:', error);
+      return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
   },
 );

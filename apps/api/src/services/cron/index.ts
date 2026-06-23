@@ -7,6 +7,7 @@ import { matchesService } from '../thesportsdb/matches.service';
 import { oddsService } from '../theoddsapi/odds.service';
 import { cleanupService } from '../cleanup';
 import { walletService } from '../wallet.service';
+import { settlementService } from '../settlement.service';
 
 /**
  * Configuration des tâches CRON
@@ -109,6 +110,8 @@ class CronService {
       const startTime = Date.now();
       try {
         await matchesService.syncAllMatches();
+        // Settle bets right after results land, so points are credited promptly.
+        await settlementService.settleFinishedMatches();
         await this.logCronExecution('cron-matches', 'success', Date.now() - startTime);
       } catch (error) {
         await this.logCronExecution('cron-matches', 'error', Date.now() - startTime, error);
@@ -235,6 +238,7 @@ class CronService {
           break;
         case 'matches':
           await matchesService.syncAllMatches();
+          await settlementService.settleFinishedMatches();
           break;
         case 'odds':
           await oddsService.syncAllOdds();

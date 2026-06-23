@@ -151,6 +151,15 @@ export interface LeaderboardEntry {
   lostBets: number;
   winRate: number;
   joinedAt: Date;
+  // True once the member has topped up their points ("mis la main au pot").
+  hasRecharged: boolean;
+}
+
+// POST /api/leagues/:id/recharge - Top up the member's points to the cap
+export interface RechargeResponse {
+  points: number;
+  hasRecharged: boolean;
+  message: string;
 }
 
 // GET /api/leagues/:id/leaderboard - Get league leaderboard

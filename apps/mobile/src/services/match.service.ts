@@ -67,8 +67,26 @@ interface MatchesResponse {
   count: number;
 }
 
-interface ChallengesResponse {
-  data: GroupBet[];
+// The API returns `{ challenges, total }`; we normalize to `{ data }` for callers.
+interface ActiveChallengesApiResponse {
+  challenges: GroupBet[];
+  total: number;
+}
+
+// Winner pick. Exact-score prediction isn't supported by the API yet.
+export type WinnerValue = 'home' | 'draw' | 'away';
+
+export type PredictionType = 'winner' | 'both_score';
+
+export interface PlaceBetInput {
+  predictionType: PredictionType;
+  predictionValue: string; // JSON string, e.g. '{"type":"winner","value":"home"}'
+  amount: number;
+}
+
+interface PlaceBetResponse {
+  bet: { id: string };
+  message: string;
 }
 
 export const matchService = {
@@ -82,8 +100,43 @@ export const matchService = {
     return data;
   },
 
-  async getActiveChallenges(leagueId: string): Promise<ChallengesResponse> {
-    const { data } = await api.get<ChallengesResponse>(`/leagues/${leagueId}/challenges/active`);
+  async getActiveChallenges(leagueId: string): Promise<{ data: GroupBet[] }> {
+    const { data } = await api.get<ActiveChallengesApiResponse>(
+      `/leagues/${leagueId}/challenges/active`,
+    );
+    return { data: data.challenges ?? [] };
+  },
+
+  // Serializes a winner pick into the API's expected prediction payload.
+  buildWinnerPrediction(value: WinnerValue): Pick<PlaceBetInput, 'predictionType' | 'predictionValue'> {
+    return {
+      predictionType: 'winner',
+      predictionValue: JSON.stringify({ type: 'winner', value }),
+    };
+  },
+
+  // Winner pick + exact score (bonus). The API requires the winner to match the
+  // score, so callers should only use this when home/away imply `value`.
+  buildScorePrediction(
+    value: WinnerValue,
+    homeScore: number,
+    awayScore: number,
+  ): Pick<PlaceBetInput, 'predictionType' | 'predictionValue'> {
+    return {
+      predictionType: 'both_score',
+      predictionValue: JSON.stringify({ type: 'both_score', value, homeScore, awayScore }),
+    };
+  },
+
+  async placeBet(
+    leagueId: string,
+    challengeId: string,
+    input: PlaceBetInput,
+  ): Promise<PlaceBetResponse> {
+    const { data } = await api.post<PlaceBetResponse>(
+      `/leagues/${leagueId}/challenges/${challengeId}/bets`,
+      input,
+    );
     return data;
   },
 };

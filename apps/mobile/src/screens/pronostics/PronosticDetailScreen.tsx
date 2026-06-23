@@ -1,0 +1,465 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { AxiosError } from 'axios';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ArrowLeft2, Calendar, Coin, Cup, Monitor, TickCircle } from 'iconsax-react-nativejs';
+import { PronosticsStackParamList } from '@/types/navigation';
+import { matchService, WinnerValue } from '@/services/match.service';
+import { Avatar } from '@/components/ui/Avatar';
+import { Button } from '@/components/ui/Button';
+import { Tag } from '@/components/ui/Tag';
+import { InputNumber } from '@/components/ui/InputNumber';
+import { colors, spacing, radius, borderWidth, typo } from '@/theme';
+
+// Points staked per pronostic. The design has no stake selector yet, so we
+// wager a fixed amount until one is added.
+const DEFAULT_STAKE = 100;
+
+type Nav = NativeStackNavigationProp<PronosticsStackParamList, 'PronosticDetail'>;
+type Rt = RouteProp<PronosticsStackParamList, 'PronosticDetail'>;
+
+type Outcome = 'home' | 'draw' | 'away';
+
+// Points multiplier for guessing the exact score. Not yet exposed by the API,
+// so kept as a display constant until the backend provides it.
+const SCORE_MULTIPLIER = 5.0;
+
+// Deterministic fallback odds derived from the match id, used when the match
+// has no synced odds yet (mirrors the Home screen's generator).
+function generateOdds(matchId: string) {
+  let hash = 0;
+  for (let i = 0; i < matchId.length; i++) {
+    hash = ((hash << 5) - hash + matchId.charCodeAt(i)) | 0;
+  }
+  const seed = Math.abs(hash);
+  return {
+    home: 1.2 + (seed % 300) / 100,
+    draw: 2.5 + ((seed >> 8) % 250) / 100,
+    away: 1.5 + ((seed >> 16) % 400) / 100,
+  };
+}
+
+function formatMatchDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+  const time = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (isToday) return `Ce soir, ${time}`;
+  return `${date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}, ${time}`;
+}
+
+// Human-friendly time remaining until the vote closes, e.g. "3h 15min".
+function formatCountdown(closesAt: string): string | null {
+  const diff = new Date(closesAt).getTime() - Date.now();
+  if (isNaN(diff) || diff <= 0) return null;
+  const totalMinutes = Math.floor(diff / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 24) {
+    const days = Math.floor(hours / 24);
+    return `${days}j ${hours % 24}h`;
+  }
+  if (hours > 0) return `${hours}h ${minutes}min`;
+  return `${minutes}min`;
+}
+
+export function PronosticDetailScreen() {
+  const navigation = useNavigation<Nav>();
+  const route = useRoute<Rt>();
+  const { bet, leagueName } = route.params;
+  const match = bet.match;
+
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [homeScore, setHomeScore] = useState(0);
+  const [awayScore, setAwayScore] = useState(0);
+  const [stake, setStake] = useState(DEFAULT_STAKE);
+  const [submitting, setSubmitting] = useState(false);
+
+  // The exact-score bonus only applies when the entered score implies the same
+  // winner as the pick (the API rejects a contradictory winner/score).
+  const impliedWinner: Outcome =
+    homeScore > awayScore ? 'home' : homeScore < awayScore ? 'away' : 'draw';
+  const scoreBonusActive = outcome != null && impliedWinner === outcome;
+
+  const handleValidate = async () => {
+    if (!outcome) {
+      Alert.alert('Pronostic incomplet', 'Choisissez le vainqueur du match.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Attach the exact-score bonus only when it agrees with the winner pick;
+      // otherwise place a winner-only bet.
+      const prediction = scoreBonusActive
+        ? matchService.buildScorePrediction(outcome as WinnerValue, homeScore, awayScore)
+        : matchService.buildWinnerPrediction(outcome as WinnerValue);
+
+      await matchService.placeBet(bet.leagueId, bet.id, { ...prediction, amount: stake });
+      Alert.alert('Pronostic validé', 'Votre pronostic a bien été enregistré.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ error: string }>;
+      const message =
+        axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.';
+      Alert.alert('Erreur', message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const homeTeam = match?.homeTeam ?? { name: 'Team 1', logoUrl: null };
+  const awayTeam = match?.awayTeam ?? { name: 'Team 2', logoUrl: null };
+
+  // Prefer synced odds, fall back to the deterministic generator.
+  const synced = match?.odds;
+  const odds =
+    synced && synced.homeWinOdds != null && synced.drawOdds != null && synced.awayWinOdds != null
+      ? { home: synced.homeWinOdds, draw: synced.drawOdds, away: synced.awayWinOdds }
+      : generateOdds(match?.id ?? bet.matchId);
+
+  const countdown = formatCountdown(bet.closesAt);
+
+  const outcomes: { key: Outcome; label: string; value: number }[] = [
+    { key: 'home', label: homeTeam.name, value: odds.home },
+    { key: 'draw', label: 'Nul', value: odds.draw },
+    { key: 'away', label: awayTeam.name, value: odds.away },
+  ];
+
+  return (
+    <View style={styles.wrapper}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back + league name with flanking lines */}
+        <View style={styles.titleRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8} style={styles.backButton}>
+            <ArrowLeft2 size={24} color={colors.textPrimary} variant="Outline" />
+          </TouchableOpacity>
+          <View style={styles.titleCenter}>
+            <View style={styles.titleLine} />
+            <Text style={[typo.h2, styles.title]} numberOfLines={1}>
+              {leagueName ?? 'Ligue'}
+            </Text>
+            <View style={styles.titleLine} />
+          </View>
+          {/* Spacer to keep the title visually centered against the back button */}
+          <View style={styles.backButton} />
+        </View>
+
+        {/* Date + venue */}
+        <View style={styles.metaRow}>
+          <Calendar size={14} color={colors.textSecondary} variant="Outline" />
+          <Text style={typo.smallSecondary}>{formatMatchDate(match?.startTime ?? bet.closesAt)}</Text>
+          {match?.venue ? (
+            <>
+              <View style={styles.metaDot} />
+              <Text style={typo.smallSecondary}>{match.venue}</Text>
+            </>
+          ) : null}
+        </View>
+
+        {/* Main betting card */}
+        <View style={styles.card}>
+          {/* Teams */}
+          <View style={styles.teamsRow}>
+            <View style={styles.team}>
+              <Avatar uri={homeTeam.logoUrl} name={homeTeam.name} size={56} />
+              <Text style={[typo.small, styles.teamName]} numberOfLines={1}>
+                {homeTeam.name}
+              </Text>
+            </View>
+
+            <Text style={[typo.h3, styles.vs]}>VS</Text>
+
+            <View style={styles.team}>
+              <Avatar uri={awayTeam.logoUrl} name={awayTeam.name} size={56} />
+              <Text style={[typo.small, styles.teamName]} numberOfLines={1}>
+                {awayTeam.name}
+              </Text>
+            </View>
+          </View>
+
+          {/* Score exact (bonus) */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitle}>
+              <Monitor size={20} color={colors.textPrimary} variant="Bulk" />
+              <Text style={[typo.h4, styles.sectionTitleText]}>Score Exact</Text>
+            </View>
+            <Tag
+              title={`x ${SCORE_MULTIPLIER.toFixed(1)} PTS`}
+              variant="outline"
+              style={scoreBonusActive ? undefined : styles.tagInactive}
+              textStyle={scoreBonusActive ? styles.multiplierText : styles.multiplierTextInactive}
+            />
+          </View>
+
+          <View style={styles.scoreRow}>
+            <InputNumber value={0} min={0} onChange={setHomeScore} containerStyle={styles.scoreStepper} />
+            <InputNumber value={0} min={0} onChange={setAwayScore} containerStyle={styles.scoreStepper} />
+          </View>
+
+          <Text style={[typo.smallSecondary, styles.scoreHint, scoreBonusActive && styles.scoreHintActive]}>
+            {scoreBonusActive
+              ? `Bonus actif : ${homeScore}–${awayScore}.`
+              : 'Le score doit refléter le vainqueur choisi pour activer le bonus.'}
+          </Text>
+
+          {/* Vainqueur du match */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitle}>
+              <Cup size={20} color={colors.textPrimary} variant="Bulk" />
+              <Text style={[typo.h4, styles.sectionTitleText]}>Vainqueur du match</Text>
+            </View>
+            <Text style={typo.smallSecondary}>Cotes indicatives</Text>
+          </View>
+
+          <View style={styles.oddsRow}>
+            {outcomes.map((o) => {
+              const selected = outcome === o.key;
+              return (
+                <TouchableOpacity
+                  key={o.key}
+                  style={[styles.oddButton, selected && styles.oddButtonSelected]}
+                  onPress={() => setOutcome(o.key)}
+                  activeOpacity={0.8}
+                >
+                  {selected && (
+                    <View style={styles.checkBadge}>
+                      <TickCircle size={20} color={colors.accent} variant="Bold" />
+                    </View>
+                  )}
+                  <Text
+                    style={[typo.smallSecondary, styles.oddLabel, selected && styles.oddLabelSelected]}
+                    numberOfLines={1}
+                  >
+                    {o.label}
+                  </Text>
+                  <Text style={[typo.h3, styles.oddValue]}>{o.value.toFixed(2)}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Mise */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitle}>
+              <Coin size={20} color={colors.textPrimary} variant="Bulk" />
+              <Text style={[typo.h4, styles.sectionTitleText]}>Mise</Text>
+            </View>
+            <Text style={typo.smallSecondary}>points</Text>
+          </View>
+
+          <InputNumber value={DEFAULT_STAKE} min={1} step={10} onChange={setStake} />
+        </View>
+
+        {/* Validate */}
+        <Button
+          title="Valider mon pronostic"
+          variant="primary"
+          size="large"
+          loading={submitting}
+          disabled={!outcome}
+          onPress={handleValidate}
+          style={styles.validateButton}
+        />
+
+        {countdown && (
+          <Text style={[typo.smallSecondary, styles.closesText]}>
+            Fermeture des votes dans {countdown}
+          </Text>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+
+  // Title
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  backButton: {
+    width: 24,
+    marginLeft: -spacing.xs,
+  },
+  titleCenter: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  titleLine: {
+    width: 32,
+    height: 2,
+    borderRadius: radius.full,
+    backgroundColor: colors.accent,
+  },
+  title: {
+    marginBottom: 0,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    flexShrink: 1,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: radius.full,
+    backgroundColor: colors.textSecondary,
+  },
+
+  // Card
+  card: {
+    backgroundColor: colors.backgroundCard,
+    borderRadius: radius.lg,
+    borderWidth: borderWidth.sm,
+    borderColor: colors.border,
+    padding: spacing.lg,
+  },
+  teamsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+  },
+  team: {
+    flex: 1,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  teamName: {
+    fontWeight: '600',
+  },
+  vs: {
+    marginBottom: 0,
+    marginHorizontal: spacing.md,
+    color: colors.textPrimary,
+  },
+
+  // Section headers (Score exact / Vainqueur)
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  sectionTitleText: {
+    marginBottom: 0,
+  },
+  multiplierText: {
+    color: colors.accent,
+    fontWeight: '700',
+  },
+  multiplierTextInactive: {
+    color: colors.textSecondary,
+    fontWeight: '700',
+  },
+  tagInactive: {
+    opacity: 0.6,
+  },
+  scoreHint: {
+    marginTop: spacing.sm,
+    fontSize: 11,
+  },
+  scoreHintActive: {
+    color: colors.accent,
+  },
+
+  // Score steppers
+  scoreRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  scoreStepper: {
+    flex: 1,
+  },
+
+  // Odds
+  oddsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  oddButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: borderWidth.sm,
+    borderColor: colors.border,
+    backgroundColor: colors.backgroundInput,
+  },
+  oddButtonSelected: {
+    borderColor: colors.accent,
+    backgroundColor: colors.backgroundGlass,
+  },
+  checkBadge: {
+    position: 'absolute',
+    top: -10,
+    right: -8,
+    backgroundColor: colors.background,
+    borderRadius: radius.full,
+  },
+  oddLabel: {
+    marginBottom: spacing.xs,
+  },
+  oddLabelSelected: {
+    color: colors.textPrimary,
+  },
+  oddValue: {
+    marginBottom: 0,
+  },
+
+  // Validate
+  validateButton: {
+    marginTop: spacing.lg,
+  },
+  closesText: {
+    textAlign: 'center',
+    marginTop: spacing.md,
+  },
+});

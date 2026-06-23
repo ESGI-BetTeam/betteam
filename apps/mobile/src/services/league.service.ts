@@ -51,6 +51,14 @@ export interface LeaderboardEntry {
   lostBets: number;
   winRate: number;
   joinedAt: string;
+  // True once the member has topped up their points ("mis la main au pot").
+  hasRecharged: boolean;
+}
+
+export interface RechargeResult {
+  points: number;
+  hasRecharged: boolean;
+  message: string;
 }
 
 interface LeaguesApiResponse {
@@ -148,6 +156,12 @@ export const leagueService = {
       } | null;
     }>(`/leagues/${leagueId}/competition`);
     return data.competition ?? null;
+  },
+
+  // Tops the member's points back up to the cap for this league.
+  async recharge(leagueId: string): Promise<RechargeResult> {
+    const { data } = await api.post<RechargeResult>(`/leagues/${leagueId}/recharge`);
+    return data;
   },
 
   // Joins a league using only its invite code (resolved server-side).

@@ -1,14 +1,25 @@
 import { User } from './User';
 
 export type BetStatus = 'pending' | 'won' | 'lost' | 'void';
-export type PredictionType = 'winner'; // | 'score' | 'both_score' pour plus tard
+export type PredictionType = 'winner' | 'both_score';
+
+export type MatchOutcome = 'home' | 'draw' | 'away';
 
 export interface WinnerPrediction {
   type: 'winner';
-  value: 'home' | 'draw' | 'away';
+  value: MatchOutcome;
 }
 
-export type PredictionValue = WinnerPrediction;
+// Winner pick plus an exact-score guess (bonus). Settlement scores the winner
+// first, then awards a bonus when both home/away scores also match.
+export interface BothScorePrediction {
+  type: 'both_score';
+  value: MatchOutcome;
+  homeScore: number;
+  awayScore: number;
+}
+
+export type PredictionValue = WinnerPrediction | BothScorePrediction;
 
 export interface Bet {
   id: string;

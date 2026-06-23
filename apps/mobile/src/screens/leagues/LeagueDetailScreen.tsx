@@ -7,10 +7,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
+import { AxiosError } from 'axios';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ArrowLeft2, Add, Flash } from 'iconsax-react-nativejs';
+import { ArrowLeft2, Add, Flash, Coin } from 'iconsax-react-nativejs';
 import { LeaguesStackParamList } from '@/types/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { leagueService, League, LeaderboardEntry } from '@/services/league.service';
@@ -29,6 +31,9 @@ type Period = 'season' | 'month';
 // Per-rank accent used by the podium badges (1st gold, 2nd silver, 3rd bronze)
 const RANK_COLORS = ['#F59E0B', '#94A3B8', '#CD7F32'] as const;
 
+// Mirror of the API's recharge ceiling; below it the member can top up.
+const RECHARGE_CAP = 1000;
+
 export function LeagueDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Rt>();
@@ -43,6 +48,7 @@ export function LeagueDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>('season');
   const [shareVisible, setShareVisible] = useState(false);
+  const [recharging, setRecharging] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -74,9 +80,29 @@ export function LeagueDetailScreen() {
     fetchData();
   }, [fetchData]);
 
+  const handleRecharge = useCallback(async () => {
+    setRecharging(true);
+    try {
+      await leagueService.recharge(leagueId);
+      await fetchData();
+    } catch (error) {
+      const axiosError = error as AxiosError<{ error: string }>;
+      Alert.alert(
+        'Recharge impossible',
+        axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.',
+      );
+    } finally {
+      setRecharging(false);
+    }
+  }, [leagueId, fetchData]);
+
   const podium = entries.slice(0, 3);
   const rest = entries.slice(3);
   const displayName = league?.name ?? leagueName ?? 'Ligue';
+
+  // The recharge button only makes sense for the current member when low on points.
+  const currentEntry = entries.find((e) => e.userId === currentUserId);
+  const canRecharge = currentEntry != null && currentEntry.points < RECHARGE_CAP;
 
   return (
     <>
@@ -139,6 +165,25 @@ export function LeagueDetailScreen() {
               </View>
             )}
           </>
+        )}
+
+        {/* Recharge — proposé au membre quand son solde est bas */}
+        {canRecharge && (
+          <TouchableOpacity
+            style={styles.rechargeButton}
+            onPress={handleRecharge}
+            disabled={recharging}
+            activeOpacity={0.8}
+          >
+            {recharging ? (
+              <ActivityIndicator color={colors.accent} size="small" />
+            ) : (
+              <Coin size={18} color={colors.accent} variant="Bulk" />
+            )}
+            <Text style={[typo.pBold, styles.rechargeText]}>
+              Recharger mes points ({currentEntry?.points} pts)
+            </Text>
+          </TouchableOpacity>
         )}
 
         {/* Suggérer un pari — affiché tant qu'aucun pari n'est en cours */}
@@ -236,6 +281,7 @@ function Podium({
               numberOfLines={1}
             >
               {isCurrentUser ? 'Vous' : entry.username}
+              {entry.hasRecharged ? ' 💰' : ''}
             </Text>
             <Text style={[typo.smallSecondary, isCurrentUser && styles.currentUserText]}>
               {entry.points} pts
@@ -267,6 +313,7 @@ function LeaderboardRow({
         numberOfLines={1}
       >
         {isCurrentUser ? 'Vous' : entry.username}
+        {entry.hasRecharged ? ' 💰' : ''}
       </Text>
       <Text style={[styles.tdPts, typo.pBold, isCurrentUser && styles.currentUserText]}>
         {entry.points}
@@ -398,6 +445,24 @@ const styles = StyleSheet.create({
   },
   currentUserText: {
     color: colors.accent,
+  },
+
+  // Recharge
+  rechargeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    height: 46,
+    borderRadius: radius.full,
+    borderWidth: borderWidth.md,
+    borderColor: colors.borderActive,
+    backgroundColor: colors.backgroundGlass,
+  },
+  rechargeText: {
+    color: colors.accent,
+    fontSize: 14,
   },
 
   // Suggérer un pari
