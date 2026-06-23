@@ -133,9 +133,9 @@ export function MatchCard({
         </View>
       </View>
 
-      {/* Odds row */}
+      {/* Odds row — display only, lets taps fall through to the card's onPress */}
       {showOdds && (
-        <View style={styles.oddsRow}>
+        <View style={styles.oddsRow} pointerEvents="none">
           <TouchableOpacity style={[styles.oddButton, styles.oddButtonFeatured]} activeOpacity={0.7}>
             <Text style={[typo.smallSecondary, styles.oddLabel, styles.oddLabelFeatured]} numberOfLines={1}>{homeTeam.name}</Text>
             <Text style={[typo.small, styles.oddValue, styles.oddValueFeatured]}>{odds.home.toFixed(2)}</Text>

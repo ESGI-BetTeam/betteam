@@ -139,4 +139,13 @@ export const matchService = {
     );
     return data;
   },
+
+  // Opens a group bet (challenge) on a match within a league.
+  async createChallenge(leagueId: string, matchId: string): Promise<GroupBet> {
+    const { data } = await api.post<{ challenge: GroupBet; message: string }>(
+      `/leagues/${leagueId}/challenges`,
+      { matchId },
+    );
+    return data.challenge;
+  },
 };

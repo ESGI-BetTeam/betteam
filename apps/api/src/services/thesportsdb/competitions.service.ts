@@ -13,6 +13,9 @@ export const COMPETITION_IDS = {
   BUNDESLIGA: '4331',
   SERIE_A: '4332',
 
+  // Football international
+  FIFA_WORLD_CUP: '4429',
+
   // Rugby (2 compétitions)
   TOP_14: '4430',
   UNITED_RUGBY_CHAMPIONSHIP: '4446',
@@ -128,6 +131,7 @@ class CompetitionsService {
       COMPETITION_IDS.LA_LIGA,
       COMPETITION_IDS.BUNDESLIGA,
       COMPETITION_IDS.SERIE_A,
+      COMPETITION_IDS.FIFA_WORLD_CUP,
     ];
 
     console.log(`⚽ Syncing ${footballIds.length} football competitions...`);

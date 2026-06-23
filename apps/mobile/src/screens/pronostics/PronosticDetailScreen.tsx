@@ -13,6 +13,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ArrowLeft2, Calendar, Coin, Cup, Monitor, TickCircle } from 'iconsax-react-nativejs';
 import { PronosticsStackParamList } from '@/types/navigation';
 import { matchService, WinnerValue } from '@/services/match.service';
+import { leagueService, League } from '@/services/league.service';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Tag';
@@ -59,6 +60,27 @@ function formatMatchDate(dateStr: string): string {
   return `${date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}, ${time}`;
 }
 
+// Votes close 10 minutes before kickoff (mirrors the API's M-10 rule).
+function matchClosesAt(startTime: string): string {
+  return new Date(new Date(startTime).getTime() - 10 * 60 * 1000).toISOString();
+}
+
+// Lets the user pick which league to bet in (auto-selects when there's only one).
+function chooseLeague(leagues: League[]): Promise<League | null> {
+  if (leagues.length === 1) return Promise.resolve(leagues[0]);
+  return new Promise((resolve) => {
+    Alert.alert(
+      'Choisir une ligue',
+      'Dans quelle ligue souhaitez-vous parier ?',
+      [
+        ...leagues.slice(0, 3).map((l) => ({ text: l.name, onPress: () => resolve(l) })),
+        { text: 'Annuler', style: 'cancel' as const, onPress: () => resolve(null) },
+      ],
+      { cancelable: true, onDismiss: () => resolve(null) },
+    );
+  });
+}
+
 // Human-friendly time remaining until the vote closes, e.g. "3h 15min".
 function formatCountdown(closesAt: string): string | null {
   const diff = new Date(closesAt).getTime() - Date.now();
@@ -77,8 +99,9 @@ function formatCountdown(closesAt: string): string | null {
 export function PronosticDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Rt>();
-  const { bet, leagueName } = route.params;
-  const match = bet.match;
+  const { bet, match: matchParam, leagueName } = route.params;
+  // A detail can open from an existing group bet or from a raw upcoming match.
+  const match = bet?.match ?? matchParam;
 
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [homeScore, setHomeScore] = useState(0);
@@ -92,6 +115,28 @@ export function PronosticDetailScreen() {
     homeScore > awayScore ? 'home' : homeScore < awayScore ? 'away' : 'draw';
   const scoreBonusActive = outcome != null && impliedWinner === outcome;
 
+  // Resolves the league + challenge to bet on. For an existing group bet that's
+  // immediate; for a raw match we pick a league, then reuse or open a challenge.
+  const resolveTarget = async (): Promise<{ leagueId: string; challengeId: string } | null> => {
+    if (bet) return { leagueId: bet.leagueId, challengeId: bet.id };
+    if (!match) return null;
+
+    const { data: leagues } = await leagueService.getMyLeagues();
+    if (leagues.length === 0) {
+      Alert.alert('Aucune ligue', 'Rejoignez ou créez une ligue pour pouvoir parier.');
+      return null;
+    }
+
+    const league = await chooseLeague(leagues);
+    if (!league) return null;
+
+    // Reuse an existing challenge for this match, otherwise open one.
+    const { data: challenges } = await matchService.getActiveChallenges(league.id);
+    const existing = challenges.find((c) => c.matchId === match.id || c.match?.id === match.id);
+    const challenge = existing ?? (await matchService.createChallenge(league.id, match.id));
+    return { leagueId: league.id, challengeId: challenge.id };
+  };
+
   const handleValidate = async () => {
     if (!outcome) {
       Alert.alert('Pronostic incomplet', 'Choisissez le vainqueur du match.');
@@ -100,13 +145,19 @@ export function PronosticDetailScreen() {
 
     setSubmitting(true);
     try {
+      const target = await resolveTarget();
+      if (!target) return;
+
       // Attach the exact-score bonus only when it agrees with the winner pick;
       // otherwise place a winner-only bet.
       const prediction = scoreBonusActive
         ? matchService.buildScorePrediction(outcome as WinnerValue, homeScore, awayScore)
         : matchService.buildWinnerPrediction(outcome as WinnerValue);
 
-      await matchService.placeBet(bet.leagueId, bet.id, { ...prediction, amount: stake });
+      await matchService.placeBet(target.leagueId, target.challengeId, {
+        ...prediction,
+        amount: stake,
+      });
       Alert.alert('Pronostic validé', 'Votre pronostic a bien été enregistré.', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
@@ -128,9 +179,11 @@ export function PronosticDetailScreen() {
   const odds =
     synced && synced.homeWinOdds != null && synced.drawOdds != null && synced.awayWinOdds != null
       ? { home: synced.homeWinOdds, draw: synced.drawOdds, away: synced.awayWinOdds }
-      : generateOdds(match?.id ?? bet.matchId);
+      : generateOdds(match?.id ?? bet?.matchId ?? '');
 
-  const countdown = formatCountdown(bet.closesAt);
+  // Countdown comes from the group bet's deadline, or M-10 for a raw match.
+  const closesAtSource = bet?.closesAt ?? (match ? matchClosesAt(match.startTime) : null);
+  const countdown = closesAtSource ? formatCountdown(closesAtSource) : null;
 
   const outcomes: { key: Outcome; label: string; value: number }[] = [
     { key: 'home', label: homeTeam.name, value: odds.home },
@@ -153,7 +206,7 @@ export function PronosticDetailScreen() {
           <View style={styles.titleCenter}>
             <View style={styles.titleLine} />
             <Text style={[typo.h2, styles.title]} numberOfLines={1}>
-              {leagueName ?? 'Ligue'}
+              {leagueName ?? match?.competition?.name ?? 'Pronostic'}
             </Text>
             <View style={styles.titleLine} />
           </View>
@@ -164,7 +217,9 @@ export function PronosticDetailScreen() {
         {/* Date + venue */}
         <View style={styles.metaRow}>
           <Calendar size={14} color={colors.textSecondary} variant="Outline" />
-          <Text style={typo.smallSecondary}>{formatMatchDate(match?.startTime ?? bet.closesAt)}</Text>
+          <Text style={typo.smallSecondary}>
+            {formatMatchDate(match?.startTime ?? closesAtSource ?? new Date().toISOString())}
+          </Text>
           {match?.venue ? (
             <>
               <View style={styles.metaDot} />

@@ -237,7 +237,12 @@ export function HomeScreen() {
                 status={getMatchStatus(match)}
                 variant={index === 0 ? 'featured' : 'compact'}
                 odds={generateOdds(match.id)}
-                onPress={() => {}}
+                onPress={() =>
+                  navigation.navigate('Pronostics', {
+                    screen: 'PronosticDetail',
+                    params: { match },
+                  })
+                }
               />
             ))
           ) : (
