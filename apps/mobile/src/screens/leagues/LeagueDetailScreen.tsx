@@ -10,20 +10,26 @@ import {
   Alert,
 } from 'react-native';
 import { AxiosError } from 'axios';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { ArrowLeft2, Add, Flash, Coin } from 'iconsax-react-nativejs';
-import { LeaguesStackParamList } from '@/types/navigation';
+import { LeaguesStackParamList, AppTabParamList } from '@/types/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { leagueService, League, LeaderboardEntry } from '@/services/league.service';
-import { matchService, GroupBet } from '@/services/match.service';
+import { matchService, GroupBet, AvailableMatch } from '@/services/match.service';
 import { frenchCompetitionName } from '@/services/competition.service';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ShareLeagueSheet } from '@/components/ui/ShareLeagueSheet';
+import { MatchSelectSheet } from '@/components/ui/MatchSelectSheet';
 import { colors, spacing, radius, borderWidth, typo } from '@/theme';
 
-type Nav = NativeStackNavigationProp<LeaguesStackParamList, 'LeagueDetail'>;
+// Composite so we can jump to the Pronostics tab after suggesting a bet.
+type Nav = CompositeNavigationProp<
+  NativeStackNavigationProp<LeaguesStackParamList, 'LeagueDetail'>,
+  BottomTabNavigationProp<AppTabParamList>
+>;
 type Rt = RouteProp<LeaguesStackParamList, 'LeagueDetail'>;
 
 type Period = 'season' | 'month';
@@ -49,6 +55,7 @@ export function LeagueDetailScreen() {
   const [period, setPeriod] = useState<Period>('season');
   const [shareVisible, setShareVisible] = useState(false);
   const [recharging, setRecharging] = useState(false);
+  const [suggestVisible, setSuggestVisible] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -95,6 +102,28 @@ export function LeagueDetailScreen() {
       setRecharging(false);
     }
   }, [leagueId, fetchData]);
+
+  // Suggests a bet: opens a challenge on the chosen match, then jumps to the
+  // pronostic detail so the suggester can place their own bet.
+  const handleSuggestMatch = useCallback(
+    async (match: AvailableMatch) => {
+      setSuggestVisible(false);
+      try {
+        const challenge = await matchService.createChallenge(leagueId, match.id);
+        navigation.navigate('Pronostics', {
+          screen: 'PronosticDetail',
+          params: { bet: challenge, leagueName: league?.name ?? leagueName },
+        });
+      } catch (error) {
+        const axiosError = error as AxiosError<{ error: string }>;
+        Alert.alert(
+          'Suggestion impossible',
+          axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.',
+        );
+      }
+    },
+    [leagueId, league?.name, leagueName, navigation],
+  );
 
   const podium = entries.slice(0, 3);
   const rest = entries.slice(3);
@@ -201,7 +230,7 @@ export function LeagueDetailScreen() {
             <Button
               title="Suggérer un pari"
               variant="primary"
-              onPress={() => {}}
+              onPress={() => setSuggestVisible(true)}
               style={styles.suggestCta}
             />
           </View>
@@ -232,6 +261,13 @@ export function LeagueDetailScreen() {
           inviteCode={league.inviteCode}
         />
       )}
+
+      <MatchSelectSheet
+        visible={suggestVisible}
+        leagueId={leagueId}
+        onClose={() => setSuggestVisible(false)}
+        onSelect={handleSuggestMatch}
+      />
     </>
   );
 }

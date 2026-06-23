@@ -13,7 +13,7 @@ import { Home2, People, Receipt21, Profile, MainComponent } from 'iconsax-react-
 import { HomeScreen } from '@/screens/home/HomeScreen';
 import { LeaguesNavigator } from '@/navigation/LeaguesNavigator';
 import { PronosticsNavigator } from '@/navigation/PronosticsNavigator';
-import { ProfileScreen } from '@/screens/profile/ProfileScreen';
+import { ProfileNavigator } from '@/navigation/ProfileNavigator';
 import { ComponentScreen } from '@/screens/components/ComponentScreen';
 
 type TabName = keyof AppTabParamList;
@@ -36,7 +36,7 @@ const SCREEN_MAP: Record<TabName, React.ComponentType> = {
   Home: HomeScreen,
   Leagues: LeaguesNavigator,
   Pronostics: PronosticsNavigator,
-  Profile: ProfileScreen,
+  Profile: ProfileNavigator,
   Components: ComponentScreen,
 };
 
@@ -98,7 +98,14 @@ export function AppNavigator() {
                         navigation.navigate('Pronostics', { screen: 'PronosticsHome' });
                       },
                     })
-                  : undefined
+                  : name === 'Profile'
+                    ? ({ navigation }) => ({
+                        tabPress: (e) => {
+                          e.preventDefault();
+                          navigation.navigate('Profile', { screen: 'ProfileHome' });
+                        },
+                      })
+                    : undefined
             }
           />
         ))}

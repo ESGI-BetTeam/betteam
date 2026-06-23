@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../../components/ui/Button';
 import { Avatar } from '../../components/ui/Avatar';
 import { useAuthStore } from '../../stores/authStore';
@@ -7,11 +9,15 @@ import { colors, radius, spacing, typo } from '../../theme';
 
 import { profileService } from '@/services/profile.service';
 import { UserWithStats } from '@/types/stats';
+import { ProfileStackParamList } from '@/types/navigation';
 
-import { Cup, DollarCircle, HuobiToken, Lovely, Receipt21 } from 'iconsax-react-nativejs';
+import { Cup, DollarCircle, HuobiToken, Lovely, Receipt21, ArrowRight2 } from 'iconsax-react-nativejs';
 import { Tag } from '@/components/ui/Tag';
 
+type Nav = NativeStackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
+
 export function ProfileScreen() {
+  const navigation = useNavigation<Nav>();
   const { logout } = useAuthStore();
   const { getProfile } = profileService;
 
@@ -102,11 +108,23 @@ export function ProfileScreen() {
         />
       </View>
 
+      <TouchableOpacity
+        style={styles.menuRow}
+        onPress={() => navigation.navigate('MyBets')}
+        activeOpacity={0.8}
+      >
+        <View style={styles.menuIcon}>
+          <Receipt21 size="20" color={colors.accent} variant="Bulk" />
+        </View>
+        <Text style={[typo.pBold, styles.menuLabel]}>Mes paris</Text>
+        <ArrowRight2 size={18} color={colors.textSecondary} variant="Outline" />
+      </TouchableOpacity>
+
       <Button
         title="Se déconnecter"
         variant="danger"
         onPress={logout}
-        style={{ marginTop: spacing.xl }}
+        style={{ marginTop: spacing.lg }}
       />
     </ScrollView>
   );
@@ -169,5 +187,26 @@ const styles = StyleSheet.create({
   },
   statCardValue: {
     marginTop: spacing.sm
-  }
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.backgroundCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  menuIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: colors.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuLabel: {
+    flex: 1,
+  },
 });

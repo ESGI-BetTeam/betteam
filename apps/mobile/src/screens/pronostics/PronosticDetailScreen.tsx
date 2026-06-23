@@ -14,7 +14,9 @@ import { ArrowLeft2, Calendar, Coin, Cup, Monitor, TickCircle } from 'iconsax-re
 import { PronosticsStackParamList } from '@/types/navigation';
 import { matchService, WinnerValue } from '@/services/match.service';
 import { leagueService, League } from '@/services/league.service';
+import { parsePrediction } from '@/utils/prediction';
 import { Avatar } from '@/components/ui/Avatar';
+import { LeagueSelectSheet } from '@/components/ui/LeagueSelectSheet';
 import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Tag';
 import { InputNumber } from '@/components/ui/InputNumber';
@@ -65,22 +67,6 @@ function matchClosesAt(startTime: string): string {
   return new Date(new Date(startTime).getTime() - 10 * 60 * 1000).toISOString();
 }
 
-// Lets the user pick which league to bet in (auto-selects when there's only one).
-function chooseLeague(leagues: League[]): Promise<League | null> {
-  if (leagues.length === 1) return Promise.resolve(leagues[0]);
-  return new Promise((resolve) => {
-    Alert.alert(
-      'Choisir une ligue',
-      'Dans quelle ligue souhaitez-vous parier ?',
-      [
-        ...leagues.slice(0, 3).map((l) => ({ text: l.name, onPress: () => resolve(l) })),
-        { text: 'Annuler', style: 'cancel' as const, onPress: () => resolve(null) },
-      ],
-      { cancelable: true, onDismiss: () => resolve(null) },
-    );
-  });
-}
-
 // Human-friendly time remaining until the vote closes, e.g. "3h 15min".
 function formatCountdown(closesAt: string): string | null {
   const diff = new Date(closesAt).getTime() - Date.now();
@@ -96,6 +82,34 @@ function formatCountdown(closesAt: string): string | null {
   return `${minutes}min`;
 }
 
+// Label shown once the user has already placed their bet.
+function statusLabel(status: string): string {
+  switch (status) {
+    case 'won':
+      return 'Pari gagné';
+    case 'lost':
+      return 'Pari perdu';
+    case 'void':
+      return 'Pari annulé';
+    default:
+      return 'Pronostic validé';
+  }
+}
+
+// Accent of the read-only confirmation banner per bet status.
+function statusStyle(status: string) {
+  switch (status) {
+    case 'won':
+      return { borderColor: colors.accent, backgroundColor: colors.backgroundGlass };
+    case 'lost':
+      return { borderColor: colors.error, backgroundColor: colors.errorLight };
+    case 'void':
+      return { borderColor: colors.border, backgroundColor: colors.backgroundCard };
+    default:
+      return { borderColor: colors.borderActive, backgroundColor: colors.backgroundGlass };
+  }
+}
+
 export function PronosticDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Rt>();
@@ -103,11 +117,19 @@ export function PronosticDetailScreen() {
   // A detail can open from an existing group bet or from a raw upcoming match.
   const match = bet?.match ?? matchParam;
 
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
-  const [homeScore, setHomeScore] = useState(0);
-  const [awayScore, setAwayScore] = useState(0);
-  const [stake, setStake] = useState(DEFAULT_STAKE);
+  // If the user already played this group bet, the screen is read-only and
+  // pre-filled with their pick.
+  const existingBet = bet?.userBet ?? null;
+  const readonly = existingBet != null;
+  const prefill = existingBet ? parsePrediction(existingBet.predictionValue) : null;
+
+  const [outcome, setOutcome] = useState<Outcome | null>(prefill?.value ?? null);
+  const [homeScore, setHomeScore] = useState(prefill?.homeScore ?? 0);
+  const [awayScore, setAwayScore] = useState(prefill?.awayScore ?? 0);
+  const [stake, setStake] = useState(existingBet?.amount ?? DEFAULT_STAKE);
   const [submitting, setSubmitting] = useState(false);
+  // Non-null while the league chooser sheet is open (raw match, several leagues).
+  const [leagueChoices, setLeagueChoices] = useState<League[] | null>(null);
 
   // The exact-score bonus only applies when the entered score implies the same
   // winner as the pick (the API rejects a contradictory winner/score).
@@ -115,26 +137,37 @@ export function PronosticDetailScreen() {
     homeScore > awayScore ? 'home' : homeScore < awayScore ? 'away' : 'draw';
   const scoreBonusActive = outcome != null && impliedWinner === outcome;
 
-  // Resolves the league + challenge to bet on. For an existing group bet that's
-  // immediate; for a raw match we pick a league, then reuse or open a challenge.
-  const resolveTarget = async (): Promise<{ leagueId: string; challengeId: string } | null> => {
-    if (bet) return { leagueId: bet.leagueId, challengeId: bet.id };
-    if (!match) return null;
+  const reportError = (error: unknown) => {
+    const axiosError = error as AxiosError<{ error: string }>;
+    Alert.alert('Erreur', axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.');
+  };
 
-    const { data: leagues } = await leagueService.getMyLeagues();
-    if (leagues.length === 0) {
-      Alert.alert('Aucune ligue', 'Rejoignez ou créez une ligue pour pouvoir parier.');
-      return null;
+  // Places the bet on a resolved league + challenge.
+  const placeBetOn = async (leagueId: string, challengeId: string) => {
+    // Attach the exact-score bonus only when it agrees with the winner pick.
+    const prediction = scoreBonusActive
+      ? matchService.buildScorePrediction(outcome as WinnerValue, homeScore, awayScore)
+      : matchService.buildWinnerPrediction(outcome as WinnerValue);
+    await matchService.placeBet(leagueId, challengeId, { ...prediction, amount: stake });
+    Alert.alert('Pronostic validé', 'Votre pronostic a bien été enregistré.', [
+      { text: 'OK', onPress: () => navigation.goBack() },
+    ]);
+  };
+
+  // For a raw match: reuse an existing challenge in the league or open one, then bet.
+  const submitWithLeague = async (league: League) => {
+    if (!match) return;
+    setSubmitting(true);
+    try {
+      const { data: challenges } = await matchService.getActiveChallenges(league.id);
+      const existing = challenges.find((c) => c.matchId === match.id || c.match?.id === match.id);
+      const challenge = existing ?? (await matchService.createChallenge(league.id, match.id));
+      await placeBetOn(league.id, challenge.id);
+    } catch (error) {
+      reportError(error);
+    } finally {
+      setSubmitting(false);
     }
-
-    const league = await chooseLeague(leagues);
-    if (!league) return null;
-
-    // Reuse an existing challenge for this match, otherwise open one.
-    const { data: challenges } = await matchService.getActiveChallenges(league.id);
-    const existing = challenges.find((c) => c.matchId === match.id || c.match?.id === match.id);
-    const challenge = existing ?? (await matchService.createChallenge(league.id, match.id));
-    return { leagueId: league.id, challengeId: challenge.id };
   };
 
   const handleValidate = async () => {
@@ -143,32 +176,42 @@ export function PronosticDetailScreen() {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const target = await resolveTarget();
-      if (!target) return;
-
-      // Attach the exact-score bonus only when it agrees with the winner pick;
-      // otherwise place a winner-only bet.
-      const prediction = scoreBonusActive
-        ? matchService.buildScorePrediction(outcome as WinnerValue, homeScore, awayScore)
-        : matchService.buildWinnerPrediction(outcome as WinnerValue);
-
-      await matchService.placeBet(target.leagueId, target.challengeId, {
-        ...prediction,
-        amount: stake,
-      });
-      Alert.alert('Pronostic validé', 'Votre pronostic a bien été enregistré.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
-    } catch (error) {
-      const axiosError = error as AxiosError<{ error: string }>;
-      const message =
-        axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.';
-      Alert.alert('Erreur', message);
-    } finally {
-      setSubmitting(false);
+    // Existing group bet: the league + challenge are already known.
+    if (bet) {
+      setSubmitting(true);
+      try {
+        await placeBetOn(bet.leagueId, bet.id);
+      } catch (error) {
+        reportError(error);
+      } finally {
+        setSubmitting(false);
+      }
+      return;
     }
+
+    if (!match) return;
+
+    // Raw match: pick the target league (auto when there's only one).
+    setSubmitting(true);
+    let leagues: League[] = [];
+    try {
+      leagues = (await leagueService.getMyLeagues()).data;
+    } catch (error) {
+      reportError(error);
+      setSubmitting(false);
+      return;
+    }
+    setSubmitting(false);
+
+    if (leagues.length === 0) {
+      Alert.alert('Aucune ligue', 'Rejoignez ou créez une ligue pour pouvoir parier.');
+      return;
+    }
+    if (leagues.length === 1) {
+      await submitWithLeague(leagues[0]);
+      return;
+    }
+    setLeagueChoices(leagues);
   };
 
   const homeTeam = match?.homeTeam ?? { name: 'Team 1', logoUrl: null };
@@ -264,8 +307,20 @@ export function PronosticDetailScreen() {
           </View>
 
           <View style={styles.scoreRow}>
-            <InputNumber value={0} min={0} onChange={setHomeScore} containerStyle={styles.scoreStepper} />
-            <InputNumber value={0} min={0} onChange={setAwayScore} containerStyle={styles.scoreStepper} />
+            <InputNumber
+              value={prefill?.homeScore ?? 0}
+              min={0}
+              disabled={readonly}
+              onChange={setHomeScore}
+              containerStyle={styles.scoreStepper}
+            />
+            <InputNumber
+              value={prefill?.awayScore ?? 0}
+              min={0}
+              disabled={readonly}
+              onChange={setAwayScore}
+              containerStyle={styles.scoreStepper}
+            />
           </View>
 
           <Text style={[typo.smallSecondary, styles.scoreHint, scoreBonusActive && styles.scoreHintActive]}>
@@ -291,7 +346,8 @@ export function PronosticDetailScreen() {
                   key={o.key}
                   style={[styles.oddButton, selected && styles.oddButtonSelected]}
                   onPress={() => setOutcome(o.key)}
-                  activeOpacity={0.8}
+                  disabled={readonly}
+                  activeOpacity={readonly ? 1 : 0.8}
                 >
                   {selected && (
                     <View style={styles.checkBadge}>
@@ -319,26 +375,49 @@ export function PronosticDetailScreen() {
             <Text style={typo.smallSecondary}>points</Text>
           </View>
 
-          <InputNumber value={DEFAULT_STAKE} min={1} step={10} onChange={setStake} />
+          <InputNumber
+            value={existingBet?.amount ?? DEFAULT_STAKE}
+            min={1}
+            step={10}
+            disabled={readonly}
+            onChange={setStake}
+          />
         </View>
 
-        {/* Validate */}
-        <Button
-          title="Valider mon pronostic"
-          variant="primary"
-          size="large"
-          loading={submitting}
-          disabled={!outcome}
-          onPress={handleValidate}
-          style={styles.validateButton}
-        />
+        {/* Validate — or read-only confirmation when already played */}
+        {readonly ? (
+          <View style={[styles.alreadyBet, statusStyle(existingBet!.status)]}>
+            <TickCircle size={20} color={colors.accent} variant="Bold" />
+            <Text style={[typo.pBold, styles.alreadyBetText]}>{statusLabel(existingBet!.status)}</Text>
+          </View>
+        ) : (
+          <Button
+            title="Valider mon pronostic"
+            variant="primary"
+            size="large"
+            loading={submitting}
+            disabled={!outcome}
+            onPress={handleValidate}
+            style={styles.validateButton}
+          />
+        )}
 
-        {countdown && (
+        {!readonly && countdown && (
           <Text style={[typo.smallSecondary, styles.closesText]}>
             Fermeture des votes dans {countdown}
           </Text>
         )}
       </ScrollView>
+
+      <LeagueSelectSheet
+        visible={leagueChoices != null}
+        leagues={leagueChoices ?? []}
+        onClose={() => setLeagueChoices(null)}
+        onSelect={(league) => {
+          setLeagueChoices(null);
+          submitWithLeague(league);
+        }}
+      />
     </View>
   );
 }
@@ -512,6 +591,19 @@ const styles = StyleSheet.create({
   // Validate
   validateButton: {
     marginTop: spacing.lg,
+  },
+  alreadyBet: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    height: 54,
+    borderRadius: radius.lg,
+    borderWidth: borderWidth.md,
+  },
+  alreadyBetText: {
+    color: colors.textPrimary,
   },
   closesText: {
     textAlign: 'center',

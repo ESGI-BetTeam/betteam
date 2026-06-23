@@ -10,11 +10,12 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Receipt21 } from 'iconsax-react-nativejs';
+import { Receipt21, TickCircle } from 'iconsax-react-nativejs';
 import { PronosticsStackParamList } from '@/types/navigation';
 import { leagueService } from '@/services/league.service';
 import { matchService, GroupBet } from '@/services/match.service';
 import { MatchCard } from '@/components/ui/MatchCard';
+import { formatPick } from '@/utils/prediction';
 import { colors, spacing, radius, borderWidth, typo } from '@/theme';
 
 type Nav = NativeStackNavigationProp<PronosticsStackParamList, 'PronosticsHome'>;
@@ -114,24 +115,32 @@ export function PronosticsListScreen() {
           <Text style={[typo.smallSecondary, styles.subtitle]}>
             {bets.length} pari{bets.length > 1 ? 's' : ''} en attente
           </Text>
-          {bets.map((bet) => (
-            <MatchCard
-              key={bet.id}
-              homeTeam={{
-                name: bet.match?.homeTeam.name ?? 'Équipe 1',
-                logoUrl: bet.match?.homeTeam.logoUrl,
-              }}
-              awayTeam={{
-                name: bet.match?.awayTeam.name ?? 'Équipe 2',
-                logoUrl: bet.match?.awayTeam.logoUrl,
-              }}
-              date={bet.match?.startTime ?? bet.closesAt}
-              status={getStatus(bet)}
-              onPress={() =>
-                navigation.navigate('PronosticDetail', { bet, leagueName: bet.leagueName })
-              }
-            />
-          ))}
+          {bets.map((bet) => {
+            const homeName = bet.match?.homeTeam.name ?? 'Équipe 1';
+            const awayName = bet.match?.awayTeam.name ?? 'Équipe 2';
+            return (
+              <MatchCard
+                key={bet.id}
+                homeTeam={{ name: homeName, logoUrl: bet.match?.homeTeam.logoUrl }}
+                awayTeam={{ name: awayName, logoUrl: bet.match?.awayTeam.logoUrl }}
+                date={bet.match?.startTime ?? bet.closesAt}
+                status={getStatus(bet)}
+                onPress={() =>
+                  navigation.navigate('PronosticDetail', { bet, leagueName: bet.leagueName })
+                }
+                footer={
+                  bet.userBet ? (
+                    <View style={styles.betBadge}>
+                      <TickCircle size={14} color={colors.accent} variant="Bold" />
+                      <Text style={[typo.smallSecondary, styles.betBadgeText]} numberOfLines={1}>
+                        Parié · {formatPick(bet.userBet.predictionValue, homeName, awayName)}
+                      </Text>
+                    </View>
+                  ) : undefined
+                }
+              />
+            );
+          })}
         </>
       )}
     </ScrollView>
@@ -153,6 +162,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.xl,
+  },
+  betBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: borderWidth.xs,
+    borderTopColor: colors.border,
+  },
+  betBadgeText: {
+    color: colors.accent,
+    flex: 1,
   },
   title: {
     marginBottom: spacing.xs,

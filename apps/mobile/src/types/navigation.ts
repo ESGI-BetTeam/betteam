@@ -19,10 +19,15 @@ export type PronosticsStackParamList = {
   PronosticDetail: { bet?: GroupBet; match?: Match; leagueName?: string };
 };
 
+export type ProfileStackParamList = {
+  ProfileHome: undefined;
+  MyBets: undefined;
+};
+
 export type AppTabParamList = {
   Home: undefined;
   Leagues: NavigatorScreenParams<LeaguesStackParamList>;
   Pronostics: NavigatorScreenParams<PronosticsStackParamList>;
-  Profile: undefined;
+  Profile: NavigatorScreenParams<ProfileStackParamList>;
   Components: undefined;
 };

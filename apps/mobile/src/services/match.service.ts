@@ -50,6 +50,18 @@ export interface Match {
   updatedAt: string;
 }
 
+export type BetStatus = 'pending' | 'won' | 'lost' | 'void';
+
+// The current user's bet on a group bet, when they have already played.
+export interface UserBet {
+  id: string;
+  predictionType: 'winner' | 'both_score';
+  predictionValue: string; // JSON string
+  amount: number;
+  status: BetStatus;
+  actualWin?: number | null;
+}
+
 export interface GroupBet {
   id: string;
   leagueId: string;
@@ -59,7 +71,19 @@ export interface GroupBet {
   closesAt: string;
   createdAt: string;
   match?: Match;
+  userBet?: UserBet | null;
   _count?: { bets: number };
+}
+
+// A match a league can open a challenge on.
+export interface AvailableMatch {
+  id: string;
+  homeTeam: { id: string; name: string; logoUrl: string | null };
+  awayTeam: { id: string; name: string; logoUrl: string | null };
+  startTime: string;
+  status: string;
+  round: string | null;
+  hasChallenge: boolean;
 }
 
 interface MatchesResponse {
@@ -147,5 +171,13 @@ export const matchService = {
       { matchId },
     );
     return data.challenge;
+  },
+
+  // Matches the league can open a challenge on (its competition, betting window).
+  async getAvailableMatches(leagueId: string): Promise<{ data: AvailableMatch[] }> {
+    const { data } = await api.get<{ matches: AvailableMatch[] }>(
+      `/leagues/${leagueId}/available-matches`,
+    );
+    return { data: data.matches ?? [] };
   },
 };

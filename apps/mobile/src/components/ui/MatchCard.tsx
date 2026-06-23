@@ -23,6 +23,8 @@ interface MatchCardProps {
   variant?: 'featured' | 'compact';
   odds?: MatchOdds;
   onPress?: () => void;
+  // Optional content pinned at the bottom of the card (e.g. a "Parié" badge).
+  footer?: React.ReactNode;
 }
 
 function formatMatchDate(dateStr: string): string {
@@ -90,6 +92,7 @@ export function MatchCard({
   variant = 'compact',
   odds,
   onPress,
+  footer,
 }: MatchCardProps) {
   const isFeatured = variant === 'featured';
   const canBet = status === 'open';
@@ -150,6 +153,8 @@ export function MatchCard({
           </TouchableOpacity>
         </View>
       )}
+
+      {footer}
     </TouchableOpacity>
   );
 }
