@@ -12,8 +12,8 @@ import { Home2, People, Receipt21, Profile, MainComponent } from 'iconsax-react-
 // Screens
 import { HomeScreen } from '@/screens/home/HomeScreen';
 import { LeaguesNavigator } from '@/navigation/LeaguesNavigator';
-import { PronosticsScreen } from '@/screens/pronostics/PronosticsScreen';
-import { ProfileScreen } from '@/screens/profile/ProfileScreen';
+import { PronosticsNavigator } from '@/navigation/PronosticsNavigator';
+import { ProfileNavigator } from '@/navigation/ProfileNavigator';
 import { ComponentScreen } from '@/screens/components/ComponentScreen';
 
 type TabName = keyof AppTabParamList;
@@ -35,8 +35,8 @@ const TAB_CONFIG: Record<
 const SCREEN_MAP: Record<TabName, React.ComponentType> = {
   Home: HomeScreen,
   Leagues: LeaguesNavigator,
-  Pronostics: PronosticsScreen,
-  Profile: ProfileScreen,
+  Pronostics: PronosticsNavigator,
+  Profile: ProfileNavigator,
   Components: ComponentScreen,
 };
 
@@ -89,7 +89,23 @@ export function AppNavigator() {
                       navigation.navigate('Leagues', { screen: 'LeaguesHome' });
                     },
                   })
-                : undefined
+                : name === 'Pronostics'
+                  ? ({ navigation }) => ({
+                      // Same reset behaviour: tapping the tab returns to the list,
+                      // never stays on a bet detail.
+                      tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.navigate('Pronostics', { screen: 'PronosticsHome' });
+                      },
+                    })
+                  : name === 'Profile'
+                    ? ({ navigation }) => ({
+                        tabPress: (e) => {
+                          e.preventDefault();
+                          navigation.navigate('Profile', { screen: 'ProfileHome' });
+                        },
+                      })
+                    : undefined
             }
           />
         ))}

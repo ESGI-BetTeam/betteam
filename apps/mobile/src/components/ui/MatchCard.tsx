@@ -23,6 +23,8 @@ interface MatchCardProps {
   variant?: 'featured' | 'compact';
   odds?: MatchOdds;
   onPress?: () => void;
+  // Optional content pinned at the bottom of the card (e.g. a "Parié" badge).
+  footer?: React.ReactNode;
 }
 
 function formatMatchDate(dateStr: string): string {
@@ -90,6 +92,7 @@ export function MatchCard({
   variant = 'compact',
   odds,
   onPress,
+  footer,
 }: MatchCardProps) {
   const isFeatured = variant === 'featured';
   const canBet = status === 'open';
@@ -133,9 +136,9 @@ export function MatchCard({
         </View>
       </View>
 
-      {/* Odds row */}
+      {/* Odds row — display only, lets taps fall through to the card's onPress */}
       {showOdds && (
-        <View style={styles.oddsRow}>
+        <View style={styles.oddsRow} pointerEvents="none">
           <TouchableOpacity style={[styles.oddButton, styles.oddButtonFeatured]} activeOpacity={0.7}>
             <Text style={[typo.smallSecondary, styles.oddLabel, styles.oddLabelFeatured]} numberOfLines={1}>{homeTeam.name}</Text>
             <Text style={[typo.small, styles.oddValue, styles.oddValueFeatured]}>{odds.home.toFixed(2)}</Text>
@@ -150,6 +153,8 @@ export function MatchCard({
           </TouchableOpacity>
         </View>
       )}
+
+      {footer}
     </TouchableOpacity>
   );
 }

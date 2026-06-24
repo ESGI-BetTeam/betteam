@@ -1,28 +1,45 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { AxiosError } from 'axios';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../../components/ui/Button';
 import { Avatar } from '../../components/ui/Avatar';
 import { useAuthStore } from '../../stores/authStore';
 import { colors, radius, spacing, typo } from '../../theme';
 
 import { profileService } from '@/services/profile.service';
+import { leagueService, League } from '@/services/league.service';
 import { UserWithStats } from '@/types/stats';
+import { ProfileStackParamList } from '@/types/navigation';
 
-import { Cup, DollarCircle, HuobiToken, Lovely, Receipt21 } from 'iconsax-react-nativejs';
+import { Cup, DollarCircle, HuobiToken, Lovely, Receipt21, ArrowRight2, Coin } from 'iconsax-react-nativejs';
 import { Tag } from '@/components/ui/Tag';
 
+type Nav = NativeStackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
+
+// Point ceiling a recharge tops members back up to (mirror of the API cap).
+const RECHARGE_CAP = 1000;
+
 export function ProfileScreen() {
+  const navigation = useNavigation<Nav>();
   const { logout } = useAuthStore();
   const { getProfile } = profileService;
 
   const [profile, setProfile] = useState<UserWithStats | null>(null);
+  const [leagues, setLeagues] = useState<League[]>([]);
+  const [rechargingId, setRechargingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await getProfile();
+      const [data, leaguesRes] = await Promise.all([
+        getProfile(),
+        leagueService.getMyLeagues().catch(() => ({ data: [] as League[] })),
+      ]);
       setProfile(data);
+      setLeagues(leaguesRes.data);
     } catch (e) {
       console.error('ERROR 👉', e);
     } finally {
@@ -33,6 +50,25 @@ export function ProfileScreen() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleRecharge = useCallback(
+    async (leagueId: string) => {
+      setRechargingId(leagueId);
+      try {
+        await leagueService.recharge(leagueId);
+        await fetchData();
+      } catch (error) {
+        const axiosError = error as AxiosError<{ error: string }>;
+        Alert.alert(
+          'Recharge impossible',
+          axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.',
+        );
+      } finally {
+        setRechargingId(null);
+      }
+    },
+    [fetchData],
+  );
 
     if (isLoading) {
       return (
@@ -102,11 +138,65 @@ export function ProfileScreen() {
         />
       </View>
 
+      <TouchableOpacity
+        style={styles.menuRow}
+        onPress={() => navigation.navigate('MyBets')}
+        activeOpacity={0.8}
+      >
+        <View style={styles.menuIcon}>
+          <Receipt21 size="20" color={colors.accent} variant="Bulk" />
+        </View>
+        <Text style={[typo.pBold, styles.menuLabel]}>Mes paris</Text>
+        <ArrowRight2 size={18} color={colors.textSecondary} variant="Outline" />
+      </TouchableOpacity>
+
+      {leagues.length > 0 && (
+        <View style={styles.groupsSection}>
+          <Text style={[typo.smallSecondary, styles.groupsTitle]}>MES GROUPES</Text>
+          <View style={styles.groupsCard}>
+            {leagues.map((league, index) => {
+              const points = league.myPoints ?? 0;
+              const canRecharge = points < RECHARGE_CAP;
+              return (
+                <View
+                  key={league.id}
+                  style={[styles.groupRow, index > 0 && styles.groupRowBordered]}
+                >
+                  <View style={styles.groupIcon}>
+                    <Coin size={18} color={colors.accent} variant="Bulk" />
+                  </View>
+                  <Text style={[typo.pBold, styles.groupName]} numberOfLines={1}>
+                    {league.name}
+                  </Text>
+                  <Text style={[typo.pBold, styles.groupPoints]}>{points} pts</Text>
+                  {canRecharge && (
+                    <TouchableOpacity
+                      style={styles.groupRecharge}
+                      onPress={() => handleRecharge(league.id)}
+                      disabled={rechargingId === league.id}
+                      activeOpacity={0.8}
+                    >
+                      {rechargingId === league.id ? (
+                        <ActivityIndicator size="small" color={colors.accent} />
+                      ) : (
+                        <Text style={[typo.smallSecondary, styles.groupRechargeText]}>
+                          Recharger
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
       <Button
         title="Se déconnecter"
         variant="danger"
         onPress={logout}
-        style={{ marginTop: spacing.xl }}
+        style={{ marginTop: spacing.lg }}
       />
     </ScrollView>
   );
@@ -169,5 +259,80 @@ const styles = StyleSheet.create({
   },
   statCardValue: {
     marginTop: spacing.sm
-  }
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.backgroundCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  menuIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: colors.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuLabel: {
+    flex: 1,
+  },
+
+  // Mes groupes
+  groupsSection: {
+    marginTop: spacing.lg,
+  },
+  groupsTitle: {
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
+  },
+  groupsCard: {
+    backgroundColor: colors.backgroundCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  groupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+  },
+  groupRowBordered: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  groupIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: colors.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  groupName: {
+    flex: 1,
+  },
+  groupPoints: {
+    color: colors.accent,
+  },
+  groupRecharge: {
+    minWidth: 80,
+    height: 32,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.borderActive,
+    backgroundColor: colors.backgroundGlass,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  groupRechargeText: {
+    color: colors.accent,
+  },
 });

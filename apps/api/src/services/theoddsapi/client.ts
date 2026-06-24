@@ -44,6 +44,9 @@ export const ODDS_API_COMPETITION_MAPPING: Record<string, string> = {
   soccer_germany_bundesliga: '4331', // Bundesliga Germany
   soccer_italy_serie_a: '4332', // Serie A Italy
   soccer_spain_la_liga: '4335', // La Liga Spain
+
+  // Football international
+  soccer_fifa_world_cup: '4429', // FIFA World Cup
 };
 
 /**

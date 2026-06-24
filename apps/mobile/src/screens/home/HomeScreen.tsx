@@ -131,6 +131,9 @@ export function HomeScreen() {
 
     const now = new Date();
     const start = new Date(match.startTime);
+    // Derive "live" from kickoff time too: the backend status only refreshes on
+    // the periodic sync, so time is what reliably flips a match to in-progress.
+    if (now >= start) return 'live';
     const tenMinBefore = new Date(start.getTime() - 10 * 60 * 1000);
 
     if (now >= tenMinBefore) return 'soon';
@@ -237,7 +240,12 @@ export function HomeScreen() {
                 status={getMatchStatus(match)}
                 variant={index === 0 ? 'featured' : 'compact'}
                 odds={generateOdds(match.id)}
-                onPress={() => {}}
+                onPress={() =>
+                  navigation.navigate('Pronostics', {
+                    screen: 'PronosticDetail',
+                    params: { match },
+                  })
+                }
               />
             ))
           ) : (

@@ -7,27 +7,38 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { AxiosError } from 'axios';
+import { useNavigation, useRoute, RouteProp, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ArrowLeft2, Add, Flash } from 'iconsax-react-nativejs';
-import { LeaguesStackParamList } from '@/types/navigation';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { ArrowLeft2, Add, Flash, Coin } from 'iconsax-react-nativejs';
+import { LeaguesStackParamList, AppTabParamList } from '@/types/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { leagueService, League, LeaderboardEntry } from '@/services/league.service';
-import { matchService, GroupBet } from '@/services/match.service';
+import { matchService, GroupBet, AvailableMatch } from '@/services/match.service';
 import { frenchCompetitionName } from '@/services/competition.service';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ShareLeagueSheet } from '@/components/ui/ShareLeagueSheet';
+import { MatchSelectSheet } from '@/components/ui/MatchSelectSheet';
 import { colors, spacing, radius, borderWidth, typo } from '@/theme';
 
-type Nav = NativeStackNavigationProp<LeaguesStackParamList, 'LeagueDetail'>;
+// Composite so we can jump to the Pronostics tab after suggesting a bet.
+type Nav = CompositeNavigationProp<
+  NativeStackNavigationProp<LeaguesStackParamList, 'LeagueDetail'>,
+  BottomTabNavigationProp<AppTabParamList>
+>;
 type Rt = RouteProp<LeaguesStackParamList, 'LeagueDetail'>;
 
 type Period = 'season' | 'month';
 
 // Per-rank accent used by the podium badges (1st gold, 2nd silver, 3rd bronze)
 const RANK_COLORS = ['#F59E0B', '#94A3B8', '#CD7F32'] as const;
+
+// Mirror of the API's recharge ceiling; below it the member can top up.
+const RECHARGE_CAP = 1000;
 
 export function LeagueDetailScreen() {
   const navigation = useNavigation<Nav>();
@@ -43,6 +54,8 @@ export function LeagueDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>('season');
   const [shareVisible, setShareVisible] = useState(false);
+  const [recharging, setRecharging] = useState(false);
+  const [suggestVisible, setSuggestVisible] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -74,9 +87,51 @@ export function LeagueDetailScreen() {
     fetchData();
   }, [fetchData]);
 
+  const handleRecharge = useCallback(async () => {
+    setRecharging(true);
+    try {
+      await leagueService.recharge(leagueId);
+      await fetchData();
+    } catch (error) {
+      const axiosError = error as AxiosError<{ error: string }>;
+      Alert.alert(
+        'Recharge impossible',
+        axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.',
+      );
+    } finally {
+      setRecharging(false);
+    }
+  }, [leagueId, fetchData]);
+
+  // Suggests a bet: opens a challenge on the chosen match, then jumps to the
+  // pronostic detail so the suggester can place their own bet.
+  const handleSuggestMatch = useCallback(
+    async (match: AvailableMatch) => {
+      setSuggestVisible(false);
+      try {
+        const challenge = await matchService.createChallenge(leagueId, match.id);
+        navigation.navigate('Pronostics', {
+          screen: 'PronosticDetail',
+          params: { bet: challenge, leagueName: league?.name ?? leagueName },
+        });
+      } catch (error) {
+        const axiosError = error as AxiosError<{ error: string }>;
+        Alert.alert(
+          'Suggestion impossible',
+          axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.',
+        );
+      }
+    },
+    [leagueId, league?.name, leagueName, navigation],
+  );
+
   const podium = entries.slice(0, 3);
   const rest = entries.slice(3);
   const displayName = league?.name ?? leagueName ?? 'Ligue';
+
+  // The recharge button only makes sense for the current member when low on points.
+  const currentEntry = entries.find((e) => e.userId === currentUserId);
+  const canRecharge = currentEntry != null && currentEntry.points < RECHARGE_CAP;
 
   return (
     <>
@@ -141,6 +196,25 @@ export function LeagueDetailScreen() {
           </>
         )}
 
+        {/* Recharge — proposé au membre quand son solde est bas */}
+        {canRecharge && (
+          <TouchableOpacity
+            style={styles.rechargeButton}
+            onPress={handleRecharge}
+            disabled={recharging}
+            activeOpacity={0.8}
+          >
+            {recharging ? (
+              <ActivityIndicator color={colors.accent} size="small" />
+            ) : (
+              <Coin size={18} color={colors.accent} variant="Bulk" />
+            )}
+            <Text style={[typo.pBold, styles.rechargeText]}>
+              Recharger mes points ({currentEntry?.points} pts)
+            </Text>
+          </TouchableOpacity>
+        )}
+
         {/* Suggérer un pari — affiché tant qu'aucun pari n'est en cours */}
         {!isLoading && activeBets.length === 0 && (
           <View style={styles.suggestCard}>
@@ -156,7 +230,7 @@ export function LeagueDetailScreen() {
             <Button
               title="Suggérer un pari"
               variant="primary"
-              onPress={() => {}}
+              onPress={() => setSuggestVisible(true)}
               style={styles.suggestCta}
             />
           </View>
@@ -187,6 +261,13 @@ export function LeagueDetailScreen() {
           inviteCode={league.inviteCode}
         />
       )}
+
+      <MatchSelectSheet
+        visible={suggestVisible}
+        leagueId={leagueId}
+        onClose={() => setSuggestVisible(false)}
+        onSelect={handleSuggestMatch}
+      />
     </>
   );
 }
@@ -236,10 +317,12 @@ function Podium({
               numberOfLines={1}
             >
               {isCurrentUser ? 'Vous' : entry.username}
+              {entry.hasRecharged ? ' 💰' : ''}
             </Text>
             <Text style={[typo.smallSecondary, isCurrentUser && styles.currentUserText]}>
               {entry.points} pts
             </Text>
+            <RankDelta entry={entry} />
           </View>
         );
       })}
@@ -267,11 +350,31 @@ function LeaderboardRow({
         numberOfLines={1}
       >
         {isCurrentUser ? 'Vous' : entry.username}
+        {entry.hasRecharged ? ' 💰' : ''}
       </Text>
       <Text style={[styles.tdPts, typo.pBold, isCurrentUser && styles.currentUserText]}>
         {entry.points}
       </Text>
-      <Text style={[styles.tdDelta, typo.smallSecondary]}>–</Text>
+      <View style={styles.tdDelta}>
+        <RankDelta entry={entry} />
+      </View>
+    </View>
+  );
+}
+
+// Up/down movement since the last settlement: green ▲ when the member climbed,
+// red ▼ when they dropped, a neutral dash when unchanged or never ranked.
+function RankDelta({ entry }: { entry: LeaderboardEntry }) {
+  const delta = entry.previousRank != null ? entry.previousRank - entry.rank : 0;
+  if (delta === 0) {
+    return <Text style={[typo.smallSecondary, styles.deltaNeutral]}>–</Text>;
+  }
+  const up = delta > 0;
+  const color = up ? colors.accent : colors.error;
+  return (
+    <View style={styles.deltaWrap}>
+      <Text style={[styles.deltaArrow, { color }]}>{up ? '▲' : '▼'}</Text>
+      <Text style={[styles.deltaValue, { color }]}>{Math.abs(delta)}</Text>
     </View>
   );
 }
@@ -400,6 +503,24 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
 
+  // Recharge
+  rechargeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    height: 46,
+    borderRadius: radius.full,
+    borderWidth: borderWidth.md,
+    borderColor: colors.borderActive,
+    backgroundColor: colors.backgroundGlass,
+  },
+  rechargeText: {
+    color: colors.accent,
+    fontSize: 14,
+  },
+
   // Suggérer un pari
   suggestCard: {
     marginTop: spacing.xl,
@@ -452,7 +573,7 @@ const styles = StyleSheet.create({
   thRank: { width: 32 },
   thName: { flex: 1 },
   thPts: { width: 56, textAlign: 'right' },
-  thDelta: { width: 32, textAlign: 'center' },
+  thDelta: { width: 40, textAlign: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -467,7 +588,25 @@ const styles = StyleSheet.create({
   tdRank: { width: 32 },
   tdName: { flex: 1 },
   tdPts: { width: 56, textAlign: 'right' },
-  tdDelta: { width: 32, textAlign: 'center' },
+  tdDelta: { width: 40, alignItems: 'center', justifyContent: 'center' },
+
+  // Rank delta (up/down)
+  deltaWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  deltaArrow: {
+    fontSize: 9,
+    lineHeight: 14,
+  },
+  deltaValue: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  deltaNeutral: {
+    color: colors.textMuted,
+  },
 
   // Toggle — pinned at the bottom of the page
   toggleBar: {

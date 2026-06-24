@@ -50,6 +50,18 @@ export interface Match {
   updatedAt: string;
 }
 
+export type BetStatus = 'pending' | 'won' | 'lost' | 'void';
+
+// The current user's bet on a group bet, when they have already played.
+export interface UserBet {
+  id: string;
+  predictionType: 'winner' | 'both_score';
+  predictionValue: string; // JSON string
+  amount: number;
+  status: BetStatus;
+  actualWin?: number | null;
+}
+
 export interface GroupBet {
   id: string;
   leagueId: string;
@@ -59,7 +71,19 @@ export interface GroupBet {
   closesAt: string;
   createdAt: string;
   match?: Match;
+  userBet?: UserBet | null;
   _count?: { bets: number };
+}
+
+// A match a league can open a challenge on.
+export interface AvailableMatch {
+  id: string;
+  homeTeam: { id: string; name: string; logoUrl: string | null };
+  awayTeam: { id: string; name: string; logoUrl: string | null };
+  startTime: string;
+  status: string;
+  round: string | null;
+  hasChallenge: boolean;
 }
 
 interface MatchesResponse {
@@ -67,8 +91,26 @@ interface MatchesResponse {
   count: number;
 }
 
-interface ChallengesResponse {
-  data: GroupBet[];
+// The API returns `{ challenges, total }`; we normalize to `{ data }` for callers.
+interface ActiveChallengesApiResponse {
+  challenges: GroupBet[];
+  total: number;
+}
+
+// Winner pick. Exact-score prediction isn't supported by the API yet.
+export type WinnerValue = 'home' | 'draw' | 'away';
+
+export type PredictionType = 'winner' | 'both_score';
+
+export interface PlaceBetInput {
+  predictionType: PredictionType;
+  predictionValue: string; // JSON string, e.g. '{"type":"winner","value":"home"}'
+  amount: number;
+}
+
+interface PlaceBetResponse {
+  bet: { id: string };
+  message: string;
 }
 
 export const matchService = {
@@ -82,8 +124,73 @@ export const matchService = {
     return data;
   },
 
-  async getActiveChallenges(leagueId: string): Promise<ChallengesResponse> {
-    const { data } = await api.get<ChallengesResponse>(`/leagues/${leagueId}/challenges/active`);
+  async getActiveChallenges(leagueId: string): Promise<{ data: GroupBet[] }> {
+    const { data } = await api.get<ActiveChallengesApiResponse>(
+      `/leagues/${leagueId}/challenges/active`,
+    );
+    return { data: data.challenges ?? [] };
+  },
+
+  // Serializes a winner pick into the API's expected prediction payload.
+  buildWinnerPrediction(value: WinnerValue): Pick<PlaceBetInput, 'predictionType' | 'predictionValue'> {
+    return {
+      predictionType: 'winner',
+      predictionValue: JSON.stringify({ type: 'winner', value }),
+    };
+  },
+
+  // Winner pick + exact score (bonus). The API requires the winner to match the
+  // score, so callers should only use this when home/away imply `value`.
+  buildScorePrediction(
+    value: WinnerValue,
+    homeScore: number,
+    awayScore: number,
+  ): Pick<PlaceBetInput, 'predictionType' | 'predictionValue'> {
+    return {
+      predictionType: 'both_score',
+      predictionValue: JSON.stringify({ type: 'both_score', value, homeScore, awayScore }),
+    };
+  },
+
+  async placeBet(
+    leagueId: string,
+    challengeId: string,
+    input: PlaceBetInput,
+  ): Promise<PlaceBetResponse> {
+    const { data } = await api.post<PlaceBetResponse>(
+      `/leagues/${leagueId}/challenges/${challengeId}/bets`,
+      input,
+    );
     return data;
+  },
+
+  // Updates the user's existing bet on a challenge (allowed until kickoff).
+  async updateBet(
+    leagueId: string,
+    challengeId: string,
+    input: PlaceBetInput,
+  ): Promise<PlaceBetResponse> {
+    const { data } = await api.patch<PlaceBetResponse>(
+      `/leagues/${leagueId}/challenges/${challengeId}/bets`,
+      input,
+    );
+    return data;
+  },
+
+  // Opens a group bet (challenge) on a match within a league.
+  async createChallenge(leagueId: string, matchId: string): Promise<GroupBet> {
+    const { data } = await api.post<{ challenge: GroupBet; message: string }>(
+      `/leagues/${leagueId}/challenges`,
+      { matchId },
+    );
+    return data.challenge;
+  },
+
+  // Matches the league can open a challenge on (its competition, betting window).
+  async getAvailableMatches(leagueId: string): Promise<{ data: AvailableMatch[] }> {
+    const { data } = await api.get<{ matches: AvailableMatch[] }>(
+      `/leagues/${leagueId}/available-matches`,
+    );
+    return { data: data.matches ?? [] };
   },
 };

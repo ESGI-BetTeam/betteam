@@ -142,6 +142,9 @@ export interface KickMemberResponse {
 // Leaderboard entry with user stats
 export interface LeaderboardEntry {
   rank: number;
+  // Rank at the last settlement; null until the member has been ranked once.
+  // Lets the client show an up/down delta (previousRank − rank).
+  previousRank: number | null;
   userId: string;
   username: string;
   avatar: string | null;
@@ -151,6 +154,15 @@ export interface LeaderboardEntry {
   lostBets: number;
   winRate: number;
   joinedAt: Date;
+  // True once the member has topped up their points ("mis la main au pot").
+  hasRecharged: boolean;
+}
+
+// POST /api/leagues/:id/recharge - Top up the member's points to the cap
+export interface RechargeResponse {
+  points: number;
+  hasRecharged: boolean;
+  message: string;
 }
 
 // GET /api/leagues/:id/leaderboard - Get league leaderboard

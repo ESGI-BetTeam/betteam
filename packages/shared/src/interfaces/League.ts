@@ -36,6 +36,11 @@ export interface League {
   owner?: User;
   currentCompetition?: LeagueCompetition | null;
   members?: LeagueMember[];
+  // Points balance of the requesting user in this league (null if not a member).
+  // Populated on the "my leagues" listing so callers avoid a per-league fetch.
+  myPoints?: number | null;
+  // Whether the requesting user has already topped up their points here.
+  myHasRecharged?: boolean;
   _count?: {
     members: number;
     groupBets?: number;

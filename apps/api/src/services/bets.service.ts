@@ -2,7 +2,9 @@ import { prisma } from '../lib/prisma';
 
 // Constants
 const MATCH_BETTING_WINDOW_DAYS = 7; // J-7
-const MATCH_CLOSE_BEFORE_MINUTES = 10; // M-10
+// Bets stay open and editable right up to kickoff (M-0); they freeze when the
+// match starts.
+const MATCH_CLOSE_BEFORE_MINUTES = 0;
 const DEFAULT_FREE_WEEKLY_BET_LIMIT = 3;
 const DEFAULT_FREE_COMPETITION_CHANGE_DAYS = 7;
 
@@ -127,11 +129,11 @@ class BetsService {
       };
     }
 
-    // Check if we're too late (less than M-10)
+    // Check if we're too late (the match has started)
     if (now > closesAt) {
       return {
         valid: false,
-        error: `Les paris sont fermés pour ce match (clôture 10 minutes avant le début).`,
+        error: `Les paris sont fermés pour ce match (le match a commencé).`,
       };
     }
 
@@ -139,7 +141,7 @@ class BetsService {
   }
 
   /**
-   * Calculate the closes_at time for a challenge (M-10)
+   * Calculate the closes_at time for a challenge (kickoff, M-0)
    */
   calculateClosesAt(matchStartTime: Date): Date {
     const closesAt = new Date(matchStartTime);
@@ -307,6 +309,36 @@ class BetsService {
           return {
             valid: false,
             error: 'Valeur de prédiction invalide. Utilisez "home", "draw" ou "away".',
+          };
+        }
+        return { valid: true };
+      }
+
+      if (predictionType === 'both_score') {
+        if (!parsed.type || parsed.type !== 'both_score') {
+          return { valid: false, error: 'Format de prédiction invalide.' };
+        }
+        if (!['home', 'draw', 'away'].includes(parsed.value)) {
+          return {
+            valid: false,
+            error: 'Valeur de prédiction invalide. Utilisez "home", "draw" ou "away".',
+          };
+        }
+        const isValidScore = (n: unknown) => Number.isInteger(n) && (n as number) >= 0;
+        if (!isValidScore(parsed.homeScore) || !isValidScore(parsed.awayScore)) {
+          return {
+            valid: false,
+            error: 'Score exact invalide : les scores doivent être des entiers positifs.',
+          };
+        }
+        // The picked winner must be consistent with the predicted score.
+        const { homeScore, awayScore, value } = parsed;
+        const impliedWinner =
+          homeScore > awayScore ? 'home' : homeScore < awayScore ? 'away' : 'draw';
+        if (value !== impliedWinner) {
+          return {
+            valid: false,
+            error: 'Le vainqueur choisi ne correspond pas au score exact saisi.',
           };
         }
         return { valid: true };

@@ -20,6 +20,7 @@ import {
   GetChallengeBetsResponse,
 } from '@betteam/shared/api/bets';
 import { GroupBetWithParticipation } from '@betteam/shared/interfaces/Challenge';
+import { PredictionType } from '@betteam/shared/interfaces/Bet';
 
 const router = Router({ mergeParams: true }); // mergeParams to access :leagueId
 
@@ -625,7 +626,7 @@ router.post(
           matchId: bet.matchId,
           leagueId: bet.leagueId,
           groupBetId: bet.groupBetId,
-          predictionType: bet.predictionType as 'winner',
+          predictionType: bet.predictionType as PredictionType,
           predictionValue: bet.predictionValue,
           amount: bet.amount,
           status: bet.status as 'pending' | 'won' | 'lost' | 'void',
@@ -659,6 +660,176 @@ router.post(
       });
     } catch (error) {
       console.error('Place bet error:', error);
+      return res.status(500).json({ error: 'Erreur interne du serveur.' });
+    }
+  },
+);
+
+// PATCH /api/leagues/:leagueId/challenges/:challengeId/bets - Update own bet
+// Lets a member change their prediction/score/stake until kickoff. Not counted
+// as a new weekly bet; the stake difference is settled against their balance.
+router.patch(
+  '/:challengeId/bets',
+  requireAuth,
+  async (
+    req: AuthenticatedRequest & {
+      body: PlaceBetRequest.Body;
+      params: { leagueId: string; challengeId: string };
+    },
+    res: Response<PlaceBetResponse | { error: string }>,
+  ) => {
+    try {
+      const { leagueId, challengeId } = req.params;
+      const { predictionType, predictionValue, amount } = req.body;
+      const userId = req.userId!;
+
+      if (!predictionType || !predictionValue) {
+        return res.status(400).json({ error: 'Type et valeur de prédiction requis.' });
+      }
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Le montant doit être supérieur à 0.' });
+      }
+
+      // Check if league exists
+      const league = await prisma.league.findUnique({
+        where: { id: leagueId },
+        select: { id: true, isActive: true },
+      });
+
+      if (!league || !league.isActive) {
+        return res.status(404).json({ error: 'Ligue non trouvée.' });
+      }
+
+      // Check if user is a member
+      const isMember = await betsService.isLeagueMember(userId, leagueId);
+      if (!isMember) {
+        return res.status(403).json({ error: 'Vous devez être membre de cette ligue.' });
+      }
+
+      // Check if challenge exists and is still open for betting
+      const challenge = await prisma.groupBet.findFirst({
+        where: { id: challengeId, leagueId },
+      });
+
+      if (!challenge) {
+        return res.status(404).json({ error: 'Challenge non trouvé.' });
+      }
+
+      if (challenge.status !== 'open') {
+        return res.status(400).json({ error: "Ce challenge n'est plus ouvert aux paris." });
+      }
+
+      // Betting closes at kickoff (M-0)
+      if (new Date() > challenge.closesAt) {
+        return res
+          .status(400)
+          .json({ error: 'Le match a commencé, le pari ne peut plus être modifié.' });
+      }
+
+      // The user must already have a bet on this challenge to modify it
+      const existing = await prisma.bet.findFirst({
+        where: { userId, groupBetId: challengeId },
+      });
+
+      if (!existing) {
+        return res.status(404).json({ error: "Vous n'avez pas encore parié sur ce challenge." });
+      }
+
+      // Validate prediction format
+      const predictionValid = betsService.validatePredictionValue(predictionType, predictionValue);
+      if (!predictionValid.valid) {
+        return res.status(400).json({ error: predictionValid.error! });
+      }
+
+      // Settle the stake difference against the member's balance
+      const membership = await prisma.leagueMember.findUnique({
+        where: { leagueId_userId: { leagueId, userId } },
+      });
+
+      if (!membership) {
+        return res.status(403).json({ error: 'Vous devez être membre de cette ligue.' });
+      }
+
+      // After refunding the old stake, is there enough to cover the new one?
+      if (membership.points + existing.amount < amount) {
+        return res.status(400).json({ error: "Vous n'avez pas assez de points." });
+      }
+
+      const stakeDelta = existing.amount - amount; // +ve frees points, -ve costs more
+
+      const bet = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        await tx.leagueMember.update({
+          where: { id: membership.id },
+          data: { points: { increment: stakeDelta } },
+        });
+
+        return tx.bet.update({
+          where: { id: existing.id },
+          data: { predictionType, predictionValue, amount },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                username: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+                role: true,
+                isActive: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
+            match: {
+              include: { homeTeam: true, awayTeam: true },
+            },
+          },
+        });
+      });
+
+      return res.status(200).json({
+        bet: {
+          id: bet.id,
+          userId: bet.userId,
+          matchId: bet.matchId,
+          leagueId: bet.leagueId,
+          groupBetId: bet.groupBetId,
+          predictionType: bet.predictionType as PredictionType,
+          predictionValue: bet.predictionValue,
+          amount: bet.amount,
+          status: bet.status as 'pending' | 'won' | 'lost' | 'void',
+          potentialWin: bet.potentialWin,
+          actualWin: bet.actualWin,
+          createdAt: bet.createdAt,
+          settledAt: bet.settledAt,
+          user: {
+            id: bet.user.id,
+            email: bet.user.email,
+            username: bet.user.username,
+            firstName: bet.user.firstName,
+            lastName: bet.user.lastName,
+            avatar: bet.user.avatar,
+            role: bet.user.role as 'user' | 'admin',
+            isActive: bet.user.isActive,
+            createdAt: bet.user.createdAt,
+            updatedAt: bet.user.updatedAt,
+          },
+          match: {
+            id: bet.match.id,
+            homeTeam: bet.match.homeTeam.name,
+            awayTeam: bet.match.awayTeam.name,
+            homeScore: bet.match.homeScore,
+            awayScore: bet.match.awayScore,
+            startTime: bet.match.startTime,
+            status: bet.match.status,
+          },
+        },
+        message: 'Pari modifié avec succès.',
+      });
+    } catch (error) {
+      console.error('Update bet error:', error);
       return res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
   },
