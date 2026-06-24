@@ -37,8 +37,15 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
+  # URL relative : Swagger la résout contre l'origine d'où la doc est servie,
+  # donc "Try it out" tape automatiquement le bon host (local, dev, prod) sans
+  # mixed-content ni CORS. C'est le serveur par défaut.
+  - url: /api
+    description: Environnement courant (résolu automatiquement)
   - url: http://localhost:3000/api
     description: Serveur de développement local
+  - url: https://betteam-api-dev.up.railway.app/api
+    description: Serveur de développement (Railway)
   - url: https://api.betteam.com/api
     description: Serveur de production
 
