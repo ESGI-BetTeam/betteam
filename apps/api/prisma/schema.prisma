@@ -260,6 +260,7 @@ model LeagueMember {
   role         String   @default("member") // owner, admin, member
   points       Int      @default(1000) // Starting points
   hasRecharged Boolean  @default(false) @map("has_recharged") // Topped up at least once
+  previousRank Int?     @map("previous_rank") // Rank at the last settlement, for up/down deltas
   joinedAt     DateTime @default(now()) @map("joined_at")
 
   // Relations

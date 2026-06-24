@@ -49,6 +49,11 @@ class SettlementService {
     const matchIds = new Set<string>();
     const groupBetIds = new Set<string>();
 
+    // Snapshot each affected league's standings BEFORE crediting points, so the
+    // leaderboard can show how ranks moved as a result of this settlement.
+    const affectedLeagueIds = new Set(pendingBets.map((b) => b.leagueId));
+    await this.snapshotRanks([...affectedLeagueIds]);
+
     for (const bet of pendingBets) {
       const match = bet.match;
       matchIds.add(match.id);
@@ -84,6 +89,29 @@ class SettlementService {
     }
 
     return { matchesSettled: matchIds.size, betsSettled, pointsCredited };
+  }
+
+  /**
+   * Persist each member's current rank (by points desc) as `previousRank` for
+   * the given leagues. Called just before points are credited so the next
+   * leaderboard read can compute the up/down delta against these standings.
+   */
+  private async snapshotRanks(leagueIds: string[]): Promise<void> {
+    for (const leagueId of leagueIds) {
+      const members = await prisma.leagueMember.findMany({
+        where: { leagueId },
+        orderBy: { points: 'desc' },
+        select: { id: true },
+      });
+      await prisma.$transaction(
+        members.map((m, index) =>
+          prisma.leagueMember.update({
+            where: { id: m.id },
+            data: { previousRank: index + 1 },
+          }),
+        ),
+      );
+    }
   }
 
   /** Points to credit for a finished match (0 when the winner pick is wrong). */

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { PronosticsStackParamList } from '@/types/navigation';
 import { matchService, WinnerValue } from '@/services/match.service';
 import { leagueService, League } from '@/services/league.service';
 import { parsePrediction } from '@/utils/prediction';
+import { isMatchStarted } from '@/utils/match';
 import { Avatar } from '@/components/ui/Avatar';
 import { LeagueSelectSheet } from '@/components/ui/LeagueSelectSheet';
 import { Button } from '@/components/ui/Button';
@@ -62,9 +63,9 @@ function formatMatchDate(dateStr: string): string {
   return `${date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}, ${time}`;
 }
 
-// Votes close 10 minutes before kickoff (mirrors the API's M-10 rule).
+// Votes close at kickoff (mirrors the API's M-0 rule).
 function matchClosesAt(startTime: string): string {
-  return new Date(new Date(startTime).getTime() - 10 * 60 * 1000).toISOString();
+  return new Date(startTime).toISOString();
 }
 
 // Human-friendly time remaining until the vote closes, e.g. "3h 15min".
@@ -117,10 +118,14 @@ export function PronosticDetailScreen() {
   // A detail can open from an existing group bet or from a raw upcoming match.
   const match = bet?.match ?? matchParam;
 
-  // If the user already played this group bet, the screen is read-only and
-  // pre-filled with their pick.
+  // If the user already played this group bet, the screen is pre-filled with
+  // their pick and stays editable until kickoff; once the match starts every
+  // bet is frozen.
   const existingBet = bet?.userBet ?? null;
-  const readonly = existingBet != null;
+  const matchStarted = isMatchStarted(match?.startTime);
+  // A pending bet can still be changed before kickoff; a settled one cannot.
+  const canEdit = !matchStarted && (existingBet == null || existingBet.status === 'pending');
+  const readonly = !canEdit;
   const prefill = existingBet ? parsePrediction(existingBet.predictionValue) : null;
 
   const [outcome, setOutcome] = useState<Outcome | null>(prefill?.value ?? null);
@@ -130,6 +135,30 @@ export function PronosticDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   // Non-null while the league chooser sheet is open (raw match, several leagues).
   const [leagueChoices, setLeagueChoices] = useState<League[] | null>(null);
+  // The user's leagues, loaded to resolve their balance in the target league.
+  const [myLeagues, setMyLeagues] = useState<League[]>([]);
+  const [recharging, setRecharging] = useState(false);
+
+  const loadLeagues = () =>
+    leagueService
+      .getMyLeagues()
+      .then((res) => setMyLeagues(res.data))
+      .catch(() => setMyLeagues([]));
+
+  useEffect(() => {
+    loadLeagues();
+  }, []);
+
+  // Resolve which league the bet targets: the group bet's league, or the user's
+  // single league for a raw match. Balance is unknown until a league is picked
+  // when the user belongs to several leagues.
+  const targetLeagueId = bet?.leagueId ?? (myLeagues.length === 1 ? myLeagues[0].id : null);
+  const targetLeague = targetLeagueId
+    ? myLeagues.find((l) => l.id === targetLeagueId) ?? null
+    : null;
+  const balance = targetLeague?.myPoints ?? null;
+  // Not enough points to cover the stake — offer a recharge before betting.
+  const insufficient = balance != null && stake > balance;
 
   // The exact-score bonus only applies when the entered score implies the same
   // winner as the pick (the API rejects a contradictory winner/score).
@@ -142,16 +171,41 @@ export function PronosticDetailScreen() {
     Alert.alert('Erreur', axiosError.response?.data?.error ?? 'Une erreur est survenue. Réessayez.');
   };
 
-  // Places the bet on a resolved league + challenge.
+  // Places (or, when editing an existing bet, updates) the bet on a resolved
+  // league + challenge.
   const placeBetOn = async (leagueId: string, challengeId: string) => {
     // Attach the exact-score bonus only when it agrees with the winner pick.
     const prediction = scoreBonusActive
       ? matchService.buildScorePrediction(outcome as WinnerValue, homeScore, awayScore)
       : matchService.buildWinnerPrediction(outcome as WinnerValue);
-    await matchService.placeBet(leagueId, challengeId, { ...prediction, amount: stake });
+    const payload = { ...prediction, amount: stake };
+
+    if (existingBet) {
+      await matchService.updateBet(leagueId, challengeId, payload);
+      Alert.alert('Pronostic modifié', 'Votre pronostic a bien été mis à jour.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+      return;
+    }
+
+    await matchService.placeBet(leagueId, challengeId, payload);
     Alert.alert('Pronostic validé', 'Votre pronostic a bien été enregistré.', [
       { text: 'OK', onPress: () => navigation.goBack() },
     ]);
+  };
+
+  // Tops the member's points back up in the target league, then refreshes balance.
+  const handleRecharge = async () => {
+    if (!targetLeagueId) return;
+    setRecharging(true);
+    try {
+      await leagueService.recharge(targetLeagueId);
+      await loadLeagues();
+    } catch (error) {
+      reportError(error);
+    } finally {
+      setRecharging(false);
+    }
   };
 
   // For a raw match: reuse an existing challenge in the league or open one, then bet.
@@ -372,7 +426,11 @@ export function PronosticDetailScreen() {
               <Coin size={20} color={colors.textPrimary} variant="Bulk" />
               <Text style={[typo.h4, styles.sectionTitleText]}>Mise</Text>
             </View>
-            <Text style={typo.smallSecondary}>points</Text>
+            {balance != null ? (
+              <Text style={typo.smallSecondary}>Solde : {balance} pts</Text>
+            ) : (
+              <Text style={typo.smallSecondary}>points</Text>
+            )}
           </View>
 
           <InputNumber
@@ -384,15 +442,37 @@ export function PronosticDetailScreen() {
           />
         </View>
 
-        {/* Validate — or read-only confirmation when already played */}
-        {readonly ? (
-          <View style={[styles.alreadyBet, statusStyle(existingBet!.status)]}>
-            <TickCircle size={20} color={colors.accent} variant="Bold" />
-            <Text style={[typo.pBold, styles.alreadyBetText]}>{statusLabel(existingBet!.status)}</Text>
-          </View>
+        {/* Frozen banner once the match started, otherwise a place/edit button */}
+        {matchStarted ? (
+          existingBet ? (
+            <View style={[styles.alreadyBet, statusStyle(existingBet.status)]}>
+              <TickCircle size={20} color={colors.accent} variant="Bold" />
+              <Text style={[typo.pBold, styles.alreadyBetText]}>
+                {statusLabel(existingBet.status)}
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.alreadyBet, statusStyle('void')]}>
+              <Text style={[typo.pBold, styles.alreadyBetText]}>Match en cours · paris fermés</Text>
+            </View>
+          )
+        ) : insufficient ? (
+          <>
+            <Text style={[typo.smallSecondary, styles.insufficientText]}>
+              Solde insuffisant pour cette mise ({balance} pts).
+            </Text>
+            <Button
+              title="Recharger mes points"
+              variant="primary"
+              size="large"
+              loading={recharging}
+              onPress={handleRecharge}
+              style={styles.validateButton}
+            />
+          </>
         ) : (
           <Button
-            title="Valider mon pronostic"
+            title={existingBet ? 'Modifier mon pronostic' : 'Valider mon pronostic'}
             variant="primary"
             size="large"
             loading={submitting}
@@ -608,5 +688,11 @@ const styles = StyleSheet.create({
   closesText: {
     textAlign: 'center',
     marginTop: spacing.md,
+  },
+  insufficientText: {
+    textAlign: 'center',
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    color: colors.error,
   },
 });

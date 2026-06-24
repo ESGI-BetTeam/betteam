@@ -16,6 +16,10 @@ export interface League {
   owner?: User;
   currentCompetition?: Competition;
   members?: LeagueMember[];
+  // Balance of the current user in this league (null if not a member),
+  // populated by GET /leagues so we avoid a per-league fetch.
+  myPoints?: number | null;
+  myHasRecharged?: boolean;
   _count?: { members: number; groupBets?: number };
 }
 
@@ -42,6 +46,8 @@ export interface LeagueMember {
 
 export interface LeaderboardEntry {
   rank: number;
+  // Rank at the last settlement (null if never ranked); drives the up/down arrow.
+  previousRank: number | null;
   userId: string;
   username: string;
   avatar: string | null;

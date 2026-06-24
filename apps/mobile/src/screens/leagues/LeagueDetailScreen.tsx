@@ -322,6 +322,7 @@ function Podium({
             <Text style={[typo.smallSecondary, isCurrentUser && styles.currentUserText]}>
               {entry.points} pts
             </Text>
+            <RankDelta entry={entry} />
           </View>
         );
       })}
@@ -354,7 +355,26 @@ function LeaderboardRow({
       <Text style={[styles.tdPts, typo.pBold, isCurrentUser && styles.currentUserText]}>
         {entry.points}
       </Text>
-      <Text style={[styles.tdDelta, typo.smallSecondary]}>–</Text>
+      <View style={styles.tdDelta}>
+        <RankDelta entry={entry} />
+      </View>
+    </View>
+  );
+}
+
+// Up/down movement since the last settlement: green ▲ when the member climbed,
+// red ▼ when they dropped, a neutral dash when unchanged or never ranked.
+function RankDelta({ entry }: { entry: LeaderboardEntry }) {
+  const delta = entry.previousRank != null ? entry.previousRank - entry.rank : 0;
+  if (delta === 0) {
+    return <Text style={[typo.smallSecondary, styles.deltaNeutral]}>–</Text>;
+  }
+  const up = delta > 0;
+  const color = up ? colors.accent : colors.error;
+  return (
+    <View style={styles.deltaWrap}>
+      <Text style={[styles.deltaArrow, { color }]}>{up ? '▲' : '▼'}</Text>
+      <Text style={[styles.deltaValue, { color }]}>{Math.abs(delta)}</Text>
     </View>
   );
 }
@@ -553,7 +573,7 @@ const styles = StyleSheet.create({
   thRank: { width: 32 },
   thName: { flex: 1 },
   thPts: { width: 56, textAlign: 'right' },
-  thDelta: { width: 32, textAlign: 'center' },
+  thDelta: { width: 40, textAlign: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -568,7 +588,25 @@ const styles = StyleSheet.create({
   tdRank: { width: 32 },
   tdName: { flex: 1 },
   tdPts: { width: 56, textAlign: 'right' },
-  tdDelta: { width: 32, textAlign: 'center' },
+  tdDelta: { width: 40, alignItems: 'center', justifyContent: 'center' },
+
+  // Rank delta (up/down)
+  deltaWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  deltaArrow: {
+    fontSize: 9,
+    lineHeight: 14,
+  },
+  deltaValue: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  deltaNeutral: {
+    color: colors.textMuted,
+  },
 
   // Toggle — pinned at the bottom of the page
   toggleBar: {

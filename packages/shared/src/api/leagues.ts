@@ -142,6 +142,9 @@ export interface KickMemberResponse {
 // Leaderboard entry with user stats
 export interface LeaderboardEntry {
   rank: number;
+  // Rank at the last settlement; null until the member has been ranked once.
+  // Lets the client show an up/down delta (previousRank − rank).
+  previousRank: number | null;
   userId: string;
   username: string;
   avatar: string | null;

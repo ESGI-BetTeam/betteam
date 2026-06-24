@@ -16,6 +16,7 @@ import { leagueService } from '@/services/league.service';
 import { matchService, GroupBet } from '@/services/match.service';
 import { MatchCard } from '@/components/ui/MatchCard';
 import { formatPick } from '@/utils/prediction';
+import { matchPhase } from '@/utils/match';
 import { colors, spacing, radius, borderWidth, typo } from '@/theme';
 
 type Nav = NativeStackNavigationProp<PronosticsStackParamList, 'PronosticsHome'>;
@@ -74,10 +75,12 @@ export function PronosticsListScreen() {
     fetchData();
   }, [fetchData]);
 
-  function getStatus(bet: PendingBet): 'open' | 'soon' {
-    const start = bet.match ? new Date(bet.match.startTime).getTime() : new Date(bet.closesAt).getTime();
-    const tenMinBefore = start - 10 * 60 * 1000;
-    return Date.now() >= tenMinBefore ? 'soon' : 'open';
+  function getStatus(bet: PendingBet): 'open' | 'soon' | 'live' {
+    // Fall back to closesAt + 10min as the kickoff when the match isn't embedded.
+    const start = bet.match
+      ? bet.match.startTime
+      : new Date(new Date(bet.closesAt).getTime() + 10 * 60 * 1000).toISOString();
+    return matchPhase(start);
   }
 
   if (isLoading) {

@@ -164,6 +164,19 @@ export const matchService = {
     return data;
   },
 
+  // Updates the user's existing bet on a challenge (allowed until kickoff).
+  async updateBet(
+    leagueId: string,
+    challengeId: string,
+    input: PlaceBetInput,
+  ): Promise<PlaceBetResponse> {
+    const { data } = await api.patch<PlaceBetResponse>(
+      `/leagues/${leagueId}/challenges/${challengeId}/bets`,
+      input,
+    );
+    return data;
+  },
+
   // Opens a group bet (challenge) on a match within a league.
   async createChallenge(leagueId: string, matchId: string): Promise<GroupBet> {
     const { data } = await api.post<{ challenge: GroupBet; message: string }>(

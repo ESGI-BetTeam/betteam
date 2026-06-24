@@ -370,6 +370,11 @@ router.get(
                 updatedAt: true,
               },
             },
+            // Only the requesting user's membership, to expose their balance.
+            members: {
+              where: { userId },
+              select: { points: true, hasRecharged: true },
+            },
             _count: {
               select: { members: true },
             },
@@ -381,7 +386,17 @@ router.get(
       const totalPages = Math.ceil(total / limit);
 
       return res.status(200).json({
-        leagues: leagues.map(transformLeague),
+        leagues: leagues.map((league) => {
+          const me = league.members?.[0];
+          // Drop the filtered members list so transformLeague doesn't expose a
+          // misleading "single member" league; surface the balance instead.
+          const { members, ...rest } = league;
+          return {
+            ...transformLeague(rest),
+            myPoints: me?.points ?? null,
+            myHasRecharged: me?.hasRecharged ?? false,
+          };
+        }),
         pagination: {
           page,
           limit,
@@ -1297,6 +1312,7 @@ router.get(
 
         return {
           rank: index + 1,
+          previousRank: member.previousRank,
           userId: member.userId,
           username: member.user.username,
           avatar: member.user.avatar,
