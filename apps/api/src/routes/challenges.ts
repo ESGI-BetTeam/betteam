@@ -57,25 +57,31 @@ const transformGroupBet = (groupBet: any, userId: string): GroupBetWithParticipa
     match: groupBet.match
       ? {
           id: groupBet.match.id,
-          homeTeam: {
-            id: groupBet.match.homeTeam.id,
-            name: translateTeamName(groupBet.match.homeTeam.name),
-            logoUrl: groupBet.match.homeTeam.logoUrl,
-          },
-          awayTeam: {
-            id: groupBet.match.awayTeam.id,
-            name: translateTeamName(groupBet.match.awayTeam.name),
-            logoUrl: groupBet.match.awayTeam.logoUrl,
-          },
+          homeTeam: groupBet.match.homeTeam
+            ? {
+                id: groupBet.match.homeTeam.id,
+                name: translateTeamName(groupBet.match.homeTeam.name),
+                logoUrl: groupBet.match.homeTeam.logoUrl,
+              }
+            : { id: '', name: 'Équipe 1', logoUrl: null },
+          awayTeam: groupBet.match.awayTeam
+            ? {
+                id: groupBet.match.awayTeam.id,
+                name: translateTeamName(groupBet.match.awayTeam.name),
+                logoUrl: groupBet.match.awayTeam.logoUrl,
+              }
+            : { id: '', name: 'Équipe 2', logoUrl: null },
           startTime: groupBet.match.startTime,
           status: groupBet.match.status,
           homeScore: groupBet.match.homeScore,
           awayScore: groupBet.match.awayScore,
-          competition: {
-            id: groupBet.match.competition.id,
-            name: groupBet.match.competition.name,
-            sport: groupBet.match.competition.sport,
-          },
+          competition: groupBet.match.competition
+            ? {
+                id: groupBet.match.competition.id,
+                name: groupBet.match.competition.name,
+                sport: groupBet.match.competition.sport,
+              }
+            : { id: '', name: 'Compétition', sport: 'football' },
         }
       : undefined,
     userBet: userBet
@@ -389,7 +395,8 @@ router.get(
       });
     } catch (error) {
       console.error('Get active challenges error:', error);
-      return res.status(500).json({ error: 'Erreur interne du serveur.' });
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      return res.status(500).json({ error: `Erreur interne du serveur: ${errorMessage}` });
     }
   },
 );
