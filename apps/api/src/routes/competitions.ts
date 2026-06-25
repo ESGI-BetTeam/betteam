@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { competitionsService, teamsService } from '../services/thesportsdb';
+import { translateTeamName } from '../utils/teamTranslations';
 
 const router = Router();
 
@@ -82,8 +83,18 @@ router.get('/:id', async (req: Request, res: Response) => {
       });
     }
 
+    // Traduire les noms d'équipes en français
+    const translatedCompetition = {
+      ...competition,
+      matches: competition.matches.map((match) => ({
+        ...match,
+        homeTeam: { ...match.homeTeam, name: translateTeamName(match.homeTeam.name) },
+        awayTeam: { ...match.awayTeam, name: translateTeamName(match.awayTeam.name) },
+      })),
+    };
+
     res.set('Cache-Control', 'public, max-age=3600'); // 1h - synced daily
-    return res.status(200).json(competition);
+    return res.status(200).json(translatedCompetition);
   } catch (error) {
     console.error('Get competition error:', error);
     return res.status(500).json({
@@ -125,6 +136,12 @@ router.get('/:id/teams', async (req: Request, res: Response) => {
       },
     });
 
+    // Traduire les noms d'équipes en français
+    const translatedTeams = teams.map((team) => ({
+      ...team,
+      name: translateTeamName(team.name),
+    }));
+
     res.set('Cache-Control', 'public, max-age=3600'); // 1h - synced daily
     return res.status(200).json({
       competition: {
@@ -132,8 +149,8 @@ router.get('/:id/teams', async (req: Request, res: Response) => {
         name: competition.name,
         sport: competition.sport,
       },
-      teams,
-      count: teams.length,
+      teams: translatedTeams,
+      count: translatedTeams.length,
     });
   } catch (error) {
     console.error('Get competition teams error:', error);
@@ -184,6 +201,13 @@ router.get('/:id/matches', async (req: Request, res: Response) => {
       skip: offset ? parseInt(offset as string) : 0,
     });
 
+    // Traduire les noms d'équipes en français
+    const translatedMatches = matches.map((match) => ({
+      ...match,
+      homeTeam: { ...match.homeTeam, name: translateTeamName(match.homeTeam.name) },
+      awayTeam: { ...match.awayTeam, name: translateTeamName(match.awayTeam.name) },
+    }));
+
     res.set('Cache-Control', 'public, max-age=300'); // 5 min - matches synced every 6h
     return res.status(200).json({
       competition: {
@@ -191,8 +215,8 @@ router.get('/:id/matches', async (req: Request, res: Response) => {
         name: competition.name,
         sport: competition.sport,
       },
-      matches,
-      count: matches.length,
+      matches: translatedMatches,
+      count: translatedMatches.length,
     });
   } catch (error) {
     console.error('Get competition matches error:', error);

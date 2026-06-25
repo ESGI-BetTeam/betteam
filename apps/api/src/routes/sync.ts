@@ -8,6 +8,7 @@ import {
 } from '../services/thesportsdb';
 import { oddsService, ODDS_API_COMPETITION_MAPPING } from '../services/theoddsapi';
 import { requireAuth, requireAdmin, AuthenticatedRequest } from '../middleware/auth';
+import { translateTeamName } from '../utils/teamTranslations';
 
 const router = Router();
 
@@ -281,7 +282,7 @@ router.get('/odds/status', async (req: Request, res: Response) => {
       apiStats: stats.apiStats,
       recentSyncs: recentOdds.map((o) => ({
         matchId: o.matchId,
-        match: `${o.match.homeTeam.name} vs ${o.match.awayTeam.name}`,
+        match: `${translateTeamName(o.match.homeTeam.name)} vs ${translateTeamName(o.match.awayTeam.name)}`,
         competition: o.match.competition.name,
         homeWinOdds: o.homeWinOdds,
         drawOdds: o.drawOdds,

@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { theSportsDBClient } from './client';
 import { TheSportsDBEventsResponse, TheSportsDBEvent } from '../../types/thesportsdb';
+import { translateTeamName } from '../../utils/teamTranslations';
 
 /**
  * Service de synchronisation des matchs depuis TheSportsDB
@@ -310,7 +311,7 @@ class MatchesService {
       }
     }
 
-    return prisma.match.findMany({
+    const matches = await prisma.match.findMany({
       where,
       include: {
         competition: true,
@@ -323,13 +324,20 @@ class MatchesService {
       take: filters.limit || 50,
       skip: filters.offset || 0,
     });
+
+    // Traduire les noms d'équipes en français
+    return matches.map((match) => ({
+      ...match,
+      homeTeam: { ...match.homeTeam, name: translateTeamName(match.homeTeam.name) },
+      awayTeam: { ...match.awayTeam, name: translateTeamName(match.awayTeam.name) },
+    }));
   }
 
   /**
    * Récupérer un match par son ID
    */
   async getMatchById(matchId: string) {
-    return prisma.match.findUnique({
+    const match = await prisma.match.findUnique({
       where: { id: matchId },
       include: {
         competition: true,
@@ -348,6 +356,15 @@ class MatchesService {
         },
       },
     });
+
+    if (!match) return null;
+
+    // Traduire les noms d'équipes en français
+    return {
+      ...match,
+      homeTeam: { ...match.homeTeam, name: translateTeamName(match.homeTeam.name) },
+      awayTeam: { ...match.awayTeam, name: translateTeamName(match.awayTeam.name) },
+    };
   }
 }
 

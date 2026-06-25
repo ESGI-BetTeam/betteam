@@ -5,6 +5,7 @@ import {
   ODDS_API_COMPETITION_MAPPING,
   THESPORTSDB_TO_ODDS_API,
 } from './client';
+import { translateTeamName } from '../../utils/teamTranslations';
 
 /**
  * Résultat du matching d'un match
@@ -338,7 +339,7 @@ class OddsService {
    * Récupérer les cotes d'un match spécifique
    */
   async getMatchOdds(matchId: string) {
-    return prisma.matchOdds.findUnique({
+    const odds = await prisma.matchOdds.findUnique({
       where: { matchId },
       include: {
         match: {
@@ -350,6 +351,18 @@ class OddsService {
         },
       },
     });
+
+    if (!odds) return null;
+
+    // Traduire les noms d'équipes en français
+    return {
+      ...odds,
+      match: {
+        ...odds.match,
+        homeTeam: { ...odds.match.homeTeam, name: translateTeamName(odds.match.homeTeam.name) },
+        awayTeam: { ...odds.match.awayTeam, name: translateTeamName(odds.match.awayTeam.name) },
+      },
+    };
   }
 
   /**
@@ -376,7 +389,7 @@ class OddsService {
       where.odds = { isNot: null };
     }
 
-    return prisma.match.findMany({
+    const matches = await prisma.match.findMany({
       where,
       include: {
         homeTeam: true,
@@ -387,6 +400,13 @@ class OddsService {
       orderBy: { startTime: 'asc' },
       take: limit,
     });
+
+    // Traduire les noms d'équipes en français
+    return matches.map((match) => ({
+      ...match,
+      homeTeam: { ...match.homeTeam, name: translateTeamName(match.homeTeam.name) },
+      awayTeam: { ...match.awayTeam, name: translateTeamName(match.awayTeam.name) },
+    }));
   }
 
   /**

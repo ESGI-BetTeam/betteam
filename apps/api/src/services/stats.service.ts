@@ -8,6 +8,7 @@ import type {
   LeagueActivity,
   TopBettor,
 } from '@betteam/shared/api/stats';
+import { translateTeamName } from '../utils/teamTranslations';
 
 class StatsService {
   /**
@@ -168,8 +169,8 @@ class StatsService {
     const recentBets: RecentBet[] = recentBetsRaw.map((bet) => ({
       id: bet.id,
       matchId: bet.matchId,
-      homeTeam: bet.match.homeTeam.name,
-      awayTeam: bet.match.awayTeam.name,
+      homeTeam: translateTeamName(bet.match.homeTeam.name),
+      awayTeam: translateTeamName(bet.match.awayTeam.name),
       predictionType: bet.predictionType,
       predictionValue: bet.predictionValue,
       amount: bet.amount,
@@ -492,7 +493,7 @@ class StatsService {
     const activities: LeagueActivity[] = [];
 
     for (const bet of recentBets) {
-      const matchLabel = `${bet.match.homeTeam.name} vs ${bet.match.awayTeam.name}`;
+      const matchLabel = `${translateTeamName(bet.match.homeTeam.name)} vs ${translateTeamName(bet.match.awayTeam.name)}`;
       if (bet.status === 'pending') {
         activities.push({
           type: 'bet_placed',
@@ -521,7 +522,7 @@ class StatsService {
     }
 
     for (const challenge of recentChallenges) {
-      const matchLabel = `${challenge.match.homeTeam.name} vs ${challenge.match.awayTeam.name}`;
+      const matchLabel = `${translateTeamName(challenge.match.homeTeam.name)} vs ${translateTeamName(challenge.match.awayTeam.name)}`;
       activities.push({
         type: 'challenge_created',
         userId: challenge.createdBy.id,

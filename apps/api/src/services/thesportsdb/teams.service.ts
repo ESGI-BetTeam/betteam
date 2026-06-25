@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { theSportsDBClient } from './client';
 import { TheSportsDBTeamsResponse, TheSportsDBTeam } from '../../types/thesportsdb';
+import { translateTeamName } from '../../utils/teamTranslations';
 
 /**
  * Service de synchronisation des équipes depuis TheSportsDB
@@ -159,14 +160,25 @@ class TeamsService {
   }
 
   /**
+   * Applique la traduction française aux noms d'équipes
+   */
+  private translateTeamNames<T extends { name: string }>(teams: T[]): T[] {
+    return teams.map((team) => ({
+      ...team,
+      name: translateTeamName(team.name),
+    }));
+  }
+
+  /**
    * Récupérer toutes les équipes
    */
   async getAllTeams() {
-    return prisma.team.findMany({
+    const teams = await prisma.team.findMany({
       orderBy: {
         name: 'asc',
       },
     });
+    return this.translateTeamNames(teams);
   }
 
   /**
@@ -216,7 +228,7 @@ class TeamsService {
     ]);
 
     return {
-      teams,
+      teams: this.translateTeamNames(teams),
       pagination: {
         page,
         limit,
@@ -230,7 +242,7 @@ class TeamsService {
    * Rechercher des équipes par nom
    */
   async searchTeams(query: string) {
-    return prisma.team.findMany({
+    const teams = await prisma.team.findMany({
       where: {
         OR: [
           { name: { contains: query, mode: 'insensitive' } },
@@ -242,13 +254,14 @@ class TeamsService {
         name: 'asc',
       },
     });
+    return this.translateTeamNames(teams);
   }
 
   /**
    * Récupérer une équipe par son ID
    */
   async getTeamById(teamId: string) {
-    return prisma.team.findUnique({
+    const team = await prisma.team.findUnique({
       where: { id: teamId },
       include: {
         homeMatches: {
@@ -276,6 +289,22 @@ class TeamsService {
         },
       },
     });
+
+    if (!team) return null;
+
+    // Traduire les noms d'équipes
+    return {
+      ...team,
+      name: translateTeamName(team.name),
+      homeMatches: team.homeMatches.map((match) => ({
+        ...match,
+        awayTeam: { ...match.awayTeam, name: translateTeamName(match.awayTeam.name) },
+      })),
+      awayMatches: team.awayMatches.map((match) => ({
+        ...match,
+        homeTeam: { ...match.homeTeam, name: translateTeamName(match.homeTeam.name) },
+      })),
+    };
   }
 
   /**
@@ -317,7 +346,14 @@ class TeamsService {
       prisma.match.count({ where }),
     ]);
 
-    return { matches, total };
+    // Traduire les noms d'équipes
+    const translatedMatches = matches.map((match) => ({
+      ...match,
+      homeTeam: { ...match.homeTeam, name: translateTeamName(match.homeTeam.name) },
+      awayTeam: { ...match.awayTeam, name: translateTeamName(match.awayTeam.name) },
+    }));
+
+    return { matches: translatedMatches, total };
   }
 
   /**

@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { betsService } from '../services/bets.service';
+import { translateTeamName } from '../utils/teamTranslations';
 import {
   GetBetsRequest,
   GetBetsResponse,
@@ -49,8 +50,8 @@ const transformBet = (bet: any): Bet => {
     match: bet.match
       ? {
           id: bet.match.id,
-          homeTeam: bet.match.homeTeam?.name || 'Unknown',
-          awayTeam: bet.match.awayTeam?.name || 'Unknown',
+          homeTeam: translateTeamName(bet.match.homeTeam?.name || 'Unknown'),
+          awayTeam: translateTeamName(bet.match.awayTeam?.name || 'Unknown'),
           homeScore: bet.match.homeScore,
           awayScore: bet.match.awayScore,
           startTime: bet.match.startTime,

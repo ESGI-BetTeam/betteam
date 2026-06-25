@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { betsService } from '../services/bets.service';
+import { translateTeamName } from '../utils/teamTranslations';
 import {
   CreateChallengeRequest,
   CreateChallengeResponse,
@@ -58,12 +59,12 @@ const transformGroupBet = (groupBet: any, userId: string): GroupBetWithParticipa
           id: groupBet.match.id,
           homeTeam: {
             id: groupBet.match.homeTeam.id,
-            name: groupBet.match.homeTeam.name,
+            name: translateTeamName(groupBet.match.homeTeam.name),
             logoUrl: groupBet.match.homeTeam.logoUrl,
           },
           awayTeam: {
             id: groupBet.match.awayTeam.id,
-            name: groupBet.match.awayTeam.name,
+            name: translateTeamName(groupBet.match.awayTeam.name),
             logoUrl: groupBet.match.awayTeam.logoUrl,
           },
           startTime: groupBet.match.startTime,
@@ -648,8 +649,8 @@ router.post(
           },
           match: {
             id: bet.match.id,
-            homeTeam: bet.match.homeTeam.name,
-            awayTeam: bet.match.awayTeam.name,
+            homeTeam: translateTeamName(bet.match.homeTeam.name),
+            awayTeam: translateTeamName(bet.match.awayTeam.name),
             homeScore: bet.match.homeScore,
             awayScore: bet.match.awayScore,
             startTime: bet.match.startTime,
@@ -818,8 +819,8 @@ router.patch(
           },
           match: {
             id: bet.match.id,
-            homeTeam: bet.match.homeTeam.name,
-            awayTeam: bet.match.awayTeam.name,
+            homeTeam: translateTeamName(bet.match.homeTeam.name),
+            awayTeam: translateTeamName(bet.match.awayTeam.name),
             homeScore: bet.match.homeScore,
             awayScore: bet.match.awayScore,
             startTime: bet.match.startTime,
@@ -1015,12 +1016,12 @@ router.get(
           id: match.id,
           homeTeam: {
             id: match.homeTeam.id,
-            name: match.homeTeam.name,
+            name: translateTeamName(match.homeTeam.name),
             logoUrl: match.homeTeam.logoUrl,
           },
           awayTeam: {
             id: match.awayTeam.id,
-            name: match.awayTeam.name,
+            name: translateTeamName(match.awayTeam.name),
             logoUrl: match.awayTeam.logoUrl,
           },
           startTime: match.startTime,

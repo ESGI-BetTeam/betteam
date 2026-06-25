@@ -6,6 +6,7 @@ import multer from 'multer';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { translateTeamName } from '../utils/teamTranslations';
 import {
   LEAGUE_LOGOS_DIR,
   UPLOADS_PUBLIC_PREFIX,
@@ -1647,8 +1648,8 @@ router.get(
         },
         match: {
           id: bet.match.id,
-          homeTeam: bet.match.homeTeam.name,
-          awayTeam: bet.match.awayTeam.name,
+          homeTeam: translateTeamName(bet.match.homeTeam.name),
+          awayTeam: translateTeamName(bet.match.awayTeam.name),
           homeScore: bet.match.homeScore,
           awayScore: bet.match.awayScore,
           startTime: bet.match.startTime,
