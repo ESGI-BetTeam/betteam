@@ -189,7 +189,7 @@ export const matchService = {
   // Matches the league can open a challenge on (its competition, betting window).
   async getAvailableMatches(leagueId: string): Promise<{ data: AvailableMatch[] }> {
     const { data } = await api.get<{ matches: AvailableMatch[] }>(
-      `/leagues/${leagueId}/available-matches`,
+      `/leagues/${leagueId}/challenges/available-matches`,
     );
     return { data: data.matches ?? [] };
   },

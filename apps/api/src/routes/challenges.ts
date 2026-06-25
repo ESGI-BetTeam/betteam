@@ -661,7 +661,10 @@ router.post(
       });
     } catch (error) {
       console.error('Place bet error:', error);
-      return res.status(500).json({ error: 'Erreur interne du serveur.' });
+      // Retourner plus de détails sur l'erreur pour le debug
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      console.error('Place bet error details:', errorMessage);
+      return res.status(500).json({ error: `Erreur interne du serveur: ${errorMessage}` });
     }
   },
 );
@@ -831,7 +834,9 @@ router.patch(
       });
     } catch (error) {
       console.error('Update bet error:', error);
-      return res.status(500).json({ error: 'Erreur interne du serveur.' });
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      console.error('Update bet error details:', errorMessage);
+      return res.status(500).json({ error: `Erreur interne du serveur: ${errorMessage}` });
     }
   },
 );

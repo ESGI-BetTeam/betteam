@@ -149,6 +149,20 @@ export function PronosticDetailScreen() {
     loadLeagues();
   }, []);
 
+  // Calcul automatique du vainqueur à partir du score
+  // Quand l'utilisateur modifie le score, le vainqueur est mis à jour automatiquement
+  useEffect(() => {
+    // Ne pas modifier si c'est le chargement initial avec les valeurs par défaut (0-0)
+    // sauf si l'utilisateur a explicitement choisi un score
+    if (homeScore === 0 && awayScore === 0 && prefill?.homeScore == null) {
+      return;
+    }
+
+    const implied: Outcome =
+      homeScore > awayScore ? 'home' : homeScore < awayScore ? 'away' : 'draw';
+    setOutcome(implied);
+  }, [homeScore, awayScore]);
+
   // Resolve which league the bet targets: the group bet's league, or the user's
   // single league for a raw match. Balance is unknown until a league is picked
   // when the user belongs to several leagues.
