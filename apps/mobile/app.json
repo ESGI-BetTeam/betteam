@@ -27,7 +27,8 @@
         {
           "photosPermission": "BetTeam utilise vos photos pour définir le logo de votre ligue."
         }
-      ]
+      ],
+      "expo-notifications"
     ]
   }
 }

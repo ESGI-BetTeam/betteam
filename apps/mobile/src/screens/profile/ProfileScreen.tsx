@@ -150,6 +150,27 @@ export function ProfileScreen() {
         <ArrowRight2 size={18} color={colors.textSecondary} variant="Outline" />
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={[styles.menuRow, { marginTop: spacing.md }]}
+        onPress={async () => {
+          const Notifications = await import('expo-notifications');
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: "Test de Notification",
+              body: "Les notifications locales fonctionnent ! 🎉",
+              sound: true,
+            },
+            trigger: null, // Send immediately
+          });
+        }}
+        activeOpacity={0.8}
+      >
+        <View style={styles.menuIcon}>
+          <Cup size="20" color={colors.accent} variant="Bulk" />
+        </View>
+        <Text style={[typo.pBold, styles.menuLabel]}>Tester la Notification</Text>
+      </TouchableOpacity>
+
       {leagues.length > 0 && (
         <View style={styles.groupsSection}>
           <Text style={[typo.smallSecondary, styles.groupsTitle]}>MES GROUPES</Text>

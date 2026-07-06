@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { sendPushNotifications } from './notification.service';
 
 /**
  * Bet settlement: once a match is finished (or cancelled), turn every pending
@@ -41,7 +42,16 @@ class SettlementService {
         status: 'pending',
         match: { status: { in: ['finished', 'cancelled', 'postponed'] } },
       },
-      include: { match: { include: { odds: true } } },
+      include: { 
+        match: { 
+          include: { 
+            odds: true,
+            homeTeam: { select: { name: true } },
+            awayTeam: { select: { name: true } }
+          } 
+        },
+        user: { select: { pushTokens: true } }
+      },
     });
 
     let betsSettled = 0;
@@ -72,6 +82,20 @@ class SettlementService {
       await this.applySettlement(bet, actualWin);
       betsSettled++;
       pointsCredited += actualWin;
+
+      // Send push notification
+      if (bet.user.pushTokens && bet.user.pushTokens.length > 0) {
+        const teamMatchStr = `${match.homeTeam.name} - ${match.awayTeam.name}`;
+        const title = actualWin > 0 ? 'Pari gagné ! 🎉' : 'Pari perdu 😢';
+        const body = actualWin > 0 
+          ? `Vous avez remporté ${actualWin} points sur le match ${teamMatchStr}.` 
+          : `Dommage, votre pari sur ${teamMatchStr} est perdu.`;
+        
+        // We don't await here to avoid slowing down settlement loop
+        sendPushNotifications(bet.user.pushTokens, title, body).catch(err => {
+          console.error('Failed to send settlement notification', err);
+        });
+      }
     }
 
     // Mark every touched group bet as settled.

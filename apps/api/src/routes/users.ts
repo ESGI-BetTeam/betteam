@@ -43,6 +43,39 @@ router.get('/me/favorite-teams', requireAuth, async (req: AuthenticatedRequest, 
   }
 });
 
+// POST /api/users/push-token - Enregistre ou met à jour le push token de l'utilisateur
+router.post('/push-token', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { token } = req.body;
+
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: 'Token is required and must be a string.' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+
+    // Ensure the token is in the pushTokens array (using set to avoid duplicates)
+    const currentTokens = user.pushTokens || [];
+    if (!currentTokens.includes(token)) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          pushTokens: {
+            push: token,
+          },
+        },
+      });
+    }
+
+    return res.status(200).json({ message: 'Push token registered successfully.' });
+  } catch (error) {
+    console.error('Save push token error:', error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 // GET /api/users/:id - Get user by ID
 router.get(
   '/:id',
