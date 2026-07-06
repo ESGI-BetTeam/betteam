@@ -8,8 +8,8 @@ export const colors = {
 
   // Text
   textPrimary: '#F1F5F9',
-  textSecondary: '#64748B',
-  textMuted: '#475569',
+  textSecondary: '#B8C5D8',
+  textMuted: '#778EAE',
   textInverse: '#0B0F1A',
 
   // Borders
