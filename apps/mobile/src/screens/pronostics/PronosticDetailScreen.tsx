@@ -271,6 +271,10 @@ export function PronosticDetailScreen() {
     }
     setSubmitting(false);
 
+    if (match?.competitionId) {
+      leagues = leagues.filter((league) => league.currentCompetitionId === match.competitionId);
+    }
+
     if (leagues.length === 0) {
       Alert.alert('Aucune ligue', 'Rejoignez ou créez une ligue pour pouvoir parier.');
       return;
