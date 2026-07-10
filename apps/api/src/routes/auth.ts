@@ -17,7 +17,10 @@ import { ForgotPasswordRequest } from '@betteam/shared/api/forgotPasswordRequest
 import { ForgotPasswordResponse } from '@betteam/shared/api/forgotPasswordResponse';
 import { ResetPasswordRequest } from '@betteam/shared/api/resetPasswordRequest';
 import { ResetPasswordResponse } from '@betteam/shared/api/resetPasswordResponse';
+import { VerifyEmailRequest } from '@betteam/shared/api/verifyEmailRequest';
+import { VerifyEmailResponse } from '@betteam/shared/api/verifyEmailResponse';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email.service';
 
 const router = Router();
 
@@ -123,18 +126,29 @@ router.post(
           passwordHash,
           firstName,
           lastName,
+          isVerified: false,
         },
       });
 
-      const accessToken = generateAccessToken(newUser.id);
-      const refreshToken = await createRefreshToken(newUser.id);
+      // Generate verification token
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = hashToken(verificationToken);
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24); // 24 hours expiry
 
-      const publicUser = transformPrivateUserToUser(newUser);
+      await prisma.emailVerificationToken.create({
+        data: {
+          userId: newUser.id,
+          tokenHash,
+          expiresAt,
+        },
+      });
+
+      // Send verification email
+      await sendVerificationEmail(newUser.email, verificationToken);
 
       return res.status(201).json({
-        user: publicUser,
-        token: accessToken,
-        refreshToken,
+        message: 'Registration successful. Please check your email to verify your account.',
       });
     } catch (error) {
       console.error('Erreur Register:', error);
@@ -170,6 +184,10 @@ router.post(
 
       if (!user.isActive) {
         return res.status(403).json({ error: 'Account is deactivated.' });
+      }
+
+      if (!user.isVerified) {
+        return res.status(403).json({ error: 'Please verify your email address before logging in.' });
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
@@ -408,14 +426,8 @@ router.post(
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-      // TODO: Send email with reset link
-      // For now, log the reset URL (development only)
-      console.log('===========================================');
-      console.log('PASSWORD RESET REQUESTED');
-      console.log(`User: ${user.email}`);
-      console.log(`Reset URL: ${resetUrl}`);
-      console.log(`Token expires at: ${expiresAt.toISOString()}`);
-      console.log('===========================================');
+      // Send email with reset link
+      await sendPasswordResetEmail(user.email, resetToken);
 
       return res.status(200).json(successResponse);
     } catch (error) {
@@ -505,6 +517,61 @@ router.post(
       console.error('Erreur Reset Password:', error);
       return res.status(500).json({
         error: 'Internal Server Error during password reset.',
+      });
+    }
+  },
+);
+
+// POST /api/auth/verify-email
+router.post(
+  '/verify-email',
+  async (
+    req: Request<{}, {}, VerifyEmailRequest.Body>,
+    res: Response<VerifyEmailResponse | { error: string }>,
+  ) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ error: 'Token is required.' });
+      }
+
+      const tokenHash = hashToken(token);
+
+      const verificationToken = await prisma.emailVerificationToken.findUnique({
+        where: { tokenHash },
+        include: { user: true },
+      });
+
+      if (!verificationToken) {
+        return res.status(400).json({ error: 'Invalid or expired verification token.' });
+      }
+
+      if (verificationToken.usedAt) {
+        return res.status(400).json({ error: 'This verification token has already been used.' });
+      }
+
+      if (verificationToken.expiresAt < new Date()) {
+        return res.status(400).json({ error: 'Verification token has expired.' });
+      }
+
+      // Mark token as used and set user to verified
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: verificationToken.userId },
+          data: { isVerified: true },
+        }),
+        prisma.emailVerificationToken.update({
+          where: { id: verificationToken.id },
+          data: { usedAt: new Date() },
+        }),
+      ]);
+
+      return res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
+    } catch (error) {
+      console.error('Erreur Verify Email:', error);
+      return res.status(500).json({
+        error: 'Internal Server Error during email verification.',
       });
     }
   },

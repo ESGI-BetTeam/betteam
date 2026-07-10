@@ -14,38 +14,38 @@ datasource db {
 // ============================================
 
 model Competition {
-  id          String   @id @default(cuid())
-  externalId  String   @unique @map("external_id")
-  name        String
-  sport       String
-  country     String?
-  logoUrl     String?  @map("logo_url")
-  isActive    Boolean  @default(true) @map("is_active")
-  syncedAt    DateTime @default(now()) @map("synced_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(cuid())
+  externalId String   @unique @map("external_id")
+  name       String
+  sport      String
+  country    String?
+  logoUrl    String?  @map("logo_url")
+  isActive   Boolean  @default(true) @map("is_active")
+  syncedAt   DateTime @default(now()) @map("synced_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   // Relations
-  matches     Match[]
-  syncLogs    SyncLog[]
-  leagues     League[]  @relation("LeagueCompetition")
+  matches  Match[]
+  syncLogs SyncLog[]
+  leagues  League[]  @relation("LeagueCompetition")
 
-  @@map("competitions")
   @@index([externalId])
   @@index([sport])
   @@index([isActive])
+  @@map("competitions")
 }
 
 model Team {
-  id          String   @id @default(cuid())
-  externalId  String   @unique @map("external_id")
-  name        String
-  shortName   String?  @map("short_name")
-  logoUrl     String?  @map("logo_url")
-  country     String?
-  syncedAt    DateTime @default(now()) @map("synced_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(cuid())
+  externalId String   @unique @map("external_id")
+  name       String
+  shortName  String?  @map("short_name")
+  logoUrl    String?  @map("logo_url")
+  country    String?
+  syncedAt   DateTime @default(now()) @map("synced_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   // Relations
   homeMatches Match[]            @relation("HomeTeam")
@@ -53,9 +53,9 @@ model Team {
   players     Player[]
   favoritedBy UserFavoriteTeam[]
 
-  @@map("teams")
   @@index([externalId])
   @@index([name])
+  @@map("teams")
 }
 
 model Player {
@@ -75,12 +75,12 @@ model Player {
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
-  @@map("players")
   @@index([teamId])
   @@index([externalId])
   @@index([name])
+  @@map("players")
 }
 
 model Match {
@@ -100,39 +100,39 @@ model Match {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  homeTeam      Team        @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
-  awayTeam      Team        @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
-  bets          Bet[]
-  groupBets     GroupBet[]
-  odds          MatchOdds?
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  homeTeam    Team        @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam    Team        @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  bets        Bet[]
+  groupBets   GroupBet[]
+  odds        MatchOdds?
 
-  @@map("matches")
   @@index([externalId])
   @@index([competitionId])
   @@index([homeTeamId])
   @@index([awayTeamId])
   @@index([status])
   @@index([startTime])
+  @@map("matches")
 }
 
 model SyncLog {
   id            String   @id @default(cuid())
-  type          String   // "competitions", "teams", "matches"
+  type          String // "competitions", "teams", "matches"
   competitionId String?  @map("competition_id")
-  status        String   // "success", "error", "partial"
+  status        String // "success", "error", "partial"
   itemsSynced   Int      @default(0) @map("items_synced")
   durationMs    Int      @map("duration_ms")
   error         String?  @db.Text
   createdAt     DateTime @default(now()) @map("created_at")
 
   // Relations
-  competition   Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  competition Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
 
-  @@map("sync_logs")
   @@index([type])
   @@index([status])
   @@index([createdAt])
+  @@map("sync_logs")
 }
 
 // ============================================
@@ -140,31 +140,34 @@ model SyncLog {
 // ============================================
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  username      String   @unique
-  passwordHash  String   @map("password_hash")
-  firstName     String?  @map("first_name")
-  lastName      String?  @map("last_name")
-  avatar        String?
-  role          String   @default("user") // "user", "admin"
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String?  @map("first_name")
+  lastName     String?  @map("last_name")
+  avatar       String?
+  role         String   @default("user") // "user", "admin"
+  isActive     Boolean  @default(true) @map("is_active")
+  isVerified   Boolean  @default(false) @map("is_verified")
+  pushTokens   String[] @map("push_tokens")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relations
-  ownedLeagues        League[]             @relation("LeagueOwner")
-  memberships         LeagueMember[]
-  bets                Bet[]
-  refreshTokens       RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
-  createdGroupBets    GroupBet[]           @relation("GroupBetCreator")
-  favoriteTeams       UserFavoriteTeam[]
-  contributions       Contribution[]
+  ownedLeagues            League[]                 @relation("LeagueOwner")
+  memberships             LeagueMember[]
+  bets                    Bet[]
+  refreshTokens           RefreshToken[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  createdGroupBets        GroupBet[]               @relation("GroupBetCreator")
+  favoriteTeams           UserFavoriteTeam[]
+  contributions           Contribution[]
 
-  @@map("users")
   @@index([email])
   @@index([username])
+  @@map("users")
 }
 
 model UserFavoriteTeam {
@@ -174,47 +177,64 @@ model UserFavoriteTeam {
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([userId, teamId])
-  @@map("user_favorite_teams")
   @@index([userId])
   @@index([teamId])
+  @@map("user_favorite_teams")
 }
 
 model RefreshToken {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  tokenHash   String   @unique @map("token_hash")
-  expiresAt   DateTime @map("expires_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  revokedAt   DateTime? @map("revoked_at")
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
 
   // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("refresh_tokens")
   @@index([userId])
   @@index([tokenHash])
   @@index([expiresAt])
+  @@map("refresh_tokens")
 }
 
 model PasswordResetToken {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  tokenHash   String   @unique @map("token_hash")
-  expiresAt   DateTime @map("expires_at")
-  usedAt      DateTime? @map("used_at")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("password_reset_tokens")
   @@index([userId])
   @@index([tokenHash])
   @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@map("email_verification_tokens")
 }
 
 // ============================================
@@ -222,41 +242,41 @@ model PasswordResetToken {
 // ============================================
 
 model League {
-  id                    String    @id @default(cuid())
-  name                  String
-  description           String?   @db.Text
-  logoUrl               String?   @map("logo_url") @db.Text
-  isPrivate             Boolean   @default(true) @map("is_private")
-  ownerId               String    @map("owner_id")
-  inviteCode            String    @unique @map("invite_code")
-  isActive              Boolean   @default(true) @map("is_active")
-  currentCompetitionId  String?   @map("current_competition_id")
-  competitionChangedAt  DateTime? @map("competition_changed_at")
-  planId                String    @default("free") @map("plan_id")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  id                   String    @id @default(cuid())
+  name                 String
+  description          String?   @db.Text
+  logoUrl              String?   @map("logo_url") @db.Text
+  isPrivate            Boolean   @default(true) @map("is_private")
+  ownerId              String    @map("owner_id")
+  inviteCode           String    @unique @map("invite_code")
+  isActive             Boolean   @default(true) @map("is_active")
+  currentCompetitionId String?   @map("current_competition_id")
+  competitionChangedAt DateTime? @map("competition_changed_at")
+  planId               String    @default("free") @map("plan_id")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  owner              User          @relation("LeagueOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  currentCompetition Competition?  @relation("LeagueCompetition", fields: [currentCompetitionId], references: [id], onDelete: SetNull)
-  plan               Plan          @relation(fields: [planId], references: [id])
+  owner              User           @relation("LeagueOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  currentCompetition Competition?   @relation("LeagueCompetition", fields: [currentCompetitionId], references: [id], onDelete: SetNull)
+  plan               Plan           @relation(fields: [planId], references: [id])
   members            LeagueMember[]
   bets               Bet[]
   groupBets          GroupBet[]
   wallet             LeagueWallet?
 
-  @@map("leagues")
   @@index([ownerId])
   @@index([inviteCode])
   @@index([isActive])
   @@index([currentCompetitionId])
   @@index([planId])
+  @@map("leagues")
 }
 
 model LeagueMember {
-  id        String   @id @default(cuid())
-  leagueId  String   @map("league_id")
-  userId    String   @map("user_id")
+  id           String   @id @default(cuid())
+  leagueId     String   @map("league_id")
+  userId       String   @map("user_id")
   role         String   @default("member") // owner, admin, member
   points       Int      @default(1000) // Starting points
   hasRecharged Boolean  @default(false) @map("has_recharged") // Topped up at least once
@@ -264,13 +284,13 @@ model LeagueMember {
   joinedAt     DateTime @default(now()) @map("joined_at")
 
   // Relations
-  league    League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  league League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([leagueId, userId])
-  @@map("league_members")
   @@index([leagueId])
   @@index([userId])
+  @@map("league_members")
 }
 
 model Bet {
@@ -281,7 +301,7 @@ model Bet {
   groupBetId      String?   @map("group_bet_id")
   predictionType  String    @map("prediction_type") // winner, score, both_score, etc.
   predictionValue String    @map("prediction_value") @db.Text // JSON string
-  amount          Int       // Points wagered
+  amount          Int // Points wagered
   status          String    @default("pending") // pending, won, lost, void
   potentialWin    Int?      @map("potential_win")
   actualWin       Int?      @map("actual_win")
@@ -289,19 +309,19 @@ model Bet {
   settledAt       DateTime? @map("settled_at")
 
   // Relations
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  match           Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  league          League    @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  groupBet        GroupBet? @relation(fields: [groupBetId], references: [id], onDelete: SetNull)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match    Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  league   League    @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  groupBet GroupBet? @relation(fields: [groupBetId], references: [id], onDelete: SetNull)
 
   @@unique([userId, groupBetId]) // Un seul pari par utilisateur par challenge
-  @@map("bets")
   @@index([userId])
   @@index([matchId])
   @@index([leagueId])
   @@index([groupBetId])
   @@index([status])
   @@index([createdAt])
+  @@map("bets")
 }
 
 // ============================================
@@ -319,18 +339,18 @@ model GroupBet {
   settledAt   DateTime? @map("settled_at")
 
   // Relations
-  league      League    @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  match       Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  createdBy   User      @relation("GroupBetCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  bets        Bet[]
+  league    League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  match     Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  createdBy User   @relation("GroupBetCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  bets      Bet[]
 
   @@unique([leagueId, matchId]) // Un seul challenge par match par ligue
-  @@map("group_bets")
   @@index([leagueId])
   @@index([matchId])
   @@index([createdById])
   @@index([status])
   @@index([closesAt])
+  @@map("group_bets")
 }
 
 // ============================================
@@ -338,26 +358,26 @@ model GroupBet {
 // ============================================
 
 model MatchOdds {
-  id              String   @id @default(cuid())
-  matchId         String   @unique @map("match_id")
-  oddsApiId       String?  @map("odds_api_id") // ID de The Odds API
-  oddsHomeTeam    String?  @map("odds_home_team") // Nom équipe domicile selon The Odds API
-  oddsAwayTeam    String?  @map("odds_away_team") // Nom équipe extérieur selon The Odds API
-  homeWinOdds     Float?   @map("home_win_odds") // Cote moyenne victoire domicile
-  drawOdds        Float?   @map("draw_odds") // Cote moyenne match nul
-  awayWinOdds     Float?   @map("away_win_odds") // Cote moyenne victoire extérieur
-  bookmakerCount  Int      @default(0) @map("bookmaker_count") // Nombre de bookmakers utilisés pour la moyenne
-  rawData         Json?    @map("raw_data") // Données brutes pour debug/historique
-  syncedAt        DateTime @default(now()) @map("synced_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(cuid())
+  matchId        String   @unique @map("match_id")
+  oddsApiId      String?  @map("odds_api_id") // ID de The Odds API
+  oddsHomeTeam   String?  @map("odds_home_team") // Nom équipe domicile selon The Odds API
+  oddsAwayTeam   String?  @map("odds_away_team") // Nom équipe extérieur selon The Odds API
+  homeWinOdds    Float?   @map("home_win_odds") // Cote moyenne victoire domicile
+  drawOdds       Float?   @map("draw_odds") // Cote moyenne match nul
+  awayWinOdds    Float?   @map("away_win_odds") // Cote moyenne victoire extérieur
+  bookmakerCount Int      @default(0) @map("bookmaker_count") // Nombre de bookmakers utilisés pour la moyenne
+  rawData        Json?    @map("raw_data") // Données brutes pour debug/historique
+  syncedAt       DateTime @default(now()) @map("synced_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
-  match           Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
-  @@map("match_odds")
   @@index([matchId])
   @@index([syncedAt])
+  @@map("match_odds")
 }
 
 // ============================================
@@ -366,7 +386,7 @@ model MatchOdds {
 
 model Plan {
   id              String   @id // "free", "champion", "mvp"
-  name            String   // "Free", "Champion", "MVP"
+  name            String // "Free", "Champion", "MVP"
   maxMembers      Int      @map("max_members")
   maxCompetitions Int      @map("max_competitions") // -1 = unlimited
   maxChangesWeek  Int      @map("max_changes_week") // -1 = unlimited
@@ -376,45 +396,45 @@ model Plan {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
-  leagues         League[]
+  leagues League[]
 
   @@map("plans")
 }
 
 model LeagueWallet {
-  id                String         @id @default(cuid())
-  leagueId          String         @unique @map("league_id")
-  balance           Float          @default(0)
-  nextPaymentDate   DateTime?      @map("next_payment_date")
-  isFrozen          Boolean        @default(false) @map("is_frozen")
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
+  id              String    @id @default(cuid())
+  leagueId        String    @unique @map("league_id")
+  balance         Float     @default(0)
+  nextPaymentDate DateTime? @map("next_payment_date")
+  isFrozen        Boolean   @default(false) @map("is_frozen")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  league            League         @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  contributions     Contribution[]
+  league        League         @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  contributions Contribution[]
 
-  @@map("league_wallets")
   @@index([leagueId])
   @@index([nextPaymentDate])
+  @@map("league_wallets")
 }
 
 model Contribution {
-  id              String       @id @default(cuid())
-  walletId        String       @map("wallet_id")
-  userId          String       @map("user_id")
-  amount          Float
-  paymentMethod   String       @default("mock") @map("payment_method") // "mock", "stripe"
-  paymentId       String?      @map("payment_id") // Stripe payment ID
-  status          String       @default("completed") // "pending", "completed", "failed"
-  createdAt       DateTime     @default(now()) @map("created_at")
+  id            String   @id @default(cuid())
+  walletId      String   @map("wallet_id")
+  userId        String   @map("user_id")
+  amount        Float
+  paymentMethod String   @default("mock") @map("payment_method") // "mock", "stripe"
+  paymentId     String?  @map("payment_id") // Stripe payment ID
+  status        String   @default("completed") // "pending", "completed", "failed"
+  createdAt     DateTime @default(now()) @map("created_at")
 
   // Relations
-  wallet          LeagueWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet LeagueWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("contributions")
   @@index([walletId])
   @@index([userId])
   @@index([createdAt])
+  @@map("contributions")
 }

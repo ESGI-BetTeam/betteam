@@ -2,6 +2,7 @@
   "expo": {
     "name": "BetTeam",
     "slug": "betteam",
+    "scheme": "betteam",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",

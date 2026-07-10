@@ -61,8 +61,8 @@ export function RegisterScreen() {
         lastName.trim(),
       );
       Alert.alert(
-        'Compte créé',
-        'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.',
+        'Vérifiez vos emails',
+        'Un email de vérification vous a été envoyé. Veuillez cliquer sur le lien pour activer votre compte avant de vous connecter.',
         [{ text: 'OK', onPress: () => navigation.goBack() }],
       );
     } catch (error) {

@@ -89,7 +89,7 @@ export function LoginScreen() {
 
             <TouchableOpacity
               style={styles.forgotPassword}
-              onPress={() => Alert.alert('Info', 'Fonctionnalité à venir.')}
+              onPress={() => navigation.navigate('ForgotPassword')}
             >
               <Text style={[typo.p, styles.forgotPasswordText]}>Mot de passe oublié ?</Text>
             </TouchableOpacity>
