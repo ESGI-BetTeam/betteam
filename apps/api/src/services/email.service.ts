@@ -9,11 +9,14 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
 
 export const sendVerificationEmail = async (to: string, token: string) => {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const verificationUrl = `${frontendUrl}/verify-email?token=${token}`;
+  const apiUrl = process.env.API_URL || 'http://localhost:3000';
+  const verificationUrl = `${apiUrl}/api/auth/verify-redirect?token=${token}`;
 
   const mailOptions = {
     from: process.env.SMTP_FROM || 'BetTeam <noreply@localhost>',
@@ -32,8 +35,8 @@ export const sendVerificationEmail = async (to: string, token: string) => {
 };
 
 export const sendPasswordResetEmail = async (to: string, token: string) => {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+  const apiUrl = process.env.API_URL || 'http://localhost:3000';
+  const resetUrl = `${apiUrl}/api/auth/reset-redirect?token=${token}`;
 
   const mailOptions = {
     from: process.env.SMTP_FROM || 'BetTeam <noreply@localhost>',

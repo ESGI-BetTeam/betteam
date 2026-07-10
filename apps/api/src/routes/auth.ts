@@ -187,7 +187,7 @@ router.post(
       }
 
       if (!user.isVerified) {
-        return res.status(403).json({ error: 'Please verify your email address before logging in.' });
+        return res.status(403).json({ error: 'Veuillez vérifier votre adresse email avant de vous connecter.' });
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
@@ -385,7 +385,7 @@ router.post(
 
       // Always return success to prevent email enumeration
       const successResponse: ForgotPasswordResponse = {
-        message: 'If an account with that email exists, a password reset link has been sent.',
+        message: 'Si un compte avec cet email existe, un lien de réinitialisation vous a été envoyé.',
       };
 
       const user = await prisma.user.findUnique({
@@ -511,7 +511,7 @@ router.post(
       ]);
 
       return res.status(200).json({
-        message: 'Password has been reset successfully. Please log in with your new password.',
+        message: 'Le mot de passe a été réinitialisé avec succès. Vous pouvez vous connecter.',
       });
     } catch (error) {
       console.error('Erreur Reset Password:', error);
@@ -567,7 +567,7 @@ router.post(
         }),
       ]);
 
-      return res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
+      return res.status(200).json({ message: 'Email vérifié avec succès. Vous pouvez maintenant vous connecter.' });
     } catch (error) {
       console.error('Erreur Verify Email:', error);
       return res.status(500).json({
@@ -576,5 +576,19 @@ router.post(
     }
   },
 );
+
+// GET /api/auth/verify-redirect (To bypass email clients removing custom schemes)
+router.get('/verify-redirect', (req: Request, res: Response) => {
+  const { token } = req.query;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  res.redirect(`${frontendUrl}/verify-email?token=${token}`);
+});
+
+// GET /api/auth/reset-redirect (To bypass email clients removing custom schemes)
+router.get('/reset-redirect', (req: Request, res: Response) => {
+  const { token } = req.query;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  res.redirect(`${frontendUrl}/reset-password?token=${token}`);
+});
 
 export default router;
