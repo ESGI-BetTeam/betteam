@@ -2,6 +2,7 @@ import axios from 'axios';
 import { storage } from '../utils/storage';
 
 export const API_URL = 'https://betteam-api-dev.up.railway.app';
+// export const API_URL = 'http://192.168.1.12:3000';
 
 /**
  * Resolves a stored media value into a displayable URI.
