@@ -265,6 +265,30 @@ router.post('/sync/force', async (req: AuthenticatedRequest, res: Response) => {
 // =============================================================================
 
 /**
+ * GET /api/admin/demo/leagues
+ * List all leagues for the demo match creation form
+ */
+router.get('/demo/leagues', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const leagues = await prisma.league.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        logoUrl: true,
+        _count: { select: { members: true } },
+      },
+      orderBy: { name: 'asc' },
+      take: 50,
+    });
+    return res.status(200).json({ data: leagues });
+  } catch (error) {
+    console.error('Admin demo leagues error:', error);
+    return res.status(500).json({ error: 'Failed to fetch leagues.' });
+  }
+});
+
+/**
  * GET /api/admin/demo/competitions
  * List competitions for the demo match creation form
  */
@@ -355,11 +379,11 @@ router.get('/demo/matches', async (req: AuthenticatedRequest, res: Response) => 
 
 /**
  * POST /api/admin/demo/matches
- * Create a demo match with expected scores
+ * Create a demo match with expected scores and optionally create a challenge in a league
  */
 router.post('/demo/matches', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { competitionId, homeTeamId, awayTeamId, startTime, expectedHomeScore, expectedAwayScore } =
+    const { competitionId, homeTeamId, awayTeamId, startTime, expectedHomeScore, expectedAwayScore, leagueId } =
       req.body;
 
     // Validate required fields
@@ -388,6 +412,15 @@ router.post('/demo/matches', async (req: AuthenticatedRequest, res: Response) =>
       return res.status(404).json({ error: 'Away team not found.' });
     }
 
+    // Verify league exists if provided
+    let league = null;
+    if (leagueId) {
+      league = await prisma.league.findUnique({ where: { id: leagueId } });
+      if (!league) {
+        return res.status(404).json({ error: 'League not found.' });
+      }
+    }
+
     // Generate unique externalId for demo match
     const externalId = `demo-${Date.now()}`;
 
@@ -397,29 +430,54 @@ router.post('/demo/matches', async (req: AuthenticatedRequest, res: Response) =>
       expectedAway: expectedAwayScore ?? 0,
     });
 
-    const match = await prisma.match.create({
-      data: {
-        externalId,
-        competitionId,
-        homeTeamId,
-        awayTeamId,
-        startTime: startTime ? new Date(startTime) : new Date(Date.now() + 5 * 60 * 1000), // default: 5 min from now
-        status: 'upcoming',
-        round: roundData,
-      },
-      include: {
-        homeTeam: { select: { id: true, name: true, logoUrl: true } },
-        awayTeam: { select: { id: true, name: true, logoUrl: true } },
-        competition: { select: { id: true, name: true, logoUrl: true } },
-      },
+    const matchStartTime = startTime ? new Date(startTime) : new Date(Date.now() + 5 * 60 * 1000);
+
+    // Create match and optionally the GroupBet in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const match = await tx.match.create({
+        data: {
+          externalId,
+          competitionId,
+          homeTeamId,
+          awayTeamId,
+          startTime: matchStartTime,
+          status: 'upcoming',
+          round: roundData,
+        },
+        include: {
+          homeTeam: { select: { id: true, name: true, logoUrl: true } },
+          awayTeam: { select: { id: true, name: true, logoUrl: true } },
+          competition: { select: { id: true, name: true, logoUrl: true } },
+        },
+      });
+
+      let groupBet = null;
+      if (leagueId) {
+        // Create the challenge (GroupBet) for this match in the selected league
+        groupBet = await tx.groupBet.create({
+          data: {
+            leagueId,
+            matchId: match.id,
+            createdById: req.userId!,
+            status: 'open',
+            closesAt: matchStartTime, // Challenge closes at match start
+          },
+        });
+      }
+
+      return { match, groupBet };
     });
 
     return res.status(201).json({
       data: {
-        ...match,
+        ...result.match,
         expectedScore: { homeScore: expectedHomeScore ?? 0, awayScore: expectedAwayScore ?? 0 },
+        groupBet: result.groupBet,
+        leagueName: league?.name,
       },
-      message: 'Demo match created successfully.',
+      message: leagueId
+        ? `Demo match created with challenge in "${league?.name}".`
+        : 'Demo match created successfully.',
     });
   } catch (error) {
     console.error('Admin create demo match error:', error);

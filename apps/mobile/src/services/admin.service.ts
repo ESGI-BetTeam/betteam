@@ -13,6 +13,13 @@ export interface Team {
   logoUrl: string | null;
 }
 
+export interface League {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  _count: { members: number };
+}
+
 export interface DemoMatch {
   id: string;
   externalId: string;
@@ -34,6 +41,7 @@ export interface CreateDemoMatchInput {
   startTime?: string;
   expectedHomeScore: number;
   expectedAwayScore: number;
+  leagueId?: string;
 }
 
 export interface SettlementResult {
@@ -43,6 +51,11 @@ export interface SettlementResult {
 }
 
 export const adminService = {
+  async getLeagues(): Promise<League[]> {
+    const { data } = await api.get<{ data: League[] }>('/admin/demo/leagues');
+    return data.data;
+  },
+
   async getCompetitions(): Promise<Competition[]> {
     const { data } = await api.get<{ data: Competition[] }>('/admin/demo/competitions');
     return data.data;
