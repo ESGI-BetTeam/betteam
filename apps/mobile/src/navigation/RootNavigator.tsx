@@ -1,10 +1,23 @@
 import React, { useEffect, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet, AppState, AppStateStatus } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import * as Linking from 'expo-linking';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 import { useAuthStore } from '../stores/authStore';
 import { colors } from '../theme';
+
+const prefix = Linking.createURL('/');
+
+const linking = {
+  prefixes: [prefix, 'betteam://'],
+  config: {
+    screens: {
+      VerifyEmail: 'verify-email',
+      ResetPassword: 'reset-password',
+    },
+  },
+};
 
 export function RootNavigator() {
   const { isAuthenticated, isInitialized, initialize, refreshSession } = useAuthStore();
@@ -35,7 +48,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       {isAuthenticated ? <AppNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );

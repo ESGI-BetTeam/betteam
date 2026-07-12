@@ -2,6 +2,7 @@
   "expo": {
     "name": "BetTeam",
     "slug": "betteam",
+    "scheme": "betteam",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -17,7 +18,10 @@
       "adaptiveIcon": {
         "backgroundColor": "#0B0F1A"
       },
-      "package": "com.betteam.app"
+      "package": "com.betteam.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-secure-store",
@@ -27,7 +31,14 @@
         {
           "photosPermission": "BetTeam utilise vos photos pour définir le logo de votre ligue."
         }
-      ]
-    ]
+      ],
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "82ec6538-3c53-43b2-925b-d60df03cbc22"
+      }
+    },
+    "owner": "neoznzoe"
   }
 }

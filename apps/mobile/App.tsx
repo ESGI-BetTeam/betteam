@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { NotificationWrapper } from './src/components/NotificationWrapper';
 
 function App() {
   const [fontsLoaded] = useFonts({
@@ -29,7 +30,9 @@ function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <RootNavigator />
+      <NotificationWrapper>
+        <RootNavigator />
+      </NotificationWrapper>
     </SafeAreaProvider>
   );
 }

@@ -20,6 +20,8 @@ export * from './api/forgotPasswordRequest';
 export * from './api/forgotPasswordResponse';
 export * from './api/resetPasswordRequest';
 export * from './api/resetPasswordResponse';
+export * from './api/verifyEmailRequest';
+export * from './api/verifyEmailResponse';
 
 // API Types - Users
 export * from './api/users';
