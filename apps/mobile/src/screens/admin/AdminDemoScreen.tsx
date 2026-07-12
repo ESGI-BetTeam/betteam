@@ -14,13 +14,14 @@ import {
 } from 'react-native';
 import { colors, spacing, radius, typo } from '@/theme';
 import { Button } from '@/components/ui/Button';
-import { adminService, Competition, Team, DemoMatch } from '@/services/admin.service';
+import { adminService, Competition, Team, DemoMatch, League } from '@/services/admin.service';
 import { ArrowDown2, TickCircle, CloseCircle, Timer } from 'iconsax-react-nativejs';
 import { resolveMediaUrl } from '@/services/api';
 import { Avatar } from '@/components/ui/Avatar';
 
 export function AdminDemoScreen() {
   // Data
+  const [leagues, setLeagues] = useState<League[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [demoMatches, setDemoMatches] = useState<DemoMatch[]>([]);
@@ -33,6 +34,7 @@ export function AdminDemoScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   // Form
+  const [selectedLeague, setSelectedLeague] = useState<League | null>(null);
   const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
   const [selectedHomeTeam, setSelectedHomeTeam] = useState<Team | null>(null);
   const [selectedAwayTeam, setSelectedAwayTeam] = useState<Team | null>(null);
@@ -40,6 +42,7 @@ export function AdminDemoScreen() {
   const [expectedAwayScore, setExpectedAwayScore] = useState('1');
 
   // Modals
+  const [showLeagueModal, setShowLeagueModal] = useState(false);
   const [showCompetitionModal, setShowCompetitionModal] = useState(false);
   const [showHomeTeamModal, setShowHomeTeamModal] = useState(false);
   const [showAwayTeamModal, setShowAwayTeamModal] = useState(false);
@@ -47,11 +50,13 @@ export function AdminDemoScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [comps, teamsRes, matches] = await Promise.all([
+      const [leaguesRes, comps, teamsRes, matches] = await Promise.all([
+        adminService.getLeagues(),
         adminService.getCompetitions(),
         adminService.getTeams(),
         adminService.getDemoMatches(),
       ]);
+      setLeagues(leaguesRes);
       setCompetitions(comps);
       setTeams(teamsRes);
       setDemoMatches(matches);
@@ -73,6 +78,11 @@ export function AdminDemoScreen() {
   }, [loadData]);
 
   const handleCreateMatch = async () => {
+    if (!selectedLeague) {
+      Alert.alert('Erreur', 'Selectionnez un groupe pour le pari');
+      return;
+    }
+
     if (!selectedCompetition || !selectedHomeTeam || !selectedAwayTeam) {
       Alert.alert('Erreur', 'Selectionnez une competition et deux equipes');
       return;
@@ -86,14 +96,16 @@ export function AdminDemoScreen() {
     setIsCreating(true);
     try {
       await adminService.createDemoMatch({
+        leagueId: selectedLeague.id,
         competitionId: selectedCompetition.id,
         homeTeamId: selectedHomeTeam.id,
         awayTeamId: selectedAwayTeam.id,
         expectedHomeScore: parseInt(expectedHomeScore) || 0,
         expectedAwayScore: parseInt(expectedAwayScore) || 0,
       });
-      Alert.alert('Succes', 'Match demo cree !');
+      Alert.alert('Succes', `Match demo cree dans "${selectedLeague.name}" !`);
       // Reset form
+      setSelectedLeague(null);
       setSelectedCompetition(null);
       setSelectedHomeTeam(null);
       setSelectedAwayTeam(null);
@@ -173,6 +185,15 @@ export function AdminDemoScreen() {
       <View style={styles.section}>
         <Text style={typo.h3}>Creer un match fictif</Text>
 
+        {/* League Picker */}
+        <Text style={[typo.smallSecondary, styles.fieldLabel]}>GROUPE POUR LE PARI</Text>
+        <TouchableOpacity style={[styles.picker, styles.leaguePicker]} onPress={() => setShowLeagueModal(true)}>
+          <Text style={selectedLeague ? typo.p : typo.pSecondary}>
+            {selectedLeague?.name || 'Selectionner un groupe'}
+          </Text>
+          <ArrowDown2 size={18} color={colors.textSecondary} />
+        </TouchableOpacity>
+
         {/* Competition Picker */}
         <TouchableOpacity style={styles.picker} onPress={() => setShowCompetitionModal(true)}>
           <Text style={selectedCompetition ? typo.p : typo.pSecondary}>
@@ -251,6 +272,29 @@ export function AdminDemoScreen() {
           Regle tous les paris en attente sur les matchs termines
         </Text>
       </View>
+
+      {/* League Modal */}
+      <SelectionModal
+        visible={showLeagueModal}
+        onClose={() => setShowLeagueModal(false)}
+        title="Selectionner un groupe"
+        data={leagues}
+        renderItem={(item) => (
+          <TouchableOpacity
+            style={styles.modalItem}
+            onPress={() => {
+              setSelectedLeague(item);
+              setShowLeagueModal(false);
+            }}
+          >
+            <Avatar uri={resolveMediaUrl(item.logoUrl)} name={item.name} size={32} />
+            <View style={styles.leagueItemText}>
+              <Text style={typo.p}>{item.name}</Text>
+              <Text style={typo.smallSecondary}>{item._count.members} membre(s)</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
 
       {/* Competition Modal */}
       <SelectionModal
@@ -474,6 +518,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
+  },
+  leaguePicker: {
+    borderColor: colors.accent,
+    borderWidth: 2,
+  },
+  fieldLabel: {
+    marginLeft: spacing.xs,
+  },
+  leagueItemText: {
+    flex: 1,
   },
   scoresLabel: {
     marginTop: spacing.sm,
