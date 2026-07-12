@@ -5,6 +5,8 @@ import { competitionsService } from '../services/thesportsdb/competitions.servic
 import { teamsService } from '../services/thesportsdb/teams.service';
 import { matchesService } from '../services/thesportsdb/matches.service';
 import { oddsService } from '../services/theoddsapi/odds.service';
+import { settlementService } from '../services/settlement.service';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
 
@@ -255,6 +257,254 @@ router.post('/sync/force', async (req: AuthenticatedRequest, res: Response) => {
   } catch (error) {
     console.error('Admin force sync error:', error);
     return res.status(500).json({ error: 'Failed to execute sync.' });
+  }
+});
+
+// =============================================================================
+// DEMO ENDPOINTS (for jury presentation)
+// =============================================================================
+
+/**
+ * GET /api/admin/demo/competitions
+ * List competitions for the demo match creation form
+ */
+router.get('/demo/competitions', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const competitions = await prisma.competition.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, sport: true, logoUrl: true },
+      orderBy: { name: 'asc' },
+      take: 50,
+    });
+    return res.status(200).json({ data: competitions });
+  } catch (error) {
+    console.error('Admin demo competitions error:', error);
+    return res.status(500).json({ error: 'Failed to fetch competitions.' });
+  }
+});
+
+/**
+ * GET /api/admin/demo/teams
+ * List teams for the demo match creation form (with optional search)
+ */
+router.get('/demo/teams', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { search } = req.query;
+    const teams = await prisma.team.findMany({
+      where: search
+        ? { name: { contains: search as string, mode: 'insensitive' } }
+        : {},
+      select: { id: true, name: true, logoUrl: true },
+      orderBy: { name: 'asc' },
+      take: 50,
+    });
+    return res.status(200).json({ data: teams });
+  } catch (error) {
+    console.error('Admin demo teams error:', error);
+    return res.status(500).json({ error: 'Failed to fetch teams.' });
+  }
+});
+
+/**
+ * GET /api/admin/demo/matches
+ * List demo matches (identified by externalId starting with "demo-")
+ */
+router.get('/demo/matches', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const matches = await prisma.match.findMany({
+      where: { externalId: { startsWith: 'demo-' } },
+      include: {
+        homeTeam: { select: { id: true, name: true, logoUrl: true } },
+        awayTeam: { select: { id: true, name: true, logoUrl: true } },
+        competition: { select: { id: true, name: true, logoUrl: true } },
+        groupBets: {
+          select: {
+            id: true,
+            status: true,
+            _count: { select: { bets: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    // Parse expected scores from the round field
+    const matchesWithExpected = matches.map((m) => {
+      let expectedScore = { homeScore: 0, awayScore: 0 };
+      try {
+        if (m.round) {
+          const parsed = JSON.parse(m.round);
+          expectedScore = {
+            homeScore: parsed.expectedHome ?? 0,
+            awayScore: parsed.expectedAway ?? 0,
+          };
+        }
+      } catch {
+        // ignore parse errors
+      }
+      return { ...m, expectedScore };
+    });
+
+    return res.status(200).json({ data: matchesWithExpected });
+  } catch (error) {
+    console.error('Admin demo matches error:', error);
+    return res.status(500).json({ error: 'Failed to fetch demo matches.' });
+  }
+});
+
+/**
+ * POST /api/admin/demo/matches
+ * Create a demo match with expected scores
+ */
+router.post('/demo/matches', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { competitionId, homeTeamId, awayTeamId, startTime, expectedHomeScore, expectedAwayScore } =
+      req.body;
+
+    // Validate required fields
+    if (!competitionId || !homeTeamId || !awayTeamId) {
+      return res.status(400).json({ error: 'Missing required fields (competitionId, homeTeamId, awayTeamId).' });
+    }
+
+    if (homeTeamId === awayTeamId) {
+      return res.status(400).json({ error: 'Home team and away team must be different.' });
+    }
+
+    // Verify competition and teams exist
+    const [competition, homeTeam, awayTeam] = await Promise.all([
+      prisma.competition.findUnique({ where: { id: competitionId } }),
+      prisma.team.findUnique({ where: { id: homeTeamId } }),
+      prisma.team.findUnique({ where: { id: awayTeamId } }),
+    ]);
+
+    if (!competition) {
+      return res.status(404).json({ error: 'Competition not found.' });
+    }
+    if (!homeTeam) {
+      return res.status(404).json({ error: 'Home team not found.' });
+    }
+    if (!awayTeam) {
+      return res.status(404).json({ error: 'Away team not found.' });
+    }
+
+    // Generate unique externalId for demo match
+    const externalId = `demo-${Date.now()}`;
+
+    // Store expected scores in round field as JSON
+    const roundData = JSON.stringify({
+      expectedHome: expectedHomeScore ?? 0,
+      expectedAway: expectedAwayScore ?? 0,
+    });
+
+    const match = await prisma.match.create({
+      data: {
+        externalId,
+        competitionId,
+        homeTeamId,
+        awayTeamId,
+        startTime: startTime ? new Date(startTime) : new Date(Date.now() + 5 * 60 * 1000), // default: 5 min from now
+        status: 'upcoming',
+        round: roundData,
+      },
+      include: {
+        homeTeam: { select: { id: true, name: true, logoUrl: true } },
+        awayTeam: { select: { id: true, name: true, logoUrl: true } },
+        competition: { select: { id: true, name: true, logoUrl: true } },
+      },
+    });
+
+    return res.status(201).json({
+      data: {
+        ...match,
+        expectedScore: { homeScore: expectedHomeScore ?? 0, awayScore: expectedAwayScore ?? 0 },
+      },
+      message: 'Demo match created successfully.',
+    });
+  } catch (error) {
+    console.error('Admin create demo match error:', error);
+    return res.status(500).json({ error: 'Failed to create demo match.' });
+  }
+});
+
+/**
+ * POST /api/admin/demo/matches/:id/finish
+ * Finish a demo match by setting its status to "finished" and applying scores
+ */
+router.post('/demo/matches/:id/finish', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { homeScore, awayScore } = req.body;
+
+    const match = await prisma.match.findUnique({ where: { id } });
+
+    if (!match) {
+      return res.status(404).json({ error: 'Match not found.' });
+    }
+
+    if (!match.externalId.startsWith('demo-')) {
+      return res.status(400).json({ error: 'Only demo matches can be finished manually.' });
+    }
+
+    if (match.status === 'finished') {
+      return res.status(400).json({ error: 'Match is already finished.' });
+    }
+
+    // Use provided scores or fall back to expected scores from round field
+    let finalHomeScore = homeScore;
+    let finalAwayScore = awayScore;
+
+    if (finalHomeScore === undefined || finalAwayScore === undefined) {
+      try {
+        if (match.round) {
+          const parsed = JSON.parse(match.round);
+          finalHomeScore = finalHomeScore ?? parsed.expectedHome ?? 0;
+          finalAwayScore = finalAwayScore ?? parsed.expectedAway ?? 0;
+        }
+      } catch {
+        finalHomeScore = finalHomeScore ?? 0;
+        finalAwayScore = finalAwayScore ?? 0;
+      }
+    }
+
+    const updated = await prisma.match.update({
+      where: { id },
+      data: {
+        status: 'finished',
+        homeScore: finalHomeScore,
+        awayScore: finalAwayScore,
+      },
+      include: {
+        homeTeam: { select: { id: true, name: true, logoUrl: true } },
+        awayTeam: { select: { id: true, name: true, logoUrl: true } },
+        competition: { select: { id: true, name: true, logoUrl: true } },
+      },
+    });
+
+    return res.status(200).json({
+      data: updated,
+      message: `Match finished: ${updated.homeTeam.name} ${finalHomeScore} - ${finalAwayScore} ${updated.awayTeam.name}`,
+    });
+  } catch (error) {
+    console.error('Admin finish demo match error:', error);
+    return res.status(500).json({ error: 'Failed to finish match.' });
+  }
+});
+
+/**
+ * POST /api/admin/demo/settle
+ * Trigger settlement of all pending bets on finished matches
+ */
+router.post('/demo/settle', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const result = await settlementService.settleFinishedMatches();
+    return res.status(200).json({
+      data: result,
+      message: `Settlement completed: ${result.betsSettled} bet(s) settled, ${result.pointsCredited} points credited.`,
+    });
+  } catch (error) {
+    console.error('Admin demo settle error:', error);
+    return res.status(500).json({ error: 'Settlement failed.' });
   }
 });
 

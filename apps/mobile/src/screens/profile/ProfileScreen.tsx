@@ -13,7 +13,7 @@ import { leagueService, League } from '@/services/league.service';
 import { UserWithStats } from '@/types/stats';
 import { ProfileStackParamList } from '@/types/navigation';
 
-import { Cup, DollarCircle, HuobiToken, Lovely, Receipt21, ArrowRight2, Coin } from 'iconsax-react-nativejs';
+import { Cup, DollarCircle, HuobiToken, Lovely, Receipt21, ArrowRight2, Coin, Setting2 } from 'iconsax-react-nativejs';
 import { Tag } from '@/components/ui/Tag';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
@@ -150,6 +150,20 @@ export function ProfileScreen() {
         <ArrowRight2 size={18} color={colors.textSecondary} variant="Outline" />
       </TouchableOpacity>
 
+      {profile?.user.role === 'admin' && (
+        <TouchableOpacity
+          style={[styles.menuRow, styles.adminMenuRow]}
+          onPress={() => navigation.navigate('AdminDemo')}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.menuIcon, styles.adminMenuIcon]}>
+            <Setting2 size="20" color={colors.secondary} variant="Bulk" />
+          </View>
+          <Text style={[typo.pBold, styles.menuLabel]}>Admin Demo</Text>
+          <ArrowRight2 size={18} color={colors.textSecondary} variant="Outline" />
+        </TouchableOpacity>
+      )}
+
       {leagues.length > 0 && (
         <View style={styles.groupsSection}>
           <Text style={[typo.smallSecondary, styles.groupsTitle]}>MES GROUPES</Text>
@@ -280,6 +294,13 @@ const styles = StyleSheet.create({
   },
   menuLabel: {
     flex: 1,
+  },
+  adminMenuRow: {
+    marginTop: spacing.sm,
+    borderColor: colors.secondary,
+  },
+  adminMenuIcon: {
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
   },
 
   // Mes groupes

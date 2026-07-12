@@ -22,6 +22,7 @@ export type PronosticsStackParamList = {
 export type ProfileStackParamList = {
   ProfileHome: undefined;
   MyBets: undefined;
+  AdminDemo: undefined;
 };
 
 export type AppTabParamList = {
