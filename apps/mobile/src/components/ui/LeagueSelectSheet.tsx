@@ -34,11 +34,13 @@ export function LeagueSelectSheet({ visible, leagues, onClose, onSelect }: Leagu
               <Text style={typo.pBold} numberOfLines={1}>
                 {league.name}
               </Text>
-              {league._count?.members != null && (
-                <Text style={typo.smallSecondary}>
-                  {league._count.members} membre{league._count.members > 1 ? 's' : ''}
-                </Text>
-              )}
+              <Text style={typo.smallSecondary}>
+                {league.myPoints != null ? `${league.myPoints} pts` : ''}
+                {league._count?.members != null && league.myPoints != null ? ' · ' : ''}
+                {league._count?.members != null
+                  ? `${league._count.members} membre${league._count.members > 1 ? 's' : ''}`
+                  : ''}
+              </Text>
             </View>
             <ArrowRight2 size={18} color={colors.textSecondary} variant="Outline" />
           </TouchableOpacity>

@@ -259,7 +259,7 @@ export function PronosticDetailScreen() {
 
     if (!match) return;
 
-    // Raw match: pick the target league (auto when there's only one).
+    // Raw match: always let the user pick which league to bet in.
     setSubmitting(true);
     let leagues: League[] = [];
     try {
@@ -271,18 +271,12 @@ export function PronosticDetailScreen() {
     }
     setSubmitting(false);
 
-    if (match?.competitionId) {
-      leagues = leagues.filter((league) => league.currentCompetitionId === match.competitionId);
-    }
-
     if (leagues.length === 0) {
       Alert.alert('Aucune ligue', 'Rejoignez ou créez une ligue pour pouvoir parier.');
       return;
     }
-    if (leagues.length === 1) {
-      await submitWithLeague(leagues[0]);
-      return;
-    }
+
+    // Always show the league selector so the user explicitly chooses where to bet
     setLeagueChoices(leagues);
   };
 

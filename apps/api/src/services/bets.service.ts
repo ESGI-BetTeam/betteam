@@ -88,22 +88,11 @@ class BetsService {
   }
 
   /**
-   * Check if a user can place a bet (weekly limit check)
+   * Check if a user can place a bet
+   * Note: Weekly limits have been removed - all users can bet unlimited
    */
-  async canPlaceBet(userId: string, leagueId: string): Promise<BetValidationResult> {
-    const status = await this.getWeeklyBetStatus(userId, leagueId);
-
-    if (status.isUnlimited) {
-      return { valid: true };
-    }
-
-    if (status.remaining <= 0) {
-      return {
-        valid: false,
-        error: `Vous avez atteint la limite de ${status.limit} paris par semaine. Limite réinitialisée le ${status.resetsAt.toLocaleDateString('fr-FR')}.`,
-      };
-    }
-
+  async canPlaceBet(_userId: string, _leagueId: string): Promise<BetValidationResult> {
+    // No limits - always allow betting
     return { valid: true };
   }
 
