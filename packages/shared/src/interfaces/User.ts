@@ -9,6 +9,8 @@ export interface User {
   lastName: string | null;
   role: UserRole;
   isActive: boolean;
+  isVerified: boolean;
+  pushTokens: string[];
   updatedAt: Date;
   createdAt: Date;
 }

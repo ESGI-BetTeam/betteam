@@ -4,6 +4,9 @@ import type { GroupBet, Match } from '@/services/match.service';
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { token?: string };
+  VerifyEmail: { token?: string };
 };
 
 export type LeaguesStackParamList = {

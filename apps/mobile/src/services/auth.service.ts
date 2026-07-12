@@ -21,9 +21,10 @@ interface LoginResponse {
 }
 
 interface RegisterResponse {
-  user: User;
-  token: string;
-  refreshToken: string;
+  message?: string;
+  user?: User;
+  token?: string;
+  refreshToken?: string;
 }
 
 interface AuthMeResponse {
@@ -67,5 +68,18 @@ export const authService = {
 
   async forgotPassword(email: string): Promise<void> {
     await api.post('/auth/forgot-password', { email });
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const { data } = await api.post<{ message: string }>('/auth/reset-password', {
+      token,
+      newPassword,
+    });
+    return data;
+  },
+
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    const { data } = await api.post<{ message: string }>('/auth/verify-email', { token });
+    return data;
   },
 };
