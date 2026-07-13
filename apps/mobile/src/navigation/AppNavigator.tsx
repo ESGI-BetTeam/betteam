@@ -29,7 +29,7 @@ const TAB_CONFIG: Record<
   Leagues: { label: 'Ligues', icon: People },
   Pronostics: { label: 'Pronostiques', icon: Receipt21 },
   Profile: { label: 'Profil', icon: Profile },
-  Components: { label: 'Composants', icon: MainComponent },
+  // Components: { label: 'Composants', icon: MainComponent },
 };
 
 const SCREEN_MAP: Record<TabName, React.ComponentType> = {
