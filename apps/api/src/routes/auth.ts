@@ -422,10 +422,6 @@ router.post(
         },
       });
 
-      // Build reset URL
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-
       // Send email with reset link
       await sendPasswordResetEmail(user.email, resetToken);
 
@@ -577,20 +573,142 @@ router.post(
   },
 );
 
-// GET /api/auth/verify-redirect (To bypass email clients removing custom schemes)
-router.get('/verify-redirect', (req: Request, res: Response) => {
-  const { token } = req.query;
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const separator = frontendUrl.endsWith('://') ? '' : frontendUrl.endsWith('/') ? '' : '/';
-  res.redirect(`${frontendUrl}${separator}verify-email?token=${token}`);
+// GET /api/auth/verify-redirect (Verifies email directly and returns HTML)
+router.get('/verify-redirect', async (req: Request, res: Response) => {
+  try {
+    const token = req.query.token as string;
+    
+    if (!token) {
+      return res.status(400).send('<h1>Erreur</h1><p>Token manquant.</p>');
+    }
+
+    const tokenHash = hashToken(token);
+
+    const verificationToken = await prisma.emailVerificationToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+
+    const errorHtml = (title: string, message: string) => `
+      <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title><style>body{font-family:sans-serif;background:#0B0F1A;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;text-align:center;}.container{background:#1A2235;padding:40px;border-radius:12px;}h1{color:#F44336;}</style></head><body><div class="container"><h1>❌ ${title}</h1><p>${message}</p></div></body></html>
+    `;
+
+    const successHtml = `
+      <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Email Vérifié</title><style>body{font-family:sans-serif;background:#0B0F1A;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;text-align:center;}.container{background:#1A2235;padding:40px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.5);}h1{color:#4CAF50;}p{font-size:1.1em;line-height:1.5;}</style></head><body><div class="container"><h1>✅ E-mail vérifié avec succès !</h1><p>Votre compte BetTeam est maintenant activé.<br><br>Vous pouvez fermer cette page et vous connecter sur l'application mobile.</p></div></body></html>
+    `;
+
+    if (!verificationToken) {
+      return res.status(400).send(errorHtml('Lien invalide', 'Le lien de vérification est invalide ou introuvable.'));
+    }
+
+    if (verificationToken.usedAt) {
+      return res.status(400).send(errorHtml('Déjà vérifié', 'Cet e-mail a déjà été vérifié. Vous pouvez vous connecter sur l\\'application.'));
+    }
+
+    if (verificationToken.expiresAt < new Date()) {
+      return res.status(400).send(errorHtml('Lien expiré', 'Le lien de vérification a expiré.'));
+    }
+
+    // Mark token as used and set user to verified
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: verificationToken.userId },
+        data: { isVerified: true },
+      }),
+      prisma.emailVerificationToken.update({
+        where: { id: verificationToken.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    return res.status(200).send(successHtml);
+  } catch (error) {
+    console.error('Erreur Verify Redirect:', error);
+    return res.status(500).send('<h1>Erreur Serveur</h1><p>Une erreur interne est survenue.</p>');
+  }
 });
 
-// GET /api/auth/reset-redirect (To bypass email clients removing custom schemes)
+// GET /api/auth/reset-redirect (Serves an HTML page to reset password directly on the web)
 router.get('/reset-redirect', (req: Request, res: Response) => {
   const { token } = req.query;
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const separator = frontendUrl.endsWith('://') ? '' : frontendUrl.endsWith('/') ? '' : '/';
-  res.redirect(`${frontendUrl}${separator}reset-password?token=${token}`);
+  
+  if (!token) {
+    return res.status(400).send('<h1>Erreur</h1><p>Token manquant.</p>');
+  }
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Réinitialisation du mot de passe</title>
+      <style>
+        body { font-family: sans-serif; background: #0B0F1A; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #1A2235; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%; max-width: 400px; text-align: center; }
+        h1 { color: #4CAF50; margin-bottom: 20px; font-size: 24px; }
+        input { width: 100%; padding: 12px; margin: 15px 0; border: none; border-radius: 6px; background: #2A3441; color: white; box-sizing: border-box; }
+        button { width: 100%; background: #4CAF50; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.3s; }
+        button:hover { background: #45a049; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        #message { margin-top: 15px; font-weight: bold; }
+        .error { color: #F44336; }
+      </style>
+    </head>
+    <body>
+      <div class="container" id="form-container">
+        <h1>Nouveau mot de passe</h1>
+        <p>Veuillez entrer votre nouveau mot de passe ci-dessous.</p>
+        <form id="reset-form">
+          <input type="password" id="newPassword" placeholder="Nouveau mot de passe (min 6 car.)" required minlength="6">
+          <button type="submit" id="submit-btn">Réinitialiser</button>
+        </form>
+        <div id="message"></div>
+      </div>
+
+      <script>
+        document.getElementById('reset-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const btn = document.getElementById('submit-btn');
+          const msg = document.getElementById('message');
+          const newPassword = document.getElementById('newPassword').value;
+          const token = new URLSearchParams(window.location.search).get('token');
+
+          btn.disabled = true;
+          btn.innerText = 'Chargement...';
+          msg.innerText = '';
+          msg.className = '';
+
+          try {
+            const response = await fetch('/api/auth/reset-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token, newPassword })
+            });
+            
+            const data = await response.json();
+
+            if (response.ok) {
+              document.getElementById('form-container').innerHTML = '<h1>✅ Succès !</h1><p>Votre mot de passe a été mis à jour.<br><br>Vous pouvez fermer cette page et vous connecter sur l\\'application mobile.</p>';
+            } else {
+              msg.innerText = data.error || 'Une erreur est survenue.';
+              msg.className = 'error';
+              btn.disabled = false;
+              btn.innerText = 'Réinitialiser';
+            }
+          } catch (err) {
+            msg.innerText = 'Erreur de connexion.';
+            msg.className = 'error';
+            btn.disabled = false;
+            btn.innerText = 'Réinitialiser';
+          }
+        });
+      </script>
+    </body>
+    </html>
+  `;
+
+  res.status(200).send(htmlContent);
 });
 
 export default router;
