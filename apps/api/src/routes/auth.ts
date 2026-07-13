@@ -422,10 +422,6 @@ router.post(
         },
       });
 
-      // Build reset URL
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-
       // Send email with reset link
       await sendPasswordResetEmail(user.email, resetToken);
 
