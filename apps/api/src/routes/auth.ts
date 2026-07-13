@@ -581,14 +581,16 @@ router.post(
 router.get('/verify-redirect', (req: Request, res: Response) => {
   const { token } = req.query;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  res.redirect(`${frontendUrl}/verify-email?token=${token}`);
+  const separator = frontendUrl.endsWith('://') ? '' : frontendUrl.endsWith('/') ? '' : '/';
+  res.redirect(`${frontendUrl}${separator}verify-email?token=${token}`);
 });
 
 // GET /api/auth/reset-redirect (To bypass email clients removing custom schemes)
 router.get('/reset-redirect', (req: Request, res: Response) => {
   const { token } = req.query;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  res.redirect(`${frontendUrl}/reset-password?token=${token}`);
+  const separator = frontendUrl.endsWith('://') ? '' : frontendUrl.endsWith('/') ? '' : '/';
+  res.redirect(`${frontendUrl}${separator}reset-password?token=${token}`);
 });
 
 export default router;
