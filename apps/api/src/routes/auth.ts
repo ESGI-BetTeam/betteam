@@ -602,7 +602,7 @@ router.get('/verify-redirect', async (req: Request, res: Response) => {
     }
 
     if (verificationToken.usedAt) {
-      return res.status(400).send(errorHtml('Déjà vérifié', 'Cet e-mail a déjà été vérifié. Vous pouvez vous connecter sur l\\'application.'));
+      return res.status(400).send(errorHtml("Déjà vérifié", "Cet e-mail a déjà été vérifié. Vous pouvez vous connecter sur l'application."));
     }
 
     if (verificationToken.expiresAt < new Date()) {
@@ -689,7 +689,7 @@ router.get('/reset-redirect', (req: Request, res: Response) => {
             const data = await response.json();
 
             if (response.ok) {
-              document.getElementById('form-container').innerHTML = '<h1>✅ Succès !</h1><p>Votre mot de passe a été mis à jour.<br><br>Vous pouvez fermer cette page et vous connecter sur l\\'application mobile.</p>';
+              document.getElementById('form-container').innerHTML = "<h1>✅ Succès !</h1><p>Votre mot de passe a été mis à jour.<br><br>Vous pouvez fermer cette page et vous connecter sur l'application mobile.</p>";
             } else {
               msg.innerText = data.error || 'Une erreur est survenue.';
               msg.className = 'error';
